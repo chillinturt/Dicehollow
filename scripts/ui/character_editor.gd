@@ -49,6 +49,9 @@ func _ready() -> void:
 	title_lbl = UIKit.header("")
 	UIKit.expand(title_lbl)
 	top.add_child(title_lbl)
+	var lvl = UIKit.btn("⬆ Level Up…", func(): _open_level_up(), "Guided level-up: pick a class or multiclass, hit points, subclass, ASI or feat, options and spells. A backup of the current sheet is kept in History.")
+	lvl.custom_minimum_size = Vector2(150, 38)
+	top.add_child(lvl)
 	var save = UIKit.btn("💾 Save Character", _save)
 	save.custom_minimum_size = Vector2(180, 38)
 	top.add_child(save)
@@ -136,9 +139,78 @@ func _add_premades() -> void:
 	_reload_list()
 
 func _save() -> void:
+	_backup_before_save()
 	CharacterStore.save_character(ch)
 	_reload_list(ch.id)
 	title_lbl.text = "%s — saved ✓" % ch.name
+
+## Keep the saved version in the history before overwriting it with builder edits. Edits saved within
+## a few minutes of each other share one backup, so the history isn't flooded.
+func _backup_before_save() -> void:
+	if str(ch.get("id", "")) == "":
+		return
+	var prev := CharacterStore.get_character(ch.id)
+	if prev.is_empty():
+		return
+	var a := JSON.stringify(Progression.strip_history(prev), "", true)
+	var b := JSON.stringify(Progression.strip_history(ch), "", true)
+	if a == b:
+		return
+	var hist: Array = prev.get("history", [])
+	var now := int(Time.get_unix_time_from_system())
+	if not hist.is_empty() and str(hist[-1].get("label", "")) == "Before builder edits" and now - int(hist[-1].get("t", 0)) < 900:
+		ch.history = hist
+		return
+	Progression.push_history(prev, "Before builder edits")
+	ch.history = prev.history
+
+## Guided level-up from the builder (no DM cap here: the builder is for your own characters).
+func _open_level_up() -> LevelUpWizard:
+	if ch.is_empty():
+		return null
+	if Rules.total_level(ch) >= 20:
+		title_lbl.text = "%s is already level 20." % ch.get("name", "")
+		return null
+	for n in get_children():
+		if n is LevelUpWizard:
+			n.close()
+	var w := LevelUpWizard.new(ch)
+	w.finished.connect(func(new_sheet, label):
+		var old := ch.duplicate(true)
+		_backup_before_save()  # unsaved builder edits are kept as their own backup first
+		old.history = ch.get("history", [])
+		Progression.push_history(old, label)
+		var nxt: Dictionary = new_sheet.duplicate(true)
+		nxt.history = old.history
+		ch = nxt
+		CharacterStore.save_character(ch)
+		_reload_list(ch.id)
+		_rebuild()
+		title_lbl.text = "%s — now level %d ✓ (backup in History)" % [ch.name, Rules.total_level(ch)])
+	add_child(w)
+	return w
+
+func _restore(index: int) -> void:
+	var hist: Array = ch.get("history", [])
+	if index < 0 or index >= hist.size():
+		return
+	var entry: Dictionary = hist[index]
+	var dlg = ConfirmationDialog.new()
+	dlg.title = "Restore an earlier sheet?"
+	dlg.dialog_text = "Restore \"%s\" (level %d: %s)?\nThe current sheet is backed up first, so you can undo this." % [entry.get("label", "backup"), int(entry.get("level", 0)), entry.get("summary", "")]
+	dlg.dialog_autowrap = true
+	dlg.min_size = Vector2i(460, 0)
+	dlg.confirmed.connect(func():
+		ch = Progression.restore(ch, index)
+		_ensure_fields()
+		CharacterStore.save_character(ch)
+		_reload_list(ch.id)
+		_rebuild()
+		title_lbl.text = "%s — restored ✓" % ch.name
+		dlg.queue_free())
+	dlg.canceled.connect(dlg.queue_free)
+	add_child(dlg)
+	dlg.popup_centered()
 
 func _ensure_fields() -> void:
 	var base = Rules.new_character()
@@ -158,6 +230,8 @@ func _rebuild() -> void:
 	_tab_skills()
 	_tab_equipment()
 	_tab_spells()
+	_tab_plan()
+	_tab_history()
 	tabs.current_tab = clampi(cur, 0, tabs.get_tab_count() - 1)
 	_refresh_sheet()
 
@@ -309,7 +383,7 @@ func _on_portrait_file(path: String) -> void:
 
 func _tab_classes() -> void:
 	var v = _page("Classes & Feats")
-	v.add_child(UIKit.lbl("Your first class sets saving throws and full armor proficiencies. Add more classes to multiclass.", 13, UIKit.MUTED))
+	v.add_child(_wl("Your first class sets saving throws and full armor proficiencies. Add more classes to multiclass, or use ⬆ Level Up for a guided level with every choice explained.", 13, UIKit.MUTED))
 	var classes: Array = []
 	for c in Data.classes.values():
 		classes.append([c.id, "%s  (%s)" % [c.name, c.source]])
@@ -349,7 +423,20 @@ func _tab_classes() -> void:
 	v.add_child(UIKit.lbl("Total level %d   •   Proficiency bonus +%d" % [total, Rules.prof_bonus(total)], 16, UIKit.GOLD))
 	if total > 20:
 		v.add_child(UIKit.lbl("Total level can't exceed 20.", 14, UIKit.BAD))
-	# ASIs / feats.
+	# Hit points rolled at level-ups (otherwise each level after the first takes the average).
+	var rolls: Dictionary = ch.get("hp_rolls", {})
+	var rolled: PackedStringArray = []
+	for c in ch.classes:
+		var got: Array = rolls.get(c.id, [])
+		if not got.is_empty():
+			rolled.append("%s %s" % [Data.cls(c.id).name, ", ".join(got.map(func(x): return str(int(x))))])
+	var hpr = UIKit.hbox(8)
+	hpr.add_child(_wl("Hit points per level: " + ("; ".join(rolled) + "  (levels without a roll use the average)" if not rolled.is_empty() else "maximum at 1st level, then the average (rolls made in Level Up are kept here)"), 13, UIKit.MUTED))
+	if not rolled.is_empty():
+		hpr.add_child(UIKit.btn("Use averages", func(): ch.hp_rolls = {}; _changed(true), "Forget the rolled hit points and use the fixed average for every level"))
+	v.add_child(hpr)
+	# ASIs / feats, paired with their slots by class and level (not by position).
+	Progression.sort_asi(ch)
 	var slots = Rules.asi_slots(ch)
 	if not slots.is_empty():
 		v.add_child(UIKit.header("Ability Score Improvements", 18))
@@ -496,7 +583,7 @@ func _tab_skills() -> void:
 	var bg_sk: Array = Data.BACKGROUNDS.get(ch.background, [])
 	var race_sk: Array = Data.race(ch.race).get("skills", [])
 	var n = int(cd.get("skill_count", 2)) + int(Data.race(ch.race).get("skill_choices", 0))
-	v.add_child(UIKit.lbl("Choose %d skills (%s class list%s). Background and racial skills are automatic." % [n, cd.name, " + race" if Data.race(ch.race).get("skill_choices", 0) else ""], 14, UIKit.MUTED))
+	v.add_child(_wl("Choose %d skills (%s class list%s). Background and racial skills are automatic." % [n, cd.name, " + race" if Data.race(ch.race).get("skill_choices", 0) else ""], 14, UIKit.MUTED))
 	var st = Rules.derive(ch)
 	var grid = GridContainer.new()
 	grid.columns = 4
@@ -520,7 +607,7 @@ func _tab_skills() -> void:
 			_changed(true)))
 		grid.add_child(UIKit.lbl(Rules.fmt_mod(int(st.skills[sk])), 16, UIKit.GOLD))
 	v.add_child(grid)
-	v.add_child(UIKit.lbl("Chosen: %d / %d   (• = on your class list; Expertise comes from Rogue, Bard and some feats)" % [ch.skills.size(), n], 14, UIKit.MUTED))
+	v.add_child(_wl("Chosen: %d / %d   (• = on your class list; Expertise comes from Rogue, Bard and some feats)" % [ch.skills.size(), n], 14, UIKit.MUTED))
 
 # ---------------------------------------------------------------- equipment
 
@@ -535,7 +622,7 @@ func _tab_equipment() -> void:
 	_row(v, "Armor", UIKit.option(armors, eq.get("armor", ""), func(id): eq.armor = id; _changed(true)))
 	v.add_child(UIKit.check("Shield (+2 AC)%s" % ("" if "shield" in st.armor_prof else "  ⚠ not proficient"), eq.get("shield", false), func(p): eq.shield = p; _changed(true)))
 	if st.get("armor_unproficient", false):
-		v.add_child(UIKit.lbl("⚠ Without proficiency in this armor or shield you can't cast spells, and you have disadvantage on attack rolls and saves that use Strength or Dexterity.", 13, Color(1.0, 0.7, 0.4)))
+		v.add_child(_wl("⚠ Without proficiency in this armor or shield you can't cast spells, and you have disadvantage on attack rolls and saves that use Strength or Dexterity.", 13, Color(1.0, 0.7, 0.4)))
 	_row(v, "Magic armor bonus", UIKit.spin(0, 3, int(eq.get("armor_bonus", 0)), func(val): eq.armor_bonus = int(val); _changed()))
 	_row(v, "Magic weapon bonus", UIKit.spin(0, 3, int(eq.get("weapon_bonus", 0)), func(val): eq.weapon_bonus = int(val); _changed()))
 	v.add_child(UIKit.header("Weapons", 18))
@@ -601,12 +688,12 @@ func _tab_spells() -> void:
 			if wiz:
 				txt += ", spellbook %d (%d free from wizard levels)" % [(ch.spellbook as Array).size(), Rules.spellbook_free_spells(wiz_level)]
 			return txt + " (max level %d)" % max_lv
-		var head = UIKit.lbl(head_text.call(), 16, UIKit.GOLD)
+		var head = _wl(head_text.call(), 16, UIKit.GOLD)
 		v.add_child(head)
 		if wiz:
-			v.add_child(UIKit.lbl("Tick Book for every spell written in your spellbook, and the first box for the ones you have prepared today. Only spells in the book can be prepared.", 13, UIKit.MUTED))
+			v.add_child(_wl("Tick Book for every spell written in your spellbook, and the first box for the ones you have prepared today. Only spells in the book can be prepared.", 13, UIKit.MUTED))
 		if not bonus.is_empty():
-			v.add_child(UIKit.lbl("Always prepared: " + ", ".join(bonus.map(func(x): return Data.spell(x).get("name", x))), 13, UIKit.GOOD))
+			v.add_child(_wl("Always prepared: " + ", ".join(bonus.map(func(x): return Data.spell(x).get("name", x))), 13, UIKit.GOOD))
 		var tree = Tree.new()
 		tree.columns = 4 if wiz else 3
 		tree.hide_root = true
@@ -684,7 +771,7 @@ func _tab_spells() -> void:
 		for s in Data.spells_for_class(sr.bonus_cantrip, 0):
 			items.append([s.id, s.name])
 		_row(v, "%s cantrip" % sr.name, UIKit.option(items, arr[0] if arr.size() > 0 else "", func(id): ch.spells["race"] = [id] if id != "" else []; _changed()))
-	v.add_child(UIKit.lbl("Spells marked · have no combat automation (the DM adjudicates them).", 13, UIKit.MUTED))
+	v.add_child(_wl("Spells marked · have no combat automation (the DM adjudicates them).", 13, UIKit.MUTED))
 	search.text_changed.connect(func(t):
 		spell_filter = t.to_lower()
 		for tree in boxes:
@@ -692,6 +779,48 @@ func _tab_spells() -> void:
 			while it:
 				it.visible = spell_filter == "" or spell_filter in it.get_text(0).to_lower() or spell_filter in it.get_text(int(tree.get_meta("sum_col", 2))).to_lower()
 				it = it.get_next())
+
+# ---------------------------------------------------------------- level plan & history
+
+## A label that wraps in its column.
+func _wl(text: String, fsize := 14, color := UIKit.INK) -> Label:
+	var l = UIKit.lbl(text, fsize, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(80, 0)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
+
+func _tab_plan() -> void:
+	var v = _page("Level Plan")
+	var plan := LevelPlanView.new(ch, true)
+	plan.changed.connect(func(_p): dirty = true; title_lbl.text = "%s *" % ch.get("name", ""))
+	v.add_child(plan)
+
+func _tab_history() -> void:
+	var v = _page("History")
+	v.add_child(_wl("A backup is saved before every level-up and restore, and when you save changes in the builder (edits within 15 minutes share one backup). Restoring makes that version current; the version you replace is backed up too. XP and levels granted by a DM are kept.", 13, UIKit.MUTED))
+	var hist: Array = ch.get("history", [])
+	if hist.is_empty():
+		v.add_child(UIKit.lbl("No backups yet.", 14, UIKit.MUTED))
+		return
+	for i in range(hist.size() - 1, -1, -1):
+		var h: Dictionary = hist[i]
+		var row = UIKit.hbox(10)
+		var info = UIKit.vbox(2)
+		UIKit.expand(info)
+		info.add_child(UIKit.lbl(str(h.get("label", "Backup")), 15, UIKit.INK))
+		var when := Time.get_datetime_string_from_unix_time(int(h.get("t", 0)) + CharacterSheet._tz_offset(), true)
+		info.add_child(_wl("%s   ·   level %d: %s" % [when, int(h.get("level", 0)), str(h.get("summary", ""))], 12, UIKit.MUTED))
+		var diffs := Progression.diff_lines(h.get("data", {}), ch)
+		if not diffs.is_empty():
+			info.add_child(_wl("Differs from now: " + "; ".join(diffs.slice(0, 4)) + (" …" if diffs.size() > 4 else ""), 12, Color("#c8b48a")))
+		row.add_child(info)
+		var idx := i
+		var rb = UIKit.btn("Restore", func(): _restore(idx), "Make this version the current sheet (the current one is backed up first)")
+		rb.custom_minimum_size = Vector2(96, 34)
+		row.add_child(rb)
+		v.add_child(row)
+		v.add_child(HSeparator.new())
 
 # ================================================================ sheet
 

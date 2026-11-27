@@ -16,7 +16,8 @@ func _ready() -> void:
 	var root = UIKit.hbox(30)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(UIKit.margin(root, 48))
-	get_child(1).set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Offsets too, not just anchors: otherwise the margin keeps its old size and squeezes the right panel.
+	get_child(1).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# Left column: title and navigation.
 	var left = UIKit.vbox(14)
 	left.custom_minimum_size = Vector2(380, 0)

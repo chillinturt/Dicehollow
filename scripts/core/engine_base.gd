@@ -21,7 +21,8 @@ static func new_state(w: int, h: int) -> Dictionary:
 	cells.fill(FLOOR)
 	# "clock" counts elapsed game time in rounds (6 seconds each); see revivable().
 	return {"name": "Untitled", "w": w, "h": h, "cells": cells, "combatants": {}, "order": [], "turn": 0, "round": 0, "clock": 0,
-		"in_combat": false, "zones": [], "items": [], "log": [], "next_id": 1, "spawns": [], "theme": "stone"}
+		"in_combat": false, "zones": [], "items": [], "log": [], "next_id": 1, "spawns": [], "theme": "stone",
+		"fog": {"mode": "off", "shared": true, "range": 0}, "fog_seen": {}}
 
 # ================================================================ basics
 

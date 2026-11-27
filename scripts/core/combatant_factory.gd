@@ -64,6 +64,8 @@ static func from_character(id: String, ch: Dictionary, owner: int) -> Dictionary
 	c.init_adv = st.init_advantage
 	c.skills = st.skills
 	c.passive = st.passive_perception
+	if int(st.get("darkvision", 0)) > 0:
+		c.senses = "darkvision %d ft" % int(st.darkvision)  # how far they see in the dark (fog of war)
 	c.summary = "%s %s" % [_race_name(ch), Rules.class_summary(ch)]
 	c.heavy_armor = st.heavy_armor
 	c.armored = st.armored

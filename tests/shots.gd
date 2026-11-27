@@ -27,6 +27,10 @@ func _ready() -> void:
 	await _snap("characters_classes")
 	ce.tabs.current_tab = 5
 	await _snap("characters_spells")
+	ce.tabs.current_tab = 6
+	await _snap("characters_plan")
+	ce.tabs.current_tab = 7
+	await _snap("characters_history")
 	ce.queue_free()
 	Session.start_offline("Tester", 26, 18)
 	var y := 4
@@ -62,4 +66,35 @@ func _ready() -> void:
 			b._on_action_pressed(a)
 			break
 	await _snap("battle_targeting")
+	b._cancel_mode()
+	# Character sheet and levelling.
+	Session.request({"type": "dm_end_combat"})
+	await get_tree().create_timer(0.3).timeout
+	var pc: Dictionary = Session.state.combatants.values().filter(func(o): return o.kind == "pc")[2]
+	b.control_cid = pc.id
+	b.selected_cid = pc.id
+	Session.request({"type": "dm_grant_level"})
+	b.dm_tabs.current_tab = 3
+	b._refresh_ui()
+	await _snap("battle_party_tab")
+	var sw = b._open_sheet(pc.id)
+	await _snap("sheet_overview")
+	for t in [1, 2, 3]:
+		sw.tabs.current_tab = t
+		await _snap("sheet_tab%d" % t)
+	sw.close()
+	var lw = b._open_level_up(pc.id)
+	var n := 0
+	while is_instance_valid(lw) and n < 10:
+		await _snap("levelup_%d_%s" % [n, lw.step_name()])
+		if lw.is_last_step():
+			break
+		lw.next_step(true)
+		n += 1
+	if is_instance_valid(lw):
+		lw.close()
+	var mw = b._open_level_up(Session.state.combatants.values().filter(func(o): return o.kind == "pc")[4].id, true)
+	mw.pick_class("fighter")
+	await _snap("levelup_multiclass")
+	mw.close()
 	get_tree().quit()

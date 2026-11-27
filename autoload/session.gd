@@ -10,6 +10,7 @@ signal status(text: String)
 signal portrait_arrived(key: String)
 signal bg_arrived(key: String)
 signal session_ended(reason: String)
+signal sheets_changed
 
 const DEFAULT_PORT := 7777
 const AI_DELAY := 0.7
@@ -27,6 +28,9 @@ var auto_monsters := true
 var _ai_busy := false
 var _pending_character: Dictionary = {}
 var last_end_reason := ""  # why the last game ended (shown on the main menu)
+## Character sheets of the PCs in the game (cid -> character dictionary without its history), kept in
+## sync on every peer so party members can read each other's sheets and level plans.
+var sheets := {}
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_on_peer_connected)
@@ -73,6 +77,7 @@ func host(dm_name: String, gname: String, port := DEFAULT_PORT, map_w := 24, map
 	players = {1: {"name": dm_name + " (DM)", "cids": []}}
 	_set_state(EngineBase.new_state(map_w, map_h))
 	state.name = gname
+	state.advancement = "milestone"
 	_default_spawns()
 	status.emit("Hosting \"%s\" on port %d. Players can join with your IP address." % [gname, port])
 	return OK
@@ -85,6 +90,7 @@ func start_offline(dm_name: String, map_w := 24, map_h := 16) -> void:
 	players = {1: {"name": dm_name + " (DM)", "cids": []}}
 	_set_state(EngineBase.new_state(map_w, map_h))
 	state.name = game_name
+	state.advancement = "milestone"
 	_default_spawns()
 
 func join(ip: String, port: int, player_name: String, character: Dictionary) -> Error:
@@ -96,7 +102,11 @@ func join(ip: String, port: int, player_name: String, character: Dictionary) -> 
 	multiplayer.multiplayer_peer = peer
 	role = "player"
 	my_name = player_name
-	_pending_character = character
+	if str(character.get("id", "")) == "":
+		# A premade has no id yet: give it one so its progress can be saved on this machine later.
+		character = character.duplicate(true)
+		character.id = CharacterStore.new_id()
+	_pending_character = Progression.strip_history(character)
 	status.emit("Connecting to %s:%d…" % [ip, port])
 	return OK
 
@@ -109,6 +119,7 @@ func _reset() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	role = ""
 	players = {}
+	sheets = {}
 	_set_state(EngineBase.new_state(24, 16))
 
 func _default_spawns() -> void:
@@ -131,6 +142,7 @@ func _on_peer_connected(id: int) -> void:
 		if state.get("bg", "") != "":
 			_rpc_bg.rpc_id(id, state.bg, CharacterStore.get_bg_bytes(state.bg))
 		_rpc_state.rpc_id(id, state, [])
+		_rpc_sheets.rpc_id(id, sheets)
 		_rpc_players.rpc_id(id, players)
 
 func _on_peer_disconnected(id: int) -> void:
@@ -205,6 +217,20 @@ func _rpc_kicked(reason: String) -> void:
 func _rpc_state(st: Dictionary, events: Array) -> void:
 	_set_state(st)
 	state_changed.emit(events)
+
+@rpc("authority", "reliable")
+func _rpc_sheets(s: Dictionary) -> void:
+	sheets = s
+	sheets_changed.emit()
+
+## The server tells a character's owner to save a changed sheet (level-up, restore, XP) on their disk.
+@rpc("authority", "reliable")
+func _rpc_store_sheet(sheet: Dictionary, label: String, old_sheet: Dictionary) -> void:
+	store_local(sheet, label, old_sheet)
+
+@rpc("authority", "reliable")
+func _rpc_status(text: String) -> void:
+	status.emit(text)
 
 @rpc("authority", "reliable")
 func _rpc_players(p: Dictionary) -> void:
@@ -288,6 +314,8 @@ func _broadcast(events: Array) -> void:
 	# (a DM-applied condition or a reaction may have changed the mover's speed).
 	if state.in_combat:
 		engine.sync_move(engine.current())
+	# Fog of war: whatever the party sees now (or saw along the way) is remembered.
+	Fog.update_seen(engine, events)
 	state_changed.emit(events)
 	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		_rpc_state.rpc(state, events)
@@ -306,6 +334,13 @@ func can_control(peer: int, c: Dictionary) -> bool:
 
 func add_character(ch: Dictionary, owner: int, at = null) -> String:
 	var cid = engine.new_id("p")
+	ch = Progression.strip_history(ch)
+	if str(ch.get("id", "")) == "":
+		ch.id = CharacterStore.new_id()  # so its progress can be saved later
+	for k in ["xp", "level_cap"]:
+		if not ch.has(k):
+			ch[k] = 0
+	sheets[cid] = ch
 	var c = CombatantFactory.from_character(cid, ch, owner)
 	c.pos = at if at is Vector2i else _spawn_cell()
 	state.combatants[cid] = c
@@ -388,7 +423,23 @@ func _handle(peer: int, req: Dictionary) -> void:
 				req.erase("dc")
 				req.erase("damage")
 			_group_roll(who, req)
+		"set_sheet":
+			_set_sheet(peer, c, req.get("sheet", {}), str(req.get("label", "")))
 		# ---------------- DM tools
+		"dm_advancement":
+			if dm and str(req.get("mode", "")) in ["xp", "milestone"]:
+				state.advancement = req.mode
+				engine.log_line("[color=#ffd166]Advancement: %s.[/color]" % ("experience points" if req.mode == "xp" else "milestones (the DM grants levels)"))
+				_broadcast_sheets()
+		"dm_xp":
+			if dm:
+				_award_xp(_pc_targets(req), int(req.get("amount", 0)), req.get("split", false))
+		"dm_award_encounter":
+			if dm:
+				_award_encounter_xp()
+		"dm_grant_level":
+			if dm:
+				_grant_level(_pc_targets(req))
 		"dm_place_monster":
 			if dm and not Data.monster(str(req.mid)).is_empty():
 				var hidden: bool = req.get("hidden", false)
@@ -520,6 +571,18 @@ func _handle(peer: int, req: Dictionary) -> void:
 				state.cells.fill(EngineBase.FLOOR)
 		"dm_theme":
 			if dm: state.theme = req.theme
+		"dm_fog":
+			if dm: _set_fog(req)
+		"dm_fog_reset":
+			if dm:
+				Fog.reset(state)
+				engine.log_line("[color=#a59cb5]The fog of war rolls back in: the party forgets what it has explored.[/color]")
+		"dm_fog_reveal":
+			if dm:
+				Fog.reveal_all(state)
+				engine.log_line("[color=#a59cb5]The DM reveals the whole map.[/color]")
+		"dm_fog_paint":
+			if dm: Fog.paint(state, req.get("cells", []), bool(req.get("reveal", true)))
 		"dm_background":
 			if dm:
 				_set_background(str(req.get("key", "")), req.get("fit", false))
@@ -814,6 +877,31 @@ func _resize(w: int, h: int) -> void:
 	state.w = w
 	state.h = h
 	state.cells = cells
+	Fog.reset(state)  # the remembered cells no longer line up
+
+## DM fog-of-war settings: any of "mode" (off / soft / hard), "shared" (party shares vision) and
+## "range" (feet creatures see without darkvision; 0 = unlimited).
+func _set_fog(req: Dictionary) -> void:
+	var f: Dictionary = Fog.settings(state)
+	var old := f.duplicate()
+	if str(req.get("mode", "")) in Fog.MODES:
+		f.mode = str(req.mode)
+	if req.has("shared"):
+		f.shared = bool(req.shared)
+	if req.has("range"):
+		f.range = clampi(int(req.range), 0, 1000)
+	state.fog = f
+	if not state.has("fog_seen"):
+		state.fog_seen = {}
+	if f.mode != old.mode:
+		var says := {"off": "Fog of war is off: everyone sees the whole map.",
+			"soft": "Soft fog of war: you see the lay of the land, but only creatures your side can see.",
+			"hard": "Hard fog of war: unexplored ground stays hidden until someone sees it."}
+		engine.log_line("[color=#a59cb5]%s[/color]" % says[f.mode])
+	if f.shared != old.shared:
+		engine.log_line("[color=#a59cb5]%s[/color]" % ("The party shares its vision." if f.shared else "Each player now sees only what their own characters see."))
+	if f.range != old.range:
+		engine.log_line("[color=#a59cb5]%s[/color]" % ("Sight is unlimited (bright light)." if f.range == 0 else "Without darkvision, creatures see %d ft." % f.range))
 
 func map_snapshot() -> Dictionary:
 	var mons: Array = []
@@ -830,7 +918,7 @@ func map_snapshot() -> Dictionary:
 	for m in mons:
 		if Data.custom_monsters.has(m.mid):
 			custom[m.mid] = Data.custom_monsters[m.mid]
-	return {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone"), "bg": state.get("bg", ""), "custom_monsters": custom}
+	return {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone"), "bg": state.get("bg", ""), "custom_monsters": custom, "fog": Fog.settings(state)}
 
 func _load_map(m: Dictionary) -> void:
 	if state.in_combat:
@@ -843,6 +931,12 @@ func _load_map(m: Dictionary) -> void:
 	if state.cells.size() != w * h:
 		state.cells.resize(w * h)
 	state.theme = m.get("theme", "stone")
+	# A new place: nothing explored yet. A map saved with fog settings brings them along.
+	Fog.reset(state)
+	if m.get("fog", {}) is Dictionary and not m.get("fog", {}).is_empty():
+		var mf: Dictionary = m.fog
+		state.fog = {"mode": str(mf.get("mode", "off")) if str(mf.get("mode", "off")) in Fog.MODES else "off",
+			"shared": bool(mf.get("shared", true)), "range": clampi(int(mf.get("range", 0)), 0, 1000)}
 	for mid in m.get("custom_monsters", {}):
 		if not Data.monsters.has(mid):
 			CharacterStore.save_custom_monster(m.custom_monsters[mid])
@@ -890,3 +984,225 @@ func _load_map(m: Dictionary) -> void:
 	engine.log_line("Map \"%s\" loaded." % state.name)
 	if not missing.is_empty():
 		engine.log_line("[color=#ff9c8f]Unknown monsters skipped: %s[/color]" % ", ".join(missing))
+
+# ================================================================ character advancement
+
+## The PCs a DM request is about: the selected ones, or every PC on the party's side if none were picked.
+func _pc_targets(req: Dictionary) -> Array:
+	var out: Array = _targets(req).filter(func(t): return t.kind == "pc" and sheets.has(t.id))
+	if out.is_empty() and req.get("cids", []).is_empty() and str(req.get("cid", "")) == "":
+		for t in engine.all_combatants():
+			if t.kind == "pc" and t.team == "party" and sheets.has(t.id):
+				out.append(t)
+	return out
+
+func advancement() -> String:
+	return str(state.get("advancement", "milestone"))
+
+## Levels this PC may take right now (granted by the DM or earned with XP, not yet taken).
+func pending_levels(cid: String) -> int:
+	if not sheets.has(cid):
+		return 0
+	return Progression.pending_levels(sheets[cid], advancement())
+
+func _broadcast_sheets() -> void:
+	if not is_server():
+		return
+	for cid in sheets.keys():
+		if not state.combatants.has(cid) and not state.get("reserve", {}).has(cid):
+			sheets.erase(cid)
+	sheets_changed.emit()
+	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		_rpc_sheets.rpc(sheets)
+
+## Tell one peer something (the DM sees it in their log; a player in theirs).
+func _tell(peer: int, text: String) -> void:
+	if peer == 1 or not multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		status.emit(text)
+	else:
+		_rpc_status.rpc_id(peer, text)
+
+## Have the character's owner save the new sheet. `label` names the backup of the old version
+## (empty for small updates such as XP, which don't make a backup).
+func _store_for_owner(c: Dictionary, sheet: Dictionary, label: String, old_sheet: Dictionary) -> void:
+	var owner := int(c.owner)
+	if owner == 1 or not multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		store_local(sheet, label, old_sheet)
+	elif owner in multiplayer.get_peers():
+		_rpc_store_sheet.rpc_id(owner, sheet, label, old_sheet)
+
+## Save a sheet from the game into this machine's character store, backing up the version it replaces.
+## Characters that were never saved here (premades) are only written for real changes, not XP ticks.
+func store_local(sheet: Dictionary, label: String, old_sheet: Dictionary = {}) -> void:
+	var id := str(sheet.get("id", ""))
+	if id == "":
+		return
+	var full: Dictionary = CharacterStore.get_character(id)
+	if full.is_empty() and label == "":
+		return
+	var old: Dictionary = full if not full.is_empty() else old_sheet.duplicate(true)
+	var hist: Array = full.get("history", [])
+	if label != "" and not old.is_empty():
+		old = old.duplicate(true)
+		old.history = hist
+		Progression.push_history(old, label)
+		hist = old.history
+	var out: Dictionary = Progression.strip_history(sheet)
+	# The portrait key is this machine's; keep the local one if the game's copy lost it.
+	if str(out.get("portrait", "")) == "" and not full.is_empty():
+		out.portrait = full.get("portrait", "")
+	out.history = hist
+	CharacterStore.save_character(out)
+
+## A player (or the DM) replaces a PC's sheet: a level-up, a restore from history or a plan edit.
+func _set_sheet(peer: int, c: Dictionary, incoming, label: String) -> void:
+	if c.is_empty() or c.kind != "pc" or not can_control(peer, c) or not incoming is Dictionary or not sheets.has(c.id):
+		return
+	var dm := peer == 1
+	var old: Dictionary = sheets[c.id]
+	var sheet: Dictionary = Progression.strip_history(incoming)
+	var base := Rules.new_character()
+	for k in base:
+		if not sheet.has(k):
+			sheet[k] = base[k]
+	sheet.erase("history")
+	var err := _sheet_problem(sheet)
+	if err != "":
+		_tell(peer, "Sheet not accepted: " + err)
+		return
+	var before := Rules.total_level(old)
+	var after := Rules.total_level(sheet)
+	if not dm:
+		if after != before and state.in_combat:
+			_tell(peer, "Levels change outside combat. Finish the fight first.")
+			return
+		if after > Progression.allowed_level(old, advancement()):
+			_tell(peer, "%s can't go above level %d yet: %s" % [old.get("name", "That character"), Progression.allowed_level(old, advancement()),
+				"not enough XP." if advancement() == "xp" else "the DM hasn't granted that level."])
+			return
+	# The DM's grants and XP aren't the player's to change.
+	sheet.xp = int(old.get("xp", 0))
+	sheet.level_cap = int(old.get("level_cap", 0))
+	sheet.id = str(old.get("id", sheet.get("id", "")))
+	sheet.portrait = str(old.get("portrait", ""))
+	sheets[c.id] = sheet
+	_apply_sheet(c, sheet)
+	if after > before:
+		engine.log_line("[color=#ffd166][b]⬆ %s reaches level %d![/b] (%s)[/color]" % [c.name, after, Rules.class_summary(sheet)])
+	elif after < before:
+		engine.log_line("[color=#ffd166]%s's sheet goes back to level %d (%s).[/color]" % [c.name, after, Rules.class_summary(sheet)])
+	elif label.begins_with("Before restoring"):
+		engine.log_line("[color=#ffd166]%s restores an earlier version of their sheet.[/color]" % c.name)
+	_store_for_owner(c, sheet, label, old)
+	_broadcast_sheets()
+
+func _sheet_problem(sheet: Dictionary) -> String:
+	var classes = sheet.get("classes", [])
+	if not classes is Array or classes.is_empty():
+		return "it has no classes."
+	var total := 0
+	var seen := {}
+	for c in classes:
+		if not c is Dictionary or Data.cls(str(c.get("id", ""))).is_empty():
+			return "unknown class."
+		if seen.has(c.id):
+			return "a class appears twice."
+		seen[c.id] = true
+		var lv := int(c.get("level", 0))
+		if lv < 1 or lv > 20:
+			return "class levels must be 1 to 20."
+		total += lv
+	if total > 20:
+		return "total level can't exceed 20."
+	return ""
+
+## Rebuild a PC's combat stats from a new sheet, keeping where it stands and what has happened to it:
+## damage taken, spent slots and features, conditions, concentration, initiative.
+func _apply_sheet(c: Dictionary, sheet: Dictionary) -> void:
+	var fresh := CombatantFactory.from_character(c.id, sheet, int(c.owner))
+	var keep := ["id", "name", "owner", "team", "pos", "hp", "temp_hp", "init", "turn", "effects", "conc", "death", "ai",
+		"form", "dead", "hidden", "ward", "acted", "toggles", "recharge", "summoner", "slots_used", "pact_used", "hd_used", "resources", "orphan"]
+	var old_max := int(c.max_hp)
+	var old_res: Dictionary = c.get("resources", {})
+	var old_slots: Array = c.get("slots_used", [])
+	for k in fresh:
+		if not k in keep:
+			c[k] = fresh[k]
+	if int(c.hp) > 0:
+		c.hp = clampi(int(fresh.max_hp) - (old_max - int(c.hp)), 1, int(fresh.max_hp))
+	var used: Array = []
+	for i in fresh.slots_max.size():
+		used.append(mini(int(old_slots[i]) if i < old_slots.size() else 0, int(fresh.slots_max[i])))
+	c.slots_used = used
+	c.pact_used = mini(int(c.get("pact_used", 0)), int(fresh.pact_max))
+	var res: Dictionary = {}
+	for k in fresh.resources:
+		var r: Dictionary = fresh.resources[k].duplicate()
+		if old_res.has(k):
+			var spent: int = int(old_res[k].max) - int(old_res[k].cur)
+			r.cur = clampi(int(r.max) - spent, 0, int(r.max))
+		res[k] = r
+	c.resources = res
+	var hd_used: Dictionary = {}
+	for die in c.get("hd_used", {}):
+		if fresh.hd_max.has(die):
+			hd_used[die] = mini(int(c.hd_used[die]), int(fresh.hd_max[die]))
+	c.hd_used = hd_used
+	c.char_id = str(sheet.get("id", c.get("char_id", "")))
+
+func _award_xp(targets: Array, amount: int, split: bool) -> void:
+	if targets.is_empty() or amount == 0:
+		return
+	var each: int = amount / targets.size() if split else amount
+	var names: PackedStringArray = []
+	for t in targets:
+		var sh: Dictionary = sheets[t.id]
+		var was := Progression.pending_levels(sh, "xp")
+		sh.xp = maxi(0, int(sh.get("xp", 0)) + each)
+		names.append(str(t.name))
+		_store_for_owner(t, sh, "", {})
+		if advancement() == "xp" and Progression.pending_levels(sh, "xp") > was:
+			engine.log_line("[color=#ffd166][b]⬆ %s can level up![/b] (%d XP)[/color]" % [t.name, int(sh.xp)])
+	engine.log_line("[color=#ffd166]%s %d XP%s: %s.[/color]" % ["Awarded" if each >= 0 else "Removed", absi(each), " each" if targets.size() > 1 else "", ", ".join(names)])
+	_broadcast_sheets()
+
+## XP for every defeated enemy not yet counted, shared among the party members still standing.
+func _award_encounter_xp() -> void:
+	var party: Array = engine.all_combatants().filter(func(t): return t.kind == "pc" and t.team == "party" and not t.get("dead", false) and sheets.has(t.id))
+	var total := encounter_xp()
+	if total <= 0 or party.is_empty():
+		status.emit("No defeated enemies to award XP for.")
+		return
+	for o in engine.all_combatants():
+		if _unawarded_kill(o):
+			o.xp_awarded = true
+	_award_xp(party, total, true)
+
+## XP still to award for defeated enemies on the map.
+func encounter_xp() -> int:
+	var total := 0
+	for o in engine.all_combatants():
+		if _unawarded_kill(o):
+			total += EncounterBuilder.monster_xp(Data.monster(str(o.monster_id)))
+	return total
+
+func _unawarded_kill(o: Dictionary) -> bool:
+	return o.kind == "monster" and o.team == "enemy" and (o.dead or int(o.hp) <= 0) and not o.get("xp_awarded", false)
+
+## Milestone: each target may take one more level. With XP advancement it tops their XP up to the next level.
+func _grant_level(targets: Array) -> void:
+	var names: PackedStringArray = []
+	for t in targets:
+		var sh: Dictionary = sheets[t.id]
+		var cur_allowed := Progression.allowed_level(sh, advancement())
+		if cur_allowed >= Progression.MAX_LEVEL:
+			continue
+		var target: int = cur_allowed + 1
+		if advancement() == "xp":
+			sh.xp = maxi(int(sh.get("xp", 0)), Progression.xp_for_level(target))
+		sh.level_cap = maxi(int(sh.get("level_cap", 0)), target)
+		names.append("%s (level %d)" % [t.name, target])
+		_store_for_owner(t, sh, "", {})
+	if not names.is_empty():
+		engine.log_line("[color=#ffd166][b]⬆ Level up![/b] The DM grants a new level to %s. Open the character sheet to level up.[/color]" % ", ".join(names))
+	_broadcast_sheets()

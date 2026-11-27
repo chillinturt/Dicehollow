@@ -39,8 +39,10 @@ func start_combat() -> void:
 	if s.in_combat:
 		return
 	# Arcane Recovery has to be used right after the short rest, not in the middle of a fight.
+	# The same goes for spending hit dice.
 	for c in all_combatants():
 		c.erase("arcane_budget")
+		c.erase("hd_window")
 	# Battle Smith defenders join automatically.
 	for c in all_combatants():
 		if alive(c) and c.features.has("steel_defender") and not _has_summon(c, "Steel Defender"):
@@ -1548,7 +1550,18 @@ func get_actions(c: Dictionary) -> Array:
 		var skills: Array = []
 		for ab in _escape_abilities(grab):
 			skills.append(_escape_label(ab))
-		out.append(_act("escape", label, "basic", "action", "self", 0, "%s check against DC %d to break free of %s." % [" or ".join(skills), int(grab.get("escape_dc", 10)), grab.get("name", "the hold")], {"cat": "basic"}))
+		var against: String = "DC %d" % int(grab.get("escape_dc", 10))
+		if grab.get("escape_contest", false):
+			against = "%s's Athletics" % nm(C(str(grab.get("src", ""))))
+		out.append(_act("escape", label, "basic", "action", "self", 0, "%s check against %s to break free of %s." % [" or ".join(skills), against, grab.get("name", "the hold")], {"cat": "basic"}))
+	# Grapple and Shove (PHB p.195): each replaces one attack of the Attack action. Target within
+	# reach and no more than one size larger; your Athletics against its Athletics or Acrobatics.
+	var reach: int = _reach_of(c)
+	out.append(_act("grapple", "Grapple", "basic", "attack", "creature", reach, "Replaces one attack: Athletics contest against the target's Athletics or Acrobatics. On a win it is grappled (speed 0) until it escapes or you let go. Target no more than one size larger than you.", {"cat": "basic"}))
+	out.append(_act("shove_prone", "Shove (Prone)", "basic", "attack", "creature", reach, "Replaces one attack: Athletics contest against the target's Athletics or Acrobatics. On a win it is knocked prone. Target no more than one size larger than you.", {"cat": "basic", "base": "shove", "shove": "prone"}))
+	out.append(_act("shove_push", "Shove (Push)", "basic", "attack", "creature", reach, "Replaces one attack: Athletics contest against the target's Athletics or Acrobatics. On a win it is pushed 5 ft away from you. Target no more than one size larger than you.", {"cat": "basic", "base": "shove", "shove": "push"}))
+	if not grappled_by(c).is_empty():
+		out.append(_act("release", "Release Grapple", "basic", "free", "self", 0, "Let go of every creature you are grappling (no action needed).", {"cat": "basic"}))
 	if c.features.has("cunning_action") or c.tags.has("nimble_escape"):
 		out.append(_act("b_dash", "Cunning Dash", "basic", "bonus", "self", 0, "Dash as a bonus action.", {"cat": "basic", "base": "dash"}))
 		out.append(_act("b_disengage", "Cunning Disengage", "basic", "bonus", "self", 0, "Disengage as a bonus action.", {"cat": "basic", "base": "disengage"}))
@@ -1557,6 +1570,20 @@ func get_actions(c: Dictionary) -> Array:
 		out.append(_act("b_dash", "Aggressive", "basic", "bonus", "self", 0, "Bonus action: move up to your speed toward an enemy.", {"cat": "basic", "base": "dash"}))
 	if has_tag(c, "expeditious_retreat") and not (c.features.has("cunning_action") or c.tags.has("nimble_escape")):
 		out.append(_act("er_dash", "Expeditious Dash", "basic", "bonus", "self", 0, "Dash as a bonus action (Expeditious Retreat).", {"cat": "basic", "base": "dash"}))
+	# --- hit dice, after a short rest (until the next fight or long rest): one die per click.
+	if c.get("hd_window", false) and not s.in_combat:
+		var left: Dictionary = hit_dice_left(c)
+		var sizes: Array = left.keys()
+		sizes.sort_custom(func(x, y): return int(x) > int(y))
+		var hurt: bool = c.hp < eff_max_hp(c)
+		for k in sizes:
+			if int(left[k]) <= 0:
+				continue
+			var hd = _act("hit_die_%s" % k, "Spend Hit Die (d%s)" % k, "basic", "free", "self", 0, "Short rest: roll a d%s + CON modifier (%s) and regain that many hit points. %d d%s left." % [k, Rules.fmt_mod(int(c.mods.get("con", 0))), int(left[k]), k], {"cat": "basic", "base": "hit_die", "die": int(k)})
+			if not hurt:
+				hd.enabled = false
+				hd.reason = "Already at full HP"
+			out.append(hd)
 	# --- toggles
 	out.append_array(_toggle_actions(c))
 	# Economy & incapacitation. An incapacitated creature can't take actions, bonus actions or
@@ -1604,6 +1631,39 @@ func _escape_bonus(c: Dictionary, ab: String) -> int:
 
 func _escape_label(ab: String) -> String:
 	return ESCAPE_SKILL[ab].capitalize() if ESCAPE_SKILL.has(ab) else ab.to_upper()
+
+## Creatures `c` is holding in a grapple it can let go of.
+func grappled_by(c: Dictionary) -> Array:
+	var out: Array = []
+	for o in all_combatants():
+		for e in o.effects:
+			if e.get("cond", "") == "grappled" and e.has("escape_dc") and str(e.get("src", "")) == str(c.id):
+				out.append(o)
+				break
+	return out
+
+## An ability check with `ab`'s skill (Athletics / Acrobatics for STR / DEX). Rage gives advantage
+## on Strength checks; exhaustion, poison and fear give disadvantage. Returns {"total", "text"}.
+func skill_check(c: Dictionary, ab: String) -> Dictionary:
+	var adv: int = 1 if ab == "str" and has_tag(c, "rage") else 0
+	if exhaustion(c) >= 1 or has_cond(c, "poisoned") or has_cond(c, "frightened"):
+		adv -= 1
+	var r: Dictionary = Dice.roll_d20(adv)
+	var b: int = _escape_bonus(c, ab)
+	return {"total": int(r.roll) + b, "text": "%s %d" % [_escape_label(ab), int(r.roll) + b]}
+
+## The defender's side of a grapple or shove: the better of its Athletics and Acrobatics.
+func _contest_defense(t: Dictionary) -> Dictionary:
+	var ab: String = "str" if _escape_bonus(t, "str") >= _escape_bonus(t, "dex") else "dex"
+	return skill_check(t, ab)
+
+## Why `c` can't grapple or shove `t` ("" if it can).
+func grapple_block_reason(c: Dictionary, t: Dictionary) -> String:
+	if t.is_empty() or t.id == c.id:
+		return "Pick another creature."
+	if size_rank(t) > size_rank(c) + 1:
+		return "%s is more than one size larger than %s." % [nm(t), nm(c)]
+	return ""
 
 func find_action(c: Dictionary, aid: String) -> Dictionary:
 	for a in get_actions(c):
@@ -2154,9 +2214,39 @@ func _toggle(c: Dictionary, a: Dictionary) -> void:
 				add_effect(c, {"name": "Reckless", "tag": "reckless_target", "src": c.id, "rounds": 1, "tick_cid": c.id, "tick_on": "start"})
 
 func _basic(c: Dictionary, a: Dictionary, targets: Array) -> void:
-	pay(c, a.cost)
 	var base: String = a.get("base", a.id)
+	if base in ["grapple", "shove"]:
+		var why: String = grapple_block_reason(c, targets[0] if not targets.is_empty() else {})
+		if why != "":
+			log_line("[color=#888]%s can't %s: %s[/color]" % [nm(c), base, why])
+			return
+	pay(c, a.cost)
 	match base:
+		"grapple", "shove":
+			var t: Dictionary = targets[0]
+			var mine: Dictionary = skill_check(c, "str")
+			var theirs: Dictionary = _contest_defense(t)
+			# Contest: the defender keeps the status quo on a tie.
+			var won: bool = int(mine.total) > int(theirs.total)
+			var verb: String = "grapple" if base == "grapple" else "shove"
+			log_line("%s tries to %s %s (%s vs %s): %s" % [nm(c), verb, nm(t), mine.text, theirs.text, "[color=#9fe39f]success![/color]" if won else "fails."])
+			if won:
+				if base == "grapple":
+					var e: Dictionary = add_effect(t, {"name": "Grappled", "cond": "grappled", "src": c.id, "rounds": 99, "tick_cid": c.id, "tick_on": "start",
+						"escape_dc": 10 + _escape_bonus(c, "str"), "escape_contest": true})
+					if not e.is_empty():
+						sync_move(t)
+				elif str(a.get("shove", "prone")) == "push":
+					push_creature(t, center_of(c), 5)
+				elif not has_cond(t, "prone"):
+					add_effect(t, {"name": "Prone", "cond": "prone", "src": c.id, "rounds": 99, "tick_cid": t.id})
+		"hit_die":
+			spend_hit_dice(c, 1, int(a.get("die", 0)))
+		"release":
+			for o in grappled_by(c):
+				remove_effects_where(o, func(e): return e.get("cond", "") == "grappled" and e.has("escape_dc") and str(e.get("src", "")) == str(c.id))
+				log_line("%s lets go of %s." % [nm(c), nm(o)])
+				sync_move(o)
 		"dash":
 			if s.in_combat:
 				c.turn.dashes = int(c.turn.get("dashes", 0)) + 1
@@ -2181,6 +2271,12 @@ func _basic(c: Dictionary, a: Dictionary, targets: Array) -> void:
 				var roll: int = Dice.d20() + bonus
 				var dc: int = int(g.get("escape_dc", 10))
 				var what = "the grapple" if g.get("cond", "") == "grappled" else str(g.get("name", "the hold"))
+				var holder: Dictionary = C(str(g.get("src", "")))
+				# A grapple made with the Grapple action: a contest against the grappler's Athletics
+				# (the grappler wins ties, so the escape needs to beat its roll).
+				if g.get("escape_contest", false) and not holder.is_empty():
+					roll = skill_check(c, best_ab).total
+					dc = int(skill_check(holder, "str").total) + 1
 				# Caustic Brew: scraping the acid off just takes the action.
 				if g.get("escape_auto", false):
 					roll = dc
@@ -5094,9 +5190,16 @@ func short_rest() -> void:
 		c.pact_used = 0
 		c.rr_uses = 0
 		_frenzy_check(c)
-		# Spend hit dice, one at a time, until healed or out of dice.
-		if c.kind == "pc" and c.hp > 0:
-			spend_hit_dice(c)
+		# Hit dice aren't spent automatically: each player picks how many to roll (the "Spend Hit
+		# Die" actions, open until the next fight or long rest). Song of Rest adds once per rest.
+		if c.has("hd_max"):
+			c.hd_window = true
+			c.song_due = true
+			var left_n: int = 0
+			for k in hit_dice_left(c):
+				left_n += int(hit_dice_left(c)[k])
+			if c.hp > 0 and c.hp < eff_max_hp(c) and left_n > 0:
+				log_line("%s can spend hit dice to heal (%d left)." % [nm(c), left_n])
 		# Arcane Recovery isn't spent automatically: the wizard may use it now (the "Recover Lv N
 		# Slot" actions, until the next fight or long rest) or save it for a later short rest.
 		if c.features.has("arcane_recovery") and res_left(c, "arcane_recovery") > 0:
@@ -5113,10 +5216,11 @@ func hit_dice_left(c: Dictionary) -> Dictionary:
 		out[k] = maxi(0, int(c.hd_max[k]) - int(used.get(k, 0)))
 	return out
 
-## Short rest: spend hit dice (largest first) while the creature is hurt. Each die heals its roll
-## + CON modifier (at least 0; Durable makes it at least twice the CON modifier). Song of Rest adds
-## its die once if any hit die was spent. `max_dice` < 0 means no limit. Returns HP regained.
-func spend_hit_dice(c: Dictionary, max_dice := -1) -> int:
+## Short rest: spend hit dice (largest first, or only `size` if given) while the creature is hurt.
+## Each die heals its roll + CON modifier (at least 0; Durable makes it at least twice the CON
+## modifier). Song of Rest adds its die once per rest, the first time any hit die is spent.
+## `max_dice` < 0 means no limit. Returns HP regained.
+func spend_hit_dice(c: Dictionary, max_dice := -1, size := 0) -> int:
 	if not c.has("hd_max"):
 		return 0
 	if not c.get("hd_used", null) is Dictionary:
@@ -5128,7 +5232,7 @@ func spend_hit_dice(c: Dictionary, max_dice := -1) -> int:
 		var die = 0
 		var left = hit_dice_left(c)
 		for k in left:
-			if int(left[k]) > 0 and int(k) > die:
+			if int(left[k]) > 0 and int(k) > die and (size <= 0 or int(k) == size):
 				die = int(k)
 		if die == 0:
 			break
@@ -5139,7 +5243,8 @@ func spend_hit_dice(c: Dictionary, max_dice := -1) -> int:
 		if c.get("feats", []).has("durable"):
 			amt = maxi(amt, 2 * conm)
 		gained += heal_creature(c, amt, c, "hit die d%d: %d%s" % [die, r, Rules.fmt_mod(conm)])
-	if spent > 0:
+	if spent > 0 and c.get("song_due", true):
+		c.song_due = false
 		var bard: Dictionary = {}
 		for o in allies_of(c):
 			if o.features.has("song_of_rest") and alive(o) and o.hp > 0:
@@ -5155,10 +5260,33 @@ func _end_all_ropes() -> void:
 	for r in ropes().duplicate():
 		end_rope(str(r.src))
 
+## What simply waiting `rounds` does to `c`, rested or not: shorter spells and effects run out
+## (a 0-HP creature stays prone), Aid's boost ends, temporary hit points fade.
+func _rest_time_passes(c: Dictionary, rounds: int) -> void:
+	c.max_hp = int(c.max_hp) - int(c.get("aid_bonus", 0))
+	c.aid_bonus = 0
+	c.temp_hp = 0
+	c.effects = c.effects.filter(func(e): return int(e.get("rounds", 0)) > rounds or (e.get("cond", "") == "prone" and int(c.hp) <= 0))
+	if not c.conc.is_empty():
+		end_concentration(c, true)
+	c.form = {}
+
 func long_rest() -> void:
 	_end_all_ropes()
 	for c in all_combatants():
 		if c.death.dead or c.dead:
+			continue
+		# A creature needs at least 1 hit point at the start of a long rest to benefit from it (PHB
+		# p.186). The eight hours still pass: spells and effects run out. A stable creature at 0 HP
+		# regains 1 hit point within 1d4 hours (PHB p.197), but too late to count as rested.
+		if int(c.hp) <= 0:
+			_rest_time_passes(c, 4800)
+			if c.death.get("stable", false):
+				c.hp = 1
+				c.death = {"s": 0, "f": 0, "stable": false, "dead": false}
+				log_line("%s wakes with 1 hit point but gets no benefit from the long rest (it started at 0 HP)." % nm(c))
+			else:
+				log_line("[color=#ff9c8f]%s is dying at 0 HP and gets no benefit from the long rest.[/color]" % nm(c))
 			continue
 		# Aid's 8-hour max HP boost is gone after a long rest.
 		c.max_hp = int(c.max_hp) - int(c.get("aid_bonus", 0))
@@ -5198,6 +5326,7 @@ func long_rest() -> void:
 		c.ward_made = false
 		c.legendary_res = 3 if c.tags.has("legendary_resistance") else 0
 		c.erase("arcane_budget")
+		c.erase("hd_window")
 	s.zones = []
 	s.clock = int(s.get("clock", 0)) + 4800  # eight hours
 	log_line("[color=#8fd0ff]The party takes a long rest and recovers fully.[/color]")

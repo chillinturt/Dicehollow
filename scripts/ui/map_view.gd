@@ -9,6 +9,9 @@ const THEMES := {
 	"cave": {"floor_a": Color("#3d3328"), "floor_b": Color("#382f25"), "wall": Color("#15100c"), "wall_top": Color("#5c4a38"), "grid": Color(1, 1, 1, 0.05)},
 	"tavern": {"floor_a": Color("#5a3f28"), "floor_b": Color("#543a25"), "wall": Color("#21160e"), "wall_top": Color("#7a5a3a"), "grid": Color(0, 0, 0, 0.12)},
 	"snow": {"floor_a": Color("#c9d3dc"), "floor_b": Color("#c2ccd6"), "wall": Color("#56606e"), "wall_top": Color("#8f9aa8"), "grid": Color(0, 0, 0, 0.08)},
+	"swamp": {"floor_a": Color("#36442c"), "floor_b": Color("#323f29"), "wall": Color("#1a2214"), "wall_top": Color("#4d5e34"), "grid": Color(1, 1, 1, 0.05)},
+	"ruins": {"floor_a": Color("#3a4038"), "floor_b": Color("#363c34"), "wall": Color("#1b1e1b"), "wall_top": Color("#6a706a"), "grid": Color(1, 1, 1, 0.05)},
+	"badlands": {"floor_a": Color("#6b5640"), "floor_b": Color("#65513c"), "wall": Color("#2e2218"), "wall_top": Color("#8f7556"), "grid": Color(0, 0, 0, 0.1)},
 }
 
 var state: Dictionary = {}
@@ -21,6 +24,9 @@ var range_center := Vector2.ZERO
 var range_ft := 0
 var hover := Vector2i(-1, -1)
 var show_spawns := false
+## Fog of war (a Fog.view_for result; {} = none). fog_dm: the DM sees through it, only shaded.
+var fog: Dictionary = {}
+var fog_dm := false
 
 func _ready() -> void:
 	Session.bg_arrived.connect(func(_k): queue_redraw())
@@ -83,7 +89,7 @@ func _draw() -> void:
 		draw_line(Vector2(0, y * CELL), Vector2(w * CELL, y * CELL), th.grid, 1)
 	# Spell zones.
 	for z in state.get("zones", []):
-		if z.get("hidden", false):
+		if z.get("hidden", false) or not z.cells.any(_shown):
 			continue
 		var col = Color(z.get("color", "#c8a0ff"))
 		col.a = 0.28
@@ -95,6 +101,8 @@ func _draw() -> void:
 	var per_cell = {}
 	for it in state.get("items", []):
 		var k: Vector2i = it.pos
+		if not _shown(k):
+			continue
 		var i: int = per_cell.get(k, 0)
 		per_cell[k] = i + 1
 		var cen2 = Vector2(k) * CELL + Vector2(CELL * 0.5, CELL * 0.72) + Vector2((i % 3 - 1) * 11, -(i / 3) * 10)
@@ -103,6 +111,8 @@ func _draw() -> void:
 		draw_circle(cen2 + Vector2(-1.5, -1.5), 2.2, Color("#e6dcff"))
 	# Rope Tricks: a rope hanging from the shimmer of the entrance overhead.
 	for rp in state.get("ropes", []):
+		if not _shown(rp.pos):
+			continue
 		var rr = cell_rect(rp.pos)
 		var top = rr.position + Vector2(CELL * 0.5, 9)
 		var rope_pts = PackedVector2Array()
@@ -118,7 +128,7 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, rr.position + Vector2(3, CELL - 5), str(rp.get("name", "Rope Trick")), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.8))
 	# Auras around casters.
 	for c in state.get("combatants", {}).values():
-		if c.get("dead", false):
+		if c.get("dead", false) or not (fog.is_empty() or fog_dm or Fog.sees(fog, Session.engine, c)):
 			continue
 		for e in c.effects:
 			var a: Dictionary = e.get("aura", {})
@@ -128,6 +138,7 @@ func _draw() -> void:
 				var col2 = Color("#fff2a8") if a.has("temp_hp") else Color("#c8a0ff")
 				draw_circle(cen, rad, Color(col2, 0.07))
 				draw_arc(cen, rad, 0, TAU, 64, Color(col2, 0.5), 2)
+	_draw_fog(w, h)
 	if show_spawns:
 		for p in state.get("spawns", []):
 			var r2 = cell_rect(p)
@@ -153,3 +164,51 @@ func _draw() -> void:
 		draw_circle(pts[pts.size() - 1], 8, Color(1, 0.9, 0.5))
 	if hover.x >= 0 and hover.x < w and hover.y >= 0 and hover.y < h:
 		draw_rect(cell_rect(hover), Color(1, 1, 1, 0.5), false, 2)
+
+## Whether things on cell p (zones, items, ropes) are drawn: in sight, or the DM is looking.
+func _shown(p: Vector2i) -> bool:
+	if fog.is_empty() or fog_dm:
+		return true
+	var w: int = state.w
+	return p.x >= 0 and p.y >= 0 and p.x < w and p.y < int(state.h) and fog.visible[p.y * w + p.x] == 1
+
+## Fog of war over the map. Out of sight: dimmed. Never seen, with hard fog: black. The DM gets the
+## same picture, only faint, so they can tell what the party can and can't see.
+func _draw_fog(w: int, h: int) -> void:
+	if fog.is_empty():
+		return
+	var hard: bool = fog.mode == "hard"
+	var vis: PackedByteArray = fog.visible
+	var known: PackedByteArray = fog.explored
+	var dim := Color(0.03, 0.02, 0.06, 0.22 if fog_dm else 0.58)
+	var black := Color(0.04, 0.035, 0.06, 0.45) if fog_dm else Color("#0b0910")
+	for y in h:
+		# Runs of same-shaded cells in a row are drawn as one rectangle.
+		var x := 0
+		while x < w:
+			var i := y * w + x
+			var shade := 0 if vis[i] else (2 if hard and not known[i] else 1)
+			var x2 := x + 1
+			while x2 < w:
+				var j := y * w + x2
+				if (0 if vis[j] else (2 if hard and not known[j] else 1)) != shade:
+					break
+				x2 += 1
+			if shade > 0:
+				draw_rect(Rect2(x * CELL, y * CELL, (x2 - x) * CELL, CELL), black if shade == 2 else dim)
+			x = x2
+	# A soft edge where sight ends, so the boundary doesn't look like a grid of tiles.
+	if not fog_dm:
+		var edge := Color(dim, dim.a * 0.45)
+		for y in h:
+			for x in w:
+				if not vis[y * w + x]:
+					continue
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var q: Vector2i = Vector2i(x, y) + d
+					if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or vis[q.y * w + q.x]:
+						continue
+					var r := cell_rect(Vector2i(x, y))
+					var band := 10.0
+					var br := Rect2(r.position + Vector2(maxf(0, d.x) * (CELL - band), maxf(0, d.y) * (CELL - band)), Vector2(float(CELL) if d.x == 0 else band, float(CELL) if d.y == 0 else band))
+					draw_rect(br, edge)

@@ -26,6 +26,7 @@ static func new_character() -> Dictionary:
 		"spells": {},
 		"equipment": {"armor": "", "shield": false, "weapons": [], "weapon_bonus": 0, "armor_bonus": 0},
 		"portrait": "", "color": "#7a5cff", "notes": "",
+		"xp": 0, "level_cap": 0, "level_log": [], "level_plan": [], "hp_rolls": {}, "history": [],
 	}
 
 static func total_level(ch: Dictionary) -> int:
@@ -318,15 +319,20 @@ static func derive(ch: Dictionary) -> Dictionary:
 	st.passive_perception = 10 + skills.perception + (5 if "observant" in feat_list else 0)
 
 	# --- hit points
+	# The first character level takes the die's maximum; later levels use the HP the player rolled
+	# when levelling up (hp_rolls) or the fixed average.
 	var hp = 0
 	ci = 0
+	var rolls: Dictionary = ch.get("hp_rolls", {})
 	for c in ch.get("classes", []):
 		var hd = int(Data.cls(c.id).get("hit_die", 8))
+		var got: Array = rolls.get(c.id, [])
 		for i in int(c.level):
 			if ci == 0 and i == 0:
 				hp += hd
 			else:
-				hp += int(hd / 2) + 1
+				var idx: int = i - (1 if ci == 0 else 0)
+				hp += clampi(int(got[idx]), 1, hd) if idx < got.size() else int(hd / 2) + 1
 		ci += 1
 	hp += mods.con * lvl
 	if "tough" in feat_list: hp += 2 * lvl

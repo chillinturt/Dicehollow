@@ -6,6 +6,9 @@ const MapViewScript := preload("res://scripts/ui/map_view.gd")
 const MonsterEditorScript := preload("res://scripts/ui/monster_editor.gd")
 const TokenScript := preload("res://scripts/ui/token.gd")
 const Vfx := preload("res://scripts/ui/vfx.gd")
+const RIGHT_W := 380   # inspect / log column
+const BOTTOM_H := 214  # card / hotbar bar
+const DM_W := 330      # DM toolbox
 const CAT_COLORS := {"attack": Color("#b5523b"), "spell": Color("#6b4fb0"), "feature": Color("#b08a2e"), "basic": Color("#4a5a6e"), "toggle": Color("#2f7a6a")}
 
 var map_view: Node2D
@@ -76,6 +79,25 @@ var map_pick: OptionButton
 var map_name_edit: LineEdit
 var hidden_lbl: Label
 var _ending := false
+var top_bar: PanelContainer
+var bottom_bar: PanelContainer
+var right_panel: PanelContainer
+# Character sheets and levelling.
+var sheet_win: CharacterSheet
+var sheet_cid := ""
+var level_win: LevelUpWizard
+var _announced_levels := {}   # cid -> allowed level already announced to this player
+var party_box: VBoxContainer
+var dm_xp_amount := 100
+var dm_xp_split := true
+# Fog of war: what this screen may show ({} = everything; see Fog.view_for).
+var fog_view := {}
+var fog_preview := false   # DM: look through the party's eyes
+var fog_mode_opt: OptionButton
+var fog_range_opt: OptionButton
+var fog_shared_chk: CheckBox
+const FOG_REVEAL := 10     # paint_value for the DM's reveal / re-fog brushes
+const FOG_HIDE := 11
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(UIKit.BG)
@@ -93,6 +115,7 @@ func _ready() -> void:
 	Session.chat_received.connect(func(t): log_rt.append_text("\n[color=#9fe6ff]%s[/color]" % t))
 	Session.portrait_arrived.connect(func(_k): _sync_tokens([]); _refresh_ui())
 	Session.players_changed.connect(_refresh_dm)
+	Session.sheets_changed.connect(_on_sheets_changed)
 	Session.session_ended.connect(_on_session_ended)
 	Session.status.connect(func(t): _flash(t))
 	bg_dialog = FileDialog.new()
@@ -103,6 +126,7 @@ func _ready() -> void:
 	bg_dialog.file_selected.connect(_on_bg_file)
 	add_child(bg_dialog)
 	map_view.set_state(Session.state)
+	_update_fog()
 	cam.position = Vector2(Session.state.w, Session.state.h) * CELL * 0.5
 	cam.zoom = Vector2.ONE * 0.8
 	_sync_tokens([])
@@ -122,10 +146,11 @@ func _build_hud() -> void:
 	ui.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(ui)
-	# Top bar.
+	# Top bar. Its height comes from its contents; the side panels are laid out under it (_layout_hud).
 	var top = UIKit.panel(null, Color("#17131f"))
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 92
+	top.offset_bottom = 0
+	top_bar = top
 	ui.add_child(top)
 	var th = UIKit.hbox(14)
 	top.add_child(th)
@@ -143,8 +168,10 @@ func _build_hud() -> void:
 	isc.add_child(init_row)
 	th.add_child(isc)
 	var tb = UIKit.vbox(4)
-	tb.add_child(UIKit.btn("Leave game", _leave))
-	tb.add_child(UIKit.btn("Center view", func(): _center_on(control_cid if control_cid != "" else selected_cid)))
+	var tbr = UIKit.hbox(4)
+	tbr.add_child(UIKit.expand(UIKit.btn("Leave", _leave, "Leave the game")))
+	tbr.add_child(UIKit.expand(UIKit.btn("Center", func(): _center_on(control_cid if control_cid != "" else selected_cid), "Center the view on your character")))
+	tb.add_child(tbr)
 	tb.add_child(_build_volume())
 	th.add_child(tb)
 	# Right column: inspect + log + chat.
@@ -152,14 +179,17 @@ func _build_hud() -> void:
 	rightp.anchor_left = 1.0
 	rightp.anchor_right = 1.0
 	rightp.anchor_bottom = 1.0
-	rightp.offset_left = -370
+	rightp.offset_left = -RIGHT_W
 	rightp.offset_top = 98
+	right_panel = rightp
 	ui.add_child(rightp)
 	var rv = UIKit.vbox(6)
 	rightp.add_child(rv)
 	inspect_box = UIKit.vbox(4)
 	var isc2 = UIKit.scroll(inspect_box)
 	isc2.custom_minimum_size = Vector2(0, 250)
+	isc2.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	isc2.size_flags_stretch_ratio = 1.1
 	rv.add_child(isc2)
 	rv.add_child(UIKit.lbl("Combat log", 14, UIKit.GOLD))
 	log_rt = UIKit.rich("", false)
@@ -171,18 +201,20 @@ func _build_hud() -> void:
 	chat_in = UIKit.line("", "Chat, or /roll 2d6+3")
 	chat_in.text_submitted.connect(func(t): Session.send_chat(t); chat_in.clear())
 	rv.add_child(chat_in)
-	# Bottom bar: character card, hotbar, economy.
+	# Bottom bar: character card, hotbar, economy. It grows upwards if its contents ever need more room.
 	var bottom = UIKit.panel(null, Color("#17131f"))
 	bottom.anchor_top = 1.0
 	bottom.anchor_bottom = 1.0
 	bottom.anchor_right = 1.0
-	bottom.offset_top = -214
-	bottom.offset_right = -376
+	bottom.offset_top = -BOTTOM_H
+	bottom.offset_right = -(RIGHT_W + 6)
+	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bottom_bar = bottom
 	ui.add_child(bottom)
 	var bh = UIKit.hbox(10)
 	bottom.add_child(bh)
 	card_box = UIKit.hbox(8)
-	card_box.custom_minimum_size = Vector2(330, 0)
+	card_box.custom_minimum_size = Vector2(340, 0)
 	bh.add_child(card_box)
 	var hv = UIKit.vbox(4)
 	UIKit.expand(hv, true, true)
@@ -210,23 +242,45 @@ func _build_hud() -> void:
 	end_btn.custom_minimum_size = Vector2(0, 44)
 	end_btn.add_theme_font_size_override("font_size", 18)
 	ev.add_child(end_btn)
+	var ar = UIKit.hbox(4)
 	auto_btn = UIKit.btn("⚙ Auto Turn", func(): Session.request({"type": "ai_turn", "cid": control_cid, "resources": auto_use_resources, "move": auto_move}), "Let the AI play this turn: it moves, picks the best attack or spell and ends the turn.")
-	ev.add_child(auto_btn)
-	var res_chk = UIKit.check("Auto uses resources", auto_use_resources, func(p): auto_use_resources = p)
-	res_chk.tooltip_text = "Off: Auto Turn never spends spell slots or limited-use features; it sticks to weapons, cantrips and free actions."
-	ev.add_child(res_chk)
-	var mv_chk = UIKit.check("Auto moves", auto_move, func(p): auto_move = p)
-	mv_chk.tooltip_text = "Off: Auto Turn never moves, Dashes or repositions; it acts from where you stand."
-	ev.add_child(mv_chk)
+	UIKit.expand(auto_btn)
+	ar.add_child(auto_btn)
+	# Auto Turn settings live in a small menu so the column stays short.
+	var opts = MenuButton.new()
+	opts.text = "▾"
+	opts.flat = false
+	opts.tooltip_text = "Auto Turn settings"
+	opts.custom_minimum_size = Vector2(30, 0)
+	var pm: PopupMenu = opts.get_popup()
+	pm.add_check_item("Auto Turn may use resources", 0)
+	pm.set_item_checked(0, auto_use_resources)
+	pm.set_item_tooltip(0, "Off: Auto Turn never spends spell slots or limited-use features; it sticks to weapons, cantrips and free actions.")
+	pm.add_check_item("Auto Turn may move", 1)
+	pm.set_item_checked(1, auto_move)
+	pm.set_item_tooltip(1, "Off: Auto Turn never moves, Dashes or repositions; it acts from where you stand.")
+	pm.id_pressed.connect(func(id):
+		var i := pm.get_item_index(id)
+		pm.set_item_checked(i, not pm.is_item_checked(i))
+		if id == 0:
+			auto_use_resources = pm.is_item_checked(i)
+		else:
+			auto_move = pm.is_item_checked(i))
+	ar.add_child(opts)
+	ev.add_child(ar)
 	bh.add_child(ev)
-	# DM toolbox (left).
+	# DM toolbox (left), sized to the space between the top and bottom bars.
 	if Session.is_dm():
 		dm_tabs = TabContainer.new()
 		dm_tabs.position = Vector2(8, 100)
-		dm_tabs.size = Vector2(300, 470)
-		dm_tabs.custom_minimum_size = Vector2(300, 470)
+		dm_tabs.custom_minimum_size = Vector2(DM_W, 0)
+		dm_tabs.size = Vector2(DM_W, 470)
 		ui.add_child(dm_tabs)
 		_build_dm()
+	top.resized.connect(_layout_hud)
+	bottom.resized.connect(_layout_hud)
+	get_viewport().size_changed.connect(_layout_hud)
+	_layout_hud.call_deferred()
 	# Floating helpers.
 	tip = UIKit.lbl("", 15, Color.WHITE)
 	tip.add_theme_stylebox_override("normal", UIKit.sb(Color(0, 0, 0, 0.8), UIKit.GOLD, 1, 4, 6))
@@ -256,6 +310,27 @@ func _build_hud() -> void:
 	ui.add_child(mh)
 	mode_lbl.visible = false
 	confirm_btn.visible = false
+
+## Fit the side panels into the space the top and bottom bars leave, whatever their real heights.
+func _layout_hud() -> void:
+	if top_bar == null:
+		return
+	var vp := ui.get_viewport_rect().size
+	var top_h := top_bar.size.y
+	right_panel.offset_top = top_h + 6
+	if dm_tabs != null:
+		var bottom_top := vp.y - bottom_bar.size.y
+		dm_tabs.position = Vector2(8, top_h + 6)
+		dm_tabs.size = Vector2(DM_W, maxf(200.0, bottom_top - top_h - 12))
+
+## Make every label and check box under `node` wrap within its column instead of widening it.
+## Only text stacked in a column (or set to expand) wraps: a short label beside buttons in a row keeps its width.
+func _wrap_texts(node: Node) -> void:
+	for ch in node.get_children():
+		if (ch is Label or ch is CheckBox) and (node is VBoxContainer or ch.size_flags_horizontal & Control.SIZE_EXPAND):
+			if ch.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				ch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_wrap_texts(ch)
 
 # ---------------------------------------------------------------- DM toolbox
 
@@ -298,7 +373,7 @@ func _build_dm() -> void:
 	var il = ItemList.new()
 	mon_list = il
 	UIKit.expand(il, true, true)
-	il.custom_minimum_size = Vector2(0, 300)
+	il.custom_minimum_size = Vector2(0, 140)
 	mv.add_child(il)
 	var fill = func():
 		il.clear()
@@ -318,16 +393,20 @@ func _build_dm() -> void:
 	hc.tooltip_text = "Hidden monsters stay off the initiative and can't be targeted until you reveal them."
 	mv.add_child(hc)
 	var mb = UIKit.hbox()
-	mb.add_child(UIKit.expand(UIKit.btn("＋ New monster…", func(): _open_monster_editor({}))))
-	mb.add_child(UIKit.expand(UIKit.btn("Edit / copy selected…", func():
+	mb.add_child(UIKit.expand(UIKit.btn("＋ New…", func(): _open_monster_editor({}), "Create a new monster")))
+	mb.add_child(UIKit.expand(UIKit.btn("Edit / copy…", func():
 		if place_mid != "":
-			_open_monster_editor(_editor_template(place_mid)))))
+			_open_monster_editor(_editor_template(place_mid)), "Edit the selected custom monster, or copy a bestiary monster to customise it")))
 	mv.add_child(mb)
 	# Map tab.
 	var mpv = UIKit.vbox(6)
 	var msc = UIKit.scroll(UIKit.margin(mpv, 6))
 	msc.name = "Map"
 	dm_tabs.add_child(msc)
+	var gen_btn = UIKit.btn("🗺 Generate encounter map…", _open_map_generator, "Build a map from terrain, environment and party settings, with recommended monsters. Select characters first (Ctrl+click) to build for just them.")
+	gen_btn.add_theme_color_override("font_color", UIKit.GOLD)
+	mpv.add_child(gen_btn)
+	mpv.add_child(HSeparator.new())
 	mpv.add_child(UIKit.lbl("Paint terrain (drag on the map):", 13, UIKit.MUTED))
 	var grid = GridContainer.new()
 	grid.columns = 2
@@ -344,7 +423,7 @@ func _build_dm() -> void:
 	bh.add_child(UIKit.lbl("Brush", 13, UIKit.MUTED))
 	bh.add_child(UIKit.option([[1, "1×1"], [2, "2×2"], [3, "3×3"]], 1, func(v): brush = v))
 	mpv.add_child(bh)
-	mpv.add_child(UIKit.option([["stone", "Theme: Dungeon stone"], ["cave", "Theme: Cave"], ["forest", "Theme: Forest"], ["tavern", "Theme: Tavern"], ["snow", "Theme: Snow"]], Session.state.get("theme", "stone"), func(id): Session.request({"type": "dm_theme", "theme": id})))
+	mpv.add_child(UIKit.option([["stone", "Theme: Dungeon stone"], ["cave", "Theme: Cave"], ["forest", "Theme: Forest"], ["tavern", "Theme: Tavern"], ["snow", "Theme: Snow"], ["swamp", "Theme: Swamp"], ["ruins", "Theme: Ruins / graveyard"], ["badlands", "Theme: Badlands / mountain"]], Session.state.get("theme", "stone"), func(id): Session.request({"type": "dm_theme", "theme": id})))
 	var rs = UIKit.hbox()
 	var ws = UIKit.spin(8, 80, Session.state.w)
 	var hs = UIKit.spin(8, 60, Session.state.h)
@@ -359,6 +438,42 @@ func _build_dm() -> void:
 	mpv.add_child(bgr)
 	mpv.add_child(UIKit.check("Fit grid height to the image", bg_fit, func(p): bg_fit = p))
 	mpv.add_child(UIKit.btn("Clear terrain", func(): Session.request({"type": "dm_clear_map"})))
+	# Fog of war.
+	mpv.add_child(HSeparator.new())
+	mpv.add_child(UIKit.lbl("Fog of war", 14, UIKit.GOLD))
+	var fs: Dictionary = Fog.settings(Session.state)
+	fog_mode_opt = UIKit.option([["off", "Off: players see everything"], ["soft", "Soft: terrain visible, creatures hidden"], ["hard", "Hard: unexplored ground hidden"]], fs.mode,
+		func(id): Session.request({"type": "dm_fog", "mode": id}))
+	fog_mode_opt.fit_to_longest_item = false
+	fog_mode_opt.tooltip_text = "Soft: players see the whole map but only the creatures their side can see.\nHard: ground nobody in the party has seen stays black until someone sees it."
+	mpv.add_child(fog_mode_opt)
+	fog_range_opt = UIKit.option([[0, "Sight: unlimited (bright light)"], [30, "Sight: 30 ft (dark)"], [60, "Sight: 60 ft (dim / dark)"], [90, "Sight: 90 ft"], [120, "Sight: 120 ft"]], fs.range,
+		func(id): Session.request({"type": "dm_fog", "range": id}))
+	fog_range_opt.fit_to_longest_item = false
+	fog_range_opt.tooltip_text = "How far creatures see. In the dark, darkvision (and blindsight, tremorsense, truesight) reaches further."
+	mpv.add_child(fog_range_opt)
+	fog_shared_chk = UIKit.check("Party shares vision", fs.shared, func(p): Session.request({"type": "dm_fog", "shared": p}))
+	fog_shared_chk.tooltip_text = "On: every player sees what any party member sees.\nOff: each player sees only what their own characters see."
+	mpv.add_child(fog_shared_chk)
+	var pvc = UIKit.check("Preview the players' view", fog_preview, func(p):
+		fog_preview = p
+		_update_fog()
+		_sync_tokens([])
+		_refresh_ui())
+	pvc.tooltip_text = "Look through the party's eyes. Off, you see everything and the party's blind spots are shaded."
+	mpv.add_child(pvc)
+	var fb = UIKit.hbox(4)
+	fb.add_child(UIKit.expand(UIKit.btn("Reveal brush", func():
+		paint_value = FOG_REVEAL
+		_set_mode("paint"), "Drag over the map to reveal ground to the players (hard fog)")))
+	fb.add_child(UIKit.expand(UIKit.btn("Re-fog brush", func():
+		paint_value = FOG_HIDE
+		_set_mode("paint"), "Drag over the map to hide explored ground again")))
+	mpv.add_child(fb)
+	var fa = UIKit.hbox(4)
+	fa.add_child(UIKit.expand(UIKit.btn("Reveal map", func(): Session.request({"type": "dm_fog_reveal"}), "Reveal the whole map's terrain to the players")))
+	fa.add_child(UIKit.expand(UIKit.btn("Re-fog map", func(): Session.request({"type": "dm_fog_reset"}), "The party forgets everything it has explored (they still see what's in sight now)")))
+	mpv.add_child(fa)
 	mpv.add_child(HSeparator.new())
 	var mname = UIKit.line(str(Session.state.get("name", "map")), "Map name")
 	map_name_edit = mname
@@ -390,10 +505,11 @@ func _build_dm() -> void:
 	_fill_maps("")
 	# Party tab.
 	var pv = UIKit.vbox(6)
-	pv.name = "Party"
-	dm_tabs.add_child(UIKit.margin(pv, 6))
-	dm_tabs.get_child(3).name = "Party"
-	pv.set_meta("party", true)
+	var psc = UIKit.scroll(UIKit.margin(pv, 6))
+	psc.name = "Party"
+	dm_tabs.add_child(psc)
+	party_box = pv
+	_wrap_texts(dm_tabs)
 	_refresh_dm()
 
 func _open_monster_editor(tpl: Dictionary) -> void:
@@ -408,6 +524,25 @@ func _open_monster_editor(tpl: Dictionary) -> void:
 		if mon_fill.is_valid():
 			mon_fill.call())
 	ui.add_child(ed)
+
+## The encounter map generator, building for the selected characters (or everyone on the map).
+func _open_map_generator() -> void:
+	for ch in ui.get_children():
+		if ch is MapGeneratorPanel:
+			ch.close()
+	var pcs: Array = []
+	for cid in _selection():
+		if _find(cid).get("kind", "") == "pc":
+			pcs.append(cid)
+	var gen = MapGeneratorPanel.new(pcs)
+	gen.applied.connect(func(nm):
+		_flash("Generated map loaded: " + nm)
+		if map_name_edit:
+			map_name_edit.text = nm)
+	gen.saved.connect(func(nm):
+		_fill_maps(nm)
+		_flash("Map saved: " + nm))
+	ui.add_child(gen)
 
 func _editor_template(mid: String) -> Dictionary:
 	var src: Dictionary = Data.monster(mid).duplicate(true)
@@ -451,10 +586,61 @@ func _select_team(team: String) -> void:
 	_refresh_ui()
 
 func _refresh_dm() -> void:
-	if dm_tabs == null:
+	if dm_tabs == null or party_box == null:
 		return
-	var pv: VBoxContainer = dm_tabs.get_child(3).get_child(0)
+	var fo = get_viewport().gui_get_focus_owner()
+	if fo != null and party_box.is_ancestor_of(fo) and (fo is SpinBox or fo is LineEdit):
+		return  # don't rebuild under the DM's fingers
+	var pv: VBoxContainer = party_box
 	UIKit.clear(pv)
+	# Advancement: XP or milestones, chosen by the DM.
+	pv.add_child(UIKit.lbl("Advancement", 14, UIKit.GOLD))
+	var adv: String = Session.advancement()
+	var ao = UIKit.option([["milestone", "Milestones (you grant levels)"], ["xp", "Experience points"]], adv, func(id): Session.request({"type": "dm_advancement", "mode": id}))
+	ao.fit_to_longest_item = false
+	ao.tooltip_text = "Milestones: you decide when the party levels. XP: award experience and characters level when they reach the PHB thresholds."
+	pv.add_child(ao)
+	var who := "selected characters" if _selection().any(func(id): return _find(id).get("kind", "") == "pc") else "the whole party"
+	if adv == "xp":
+		var xr = UIKit.hbox(4)
+		var xs = UIKit.spin(-100000, 100000, dm_xp_amount, func(v): dm_xp_amount = int(v), 25)
+		xs.update_on_text_changed = true
+		xs.suffix = "XP"
+		UIKit.expand(xs)
+		xr.add_child(xs)
+		xr.add_child(UIKit.check("split", dm_xp_split, func(p): dm_xp_split = p))
+		pv.add_child(xr)
+		pv.add_child(UIKit.btn("Award XP to %s" % who, func(): Session.request(_pc_req({"type": "dm_xp", "amount": dm_xp_amount, "split": dm_xp_split})),
+			"Give this much XP (split: divided evenly) to the selected characters, or to every party member if none are selected. Negative numbers take XP away."))
+		var kill_xp: int = Session.encounter_xp() if Session.is_server() else 0
+		var kb = UIKit.btn("Award defeated foes' XP (%d)" % kill_xp, func(): Session.request({"type": "dm_award_encounter"}),
+			"Adds up the XP of every defeated enemy not yet counted and splits it among the party members still standing.")
+		kb.disabled = kill_xp <= 0
+		pv.add_child(kb)
+	pv.add_child(UIKit.btn("⬆ Grant a level to %s" % who, func(): Session.request(_pc_req({"type": "dm_grant_level"})),
+		"Lets each character take one more level. Players then level up from their character sheet (outside combat)."))
+	# Party roster with levels and sheets.
+	pv.add_child(HSeparator.new())
+	pv.add_child(UIKit.lbl("Party", 14, UIKit.GOLD))
+	for c in Session.state.combatants.values():
+		if c.kind != "pc" or not Session.sheets.has(c.id):
+			continue
+		var sh: Dictionary = Session.sheets[c.id]
+		var row = UIKit.hbox(4)
+		var info := "%s  L%d" % [c.name, Rules.total_level(sh)]
+		if adv == "xp":
+			info += "  ·  %s XP" % CharacterSheet._thousands(int(sh.get("xp", 0)))
+		var pend: int = Session.pending_levels(c.id)
+		if pend > 0:
+			info += "  ·  ⬆%d" % pend
+		var il = UIKit.lbl(info, 13, UIKit.GOOD if pend > 0 else UIKit.INK)
+		il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UIKit.expand(il)
+		row.add_child(il)
+		var cid: String = c.id
+		row.add_child(UIKit.btn("Sheet", func(): _open_sheet(cid), "Open %s's character sheet" % c.name))
+		pv.add_child(row)
+	pv.add_child(HSeparator.new())
 	pv.add_child(UIKit.lbl("Connected players", 14, UIKit.GOLD))
 	for pid in Session.players:
 		pv.add_child(UIKit.lbl("• %s%s" % [Session.players[pid].name, "" if int(pid) == 1 else "  (peer %s)" % str(pid)], 14))
@@ -468,11 +654,120 @@ func _refresh_dm() -> void:
 	if not items.is_empty():
 		pv.add_child(UIKit.option(items, 0, func(id): sel[0] = id))
 		pv.add_child(UIKit.btn("Add to map", func(): Session.request({"type": "dm_place_character", "ch": chars[sel[0]]})))
+	_wrap_texts(pv)
+
+## A DM request aimed at the selected PCs (none selected: the server uses the whole party).
+func _pc_req(req: Dictionary) -> Dictionary:
+	var ids: Array = _selection().filter(func(id): return _find(id).get("kind", "") == "pc")
+	if not ids.is_empty():
+		req.cids = ids
+	return req
+
+# ================================================================ character sheets & levelling
+
+## Can this peer read that creature's sheet? Party members read each other's; the DM reads everyone's.
+func _can_view_sheet(c: Dictionary) -> bool:
+	return not c.is_empty() and c.kind == "pc" and Session.sheets.has(c.id) and (Session.is_dm() or c.team == "party" or _can_control(c))
+
+## This machine's saved copy of the character (with its history), if there is one.
+func _local_copy(cid: String) -> Dictionary:
+	var sh: Dictionary = Session.sheets.get(cid, {})
+	if str(sh.get("id", "")) == "":
+		return {}
+	return CharacterStore.get_character(str(sh.id))
+
+func _sheet_opts(cid: String) -> Dictionary:
+	var c: Dictionary = Session.engine.C(cid)
+	var mine := _can_control(c)
+	var local := _local_copy(cid) if mine else {}
+	return {"live": c, "editable": mine, "advancement": Session.advancement(), "history": local.get("history", []),
+		"pending": Session.pending_levels(cid), "history_remote": mine and int(c.get("owner", 1)) != Session.my_peer()}
+
+func _open_sheet(cid: String) -> CharacterSheet:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_view_sheet(c):
+		_flash("You can only read the sheets of party members.")
+		return null
+	if is_instance_valid(sheet_win):
+		sheet_win.close()
+	sheet_cid = cid
+	sheet_win = CharacterSheet.new(Session.sheets[cid], _sheet_opts(cid))
+	sheet_win.level_up_requested.connect(func(): _open_level_up(cid))
+	sheet_win.plan_changed.connect(func(plan): _send_plan(cid, plan))
+	sheet_win.restore_requested.connect(func(i): _confirm_restore(cid, i))
+	ui.add_child(sheet_win)
+	return sheet_win
+
+## Opens the guided level-up for a PC this peer controls. `force` (tests) opens it without a pending level.
+func _open_level_up(cid: String, force := false) -> LevelUpWizard:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_control(c) or not Session.sheets.has(cid):
+		return null
+	if not force:
+		if Session.pending_levels(cid) <= 0 and not Session.is_dm():
+			_flash("No level to take yet: %s" % ("earn more XP." if Session.advancement() == "xp" else "the DM grants levels."))
+			return null
+		if Session.state.in_combat and not Session.is_dm():
+			_flash("Level up after the fight. (Levels change outside combat.)")
+			return null
+	if is_instance_valid(level_win):
+		level_win.close()
+	var base: Dictionary = Session.sheets[cid].duplicate(true)
+	level_win = LevelUpWizard.new(base)
+	level_win.finished.connect(func(new_sheet, label): Session.request({"type": "set_sheet", "cid": cid, "sheet": Progression.strip_history(new_sheet), "label": label}))
+	ui.add_child(level_win)
+	return level_win
+
+func _send_plan(cid: String, plan: Array) -> void:
+	if not Session.sheets.has(cid):
+		return
+	var sh: Dictionary = Session.sheets[cid].duplicate(true)
+	sh.level_plan = plan
+	Session.request({"type": "set_sheet", "cid": cid, "sheet": sh, "label": ""})
+
+func _confirm_restore(cid: String, index: int) -> void:
+	var local := _local_copy(cid)
+	var hist: Array = local.get("history", [])
+	if index < 0 or index >= hist.size():
+		_flash("That backup isn't on this computer.")
+		return
+	var entry: Dictionary = hist[index]
+	var dlg = ConfirmationDialog.new()
+	dlg.title = "Restore an earlier sheet?"
+	dlg.dialog_text = "Restore \"%s\" (level %d: %s)?\nThe current sheet is backed up first, so you can undo this." % [entry.get("label", "backup"), int(entry.get("level", 0)), entry.get("summary", "")]
+	dlg.dialog_autowrap = true
+	dlg.min_size = Vector2i(460, 0)
+	dlg.confirmed.connect(func():
+		var back: Dictionary = Progression.restore(local, index)
+		# Restoring saves the current version as a backup; the store handler makes that backup.
+		back.history = hist
+		Session.request({"type": "set_sheet", "cid": cid, "sheet": Progression.strip_history(back), "label": "Before restoring \"%s\"" % entry.get("label", "backup")}))
+	dlg.canceled.connect(dlg.queue_free)
+	dlg.confirmed.connect(dlg.queue_free)
+	ui.add_child(dlg)
+	dlg.popup_centered()
+
+func _on_sheets_changed() -> void:
+	if is_instance_valid(sheet_win) and Session.sheets.has(sheet_cid):
+		sheet_win.rebuild(Session.sheets[sheet_cid], _sheet_opts(sheet_cid))
+	# Tell a player when one of their characters can level up.
+	for cid in Session.sheets:
+		var c: Dictionary = Session.engine.C(cid)
+		if c.is_empty() or not _can_control(c) or (Session.is_dm() and int(c.owner) != 1):
+			continue
+		var allowed: int = Progression.allowed_level(Session.sheets[cid], Session.advancement())
+		if Session.pending_levels(cid) > 0 and int(_announced_levels.get(cid, 0)) < allowed:
+			_announced_levels[cid] = allowed
+			_show_banner("Level up available: " + str(c.name))
+			Sfx.play("nat20", 0.0)
+	_refresh_ui()
+	_refresh_dm()
 
 # ================================================================ state sync & events
 
 func _on_state(events: Array) -> void:
 	map_view.set_state(Session.state)
+	_update_fog()
 	_sync_tokens(events)
 	event_queue.append_array(events)
 	if not playing:
@@ -501,12 +796,37 @@ func _sync_tokens(events: Array) -> void:
 		tk.setup(c)
 		if _is_hidden(c.id):
 			tk.modulate.a = 0.35
+			tk.visible = not fog_preview
+		else:
+			tk.visible = _seen(c)
 		if not moving.has(c.id) and not playing:
 			tk.position = _token_pos(c)
 	for id in tokens.keys():
 		if not seen.has(id):
 			tokens[id].queue_free()
 			tokens.erase(id)
+
+## Fog of war for this screen. Players see what their side (or, with vision not shared, their own
+## characters) can see; the DM sees everything, with the party's blind spots shaded, unless previewing.
+func _update_fog() -> void:
+	var eng: CombatEngine = Session.engine
+	if Session.is_dm():
+		var party: Dictionary = Fog.view_for(eng, 0)
+		fog_view = party if fog_preview else {}
+		map_view.fog = party
+		map_view.fog_dm = not fog_preview
+	else:
+		fog_view = Fog.view_for(eng, Session.my_peer())
+		map_view.fog = fog_view
+		map_view.fog_dm = false
+	map_view.queue_redraw()
+	# Players lose sight of (and their selection of) a creature that slips into the fog.
+	if not fog_view.is_empty() and selected_cid != "" and not _seen(_find(selected_cid)):
+		selected_cid = ""
+
+## Whether this screen may show creature c (always true with no fog).
+func _seen(c: Dictionary) -> bool:
+	return c.is_empty() or Fog.sees(fog_view, Session.engine, c)
 
 func _play_events() -> void:
 	playing = true
@@ -613,7 +933,7 @@ func _build_volume() -> Control:
 
 func _spawn_float(e: Dictionary) -> void:
 	var tk = tokens.get(e.cid)
-	if tk == null:
+	if tk == null or not tk.visible:
 		return
 	var l = Label.new()
 	l.text = e.text
@@ -698,13 +1018,18 @@ func _creature_at_pointer(cell: Vector2i) -> Dictionary:
 	for c in Session.state.combatants.values():
 		if eng.in_rope(c) and not c.get("dead", false) and tokens.has(c.id):
 			var tk = tokens[c.id]
-			if Rect2(tk.position, Vector2.ONE * tk.cells() * CELL * tk.scale.x).has_point(mp):
+			if Rect2(tk.position, Vector2.ONE * tk.cells() * CELL * tk.scale.x).has_point(mp) and _seen(c):
 				return c
-	return eng.creature_at(cell)
+	var o: Dictionary = eng.creature_at(cell)
+	return o if _seen(o) else {}
 
 ## Draws an fx event. style is the event's sound name ("sword", "bow", "fire"...), which picks the look.
 ## Returns how long to wait before the next event (a projectile's flight time).
 func _spawn_fx(e: Dictionary, style: String) -> float:
+	# Nothing to watch when it all happens out of sight.
+	var eng: CombatEngine = Session.engine
+	if not fog_view.is_empty() and not Fog.cell_visible(fog_view, eng, Vector2i(Vector2(e.from))) and not Fog.cell_visible(fog_view, eng, Vector2i(Vector2(e.to))):
+		return 0.0
 	var col = Vfx.color_for(style, Color(e.get("color", "#ffffff")))
 	var from = _center_at(e.from)
 	var to = _center_at(e.to)
@@ -772,6 +1097,16 @@ func _refresh_ui() -> void:
 	if map_name_edit != null and not map_name_edit.has_focus() and str(st.get("name", "")) != map_name_edit.get_meta("shown", ""):
 		map_name_edit.set_meta("shown", str(st.get("name", "")))
 		map_name_edit.text = str(st.get("name", ""))
+	if fog_mode_opt != null:
+		# Keep the fog controls in step with the state (a loaded map brings its own settings).
+		var fs: Dictionary = Fog.settings(st)
+		for i in fog_mode_opt.item_count:
+			if fog_mode_opt.get_item_metadata(i) == fs.mode:
+				fog_mode_opt.select(i)
+		for i in fog_range_opt.item_count:
+			if int(fog_range_opt.get_item_metadata(i)) == fs.range:
+				fog_range_opt.select(i)
+		fog_shared_chk.set_pressed_no_signal(fs.shared)
 	title_lbl.text = str(st.get("name", "Dicehollow"))
 	round_lbl.text = ("Round %d — %s's turn" % [st.round, cur.get("name", "")]) if st.in_combat else ("Exploration (no combat)" + ("  •  You are the DM" if Session.is_dm() else ""))
 	_refresh_initiative()
@@ -780,6 +1115,10 @@ func _refresh_ui() -> void:
 	_refresh_inspect()
 	_refresh_highlights()
 	_check_pending_hit()
+	if is_instance_valid(sheet_win) and not Session.engine.C(sheet_cid).is_empty():
+		sheet_win.update_live(Session.engine.C(sheet_cid), Session.pending_levels(sheet_cid))
+	if dm_tabs != null and dm_tabs.current_tab == 3:
+		_refresh_dm()
 
 ## A weapon hit held for this player's on-hit choices (Divine Smite, Stunning Strike, a maneuver):
 ## ask one question at a time, then send the answers. Closing a popup counts as "no".
@@ -852,6 +1191,19 @@ func _refresh_initiative() -> void:
 		if c.is_empty() or (c.dead and not Session.state.in_combat):
 			continue
 		var is_cur: bool = not cur.is_empty() and cur.id == id
+		if not _seen(c):
+			# Out of sight in the fog of war: a place in the order, nothing more.
+			if not Session.state.in_combat:
+				continue
+			var up = UIKit.panel(null, Color("#2a2338") if not is_cur else Color("#4a3a68"), UIKit.GOLD if is_cur else UIKit.MUTED)
+			up.custom_minimum_size = Vector2(78, 70)
+			var ul = UIKit.lbl("?", 26, UIKit.MUTED)
+			ul.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			ul.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			up.add_child(ul)
+			up.tooltip_text = "Something you can't see"
+			init_row.add_child(up)
+			continue
 		var p = UIKit.panel(null, Color("#2a2338") if not is_cur else Color("#4a3a68"), UIKit.GOLD if is_cur else (UIKit.PARTY if c.team == "party" else UIKit.ENEMY))
 		p.custom_minimum_size = Vector2(78, 70)
 		var v = UIKit.vbox(1)
@@ -882,10 +1234,15 @@ func _refresh_initiative() -> void:
 		var cid: String = c.id
 		p.gui_input.connect(func(ev):
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				if ev.double_click and _can_view_sheet(Session.engine.C(cid)):
+					_open_sheet(cid)
+					return
 				selected_cid = cid
 				_center_on(cid)
 				_refresh_ui())
 		p.tooltip_text = "%s — initiative %d" % [c.name, int(c.get("init", 0))] if Session.state.in_combat else str(c.name)
+		if _can_view_sheet(c):
+			p.tooltip_text += "\nDouble-click for the character sheet"
 		init_row.add_child(p)
 
 func _refresh_card() -> void:
@@ -919,10 +1276,32 @@ func _refresh_card() -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		frame.add_child(l)
-	card_box.add_child(frame)
+	# Portrait with the sheet (and level-up) buttons under it.
+	var pcol = UIKit.vbox(4)
+	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pcol.add_child(frame)
+	if _can_view_sheet(c):
+		var cid: String = c.id
+		var sb = UIKit.btn("📜 Sheet", func(): _open_sheet(cid), "Character sheet, features, spells, level plan and history (C)")
+		pcol.add_child(sb)
+		if _can_control(c) and Session.pending_levels(c.id) > 0:
+			var lb = UIKit.btn("⬆ Level up", func(): _open_level_up(cid), "A new level is ready. Opens the guided level-up.")
+			lb.add_theme_color_override("font_color", UIKit.GOLD)
+			lb.add_theme_stylebox_override("normal", UIKit.sb(Color("#3a2c12"), UIKit.GOLD, 2))
+			lb.disabled = Session.state.in_combat and not Session.is_dm()
+			if lb.disabled:
+				lb.tooltip_text = "Level up after the fight."
+			pcol.add_child(lb)
+	card_box.add_child(pcol)
 	var v = UIKit.vbox(2)
 	UIKit.expand(v)
-	v.add_child(UIKit.lbl(str(c.name) + ("  (%s)" % c.form.name if not c.form.is_empty() else ""), 17, UIKit.GOLD))
+	var vsc = ScrollContainer.new()
+	vsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UIKit.expand(vsc, true, true)
+	vsc.add_child(v)
+	var nm_l = UIKit.lbl(str(c.name) + ("  (%s)" % c.form.name if not c.form.is_empty() else ""), 17, UIKit.GOLD)
+	nm_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(nm_l)
 	var hp_txt = "HP %d / %d" % [maxi(c.hp, 0), c.max_hp]
 	if c.temp_hp > 0: hp_txt += "  +%d temp" % c.temp_hp
 	if not c.form.is_empty(): hp_txt += "  (beast %d/%d)" % [c.form.hp, c.form.max_hp]
@@ -937,7 +1316,9 @@ func _refresh_card() -> void:
 		info += "   HD " + " ".join(hd)
 	if not c.conc.is_empty():
 		info += "   ◈ " + str(c.conc.name)
-	v.add_child(UIKit.lbl(info, 13, UIKit.MUTED))
+	var info_l = UIKit.lbl(info, 13, UIKit.MUTED)
+	info_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(info_l)
 	var res_txt = ""
 	if c.slots_max.size() > 0:
 		var parts: PackedStringArray = []
@@ -948,7 +1329,9 @@ func _refresh_card() -> void:
 	if c.pact_max > 0:
 		res_txt += "  Pact L%d %s" % [c.pact_level, "●".repeat(c.pact_max - c.pact_used) + "○".repeat(c.pact_used)]
 	if res_txt != "":
-		v.add_child(UIKit.lbl(res_txt, 12, Color("#c8a0ff")))
+		var sl_l = UIKit.lbl(res_txt.strip_edges(), 12, Color("#c8a0ff"))
+		sl_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(sl_l)
 	var rparts: PackedStringArray = []
 	for k in c.resources:
 		var r: Dictionary = c.resources[k]
@@ -956,8 +1339,7 @@ func _refresh_card() -> void:
 			rparts.append("%s %d/%d" % [r.name, r.cur, r.max])
 	if not rparts.is_empty():
 		var rl = UIKit.lbl(", ".join(rparts), 12, Color("#ffd166"))
-		rl.autowrap_mode = TextServer.AUTOWRAP_WORD
-		rl.custom_minimum_size = Vector2(200, 0)
+		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(rl)
 	var conds: PackedStringArray = []
 	for e in c.effects:
@@ -967,10 +1349,9 @@ func _refresh_card() -> void:
 		conds.append("Dying (✓%d ✗%d)" % [c.death.s, c.death.f])
 	if not conds.is_empty():
 		var cl = UIKit.lbl(", ".join(conds), 12, Color("#e0a0ff"))
-		cl.autowrap_mode = TextServer.AUTOWRAP_WORD
-		cl.custom_minimum_size = Vector2(200, 0)
+		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(cl)
-	card_box.add_child(v)
+	card_box.add_child(vsc)
 	# Economy.
 	var my_turn = eng.is_turn_of(c)
 	var t: Dictionary = c.get("turn", {})
@@ -1069,6 +1450,8 @@ func _refresh_inspect() -> void:
 		return
 	_inspect_key = _selection_key()
 	UIKit.clear(inspect_box)
+	# Long names, summaries and check boxes wrap inside the column instead of widening it.
+	_wrap_texts.call_deferred(inspect_box)
 	var eng: CombatEngine = Session.engine
 	var dm = Session.is_dm()
 	var sel := _selection()
@@ -1090,6 +1473,13 @@ func _refresh_inspect() -> void:
 		var sm = UIKit.lbl(str(c.summary), 12, UIKit.MUTED)
 		sm.autowrap_mode = TextServer.AUTOWRAP_WORD
 		inspect_box.add_child(sm)
+		if _can_view_sheet(c):
+			var scid: String = c.id
+			var shb = UIKit.btn("📜 Character sheet", func(): _open_sheet(scid), "Read the full sheet: abilities, skills, features, spells and level plan")
+			if _can_control(c) and Session.pending_levels(c.id) > 0:
+				shb.text = "📜 Character sheet  ·  ⬆ level up ready"
+				shb.add_theme_color_override("font_color", UIKit.GOLD)
+			inspect_box.add_child(shb)
 		var see: bool = dm or c.team == "party"
 		if see:
 			var hp_line := "HP %d/%d%s   AC %d   Speed %d" % [maxi(c.hp, 0), c.max_hp, (" +%d" % c.temp_hp) if c.temp_hp > 0 else "", eng.eff_ac(c), eng.eff_speed(c)]
@@ -1139,6 +1529,7 @@ func _refresh_inspect() -> void:
 	for t in Data.DAMAGE_TYPES:
 		dtypes.append([t, t.capitalize()])
 	var dto = UIKit.option(dtypes, dm_dtype, func(id): dm_dtype = id)
+	dto.fit_to_longest_item = false
 	dto.tooltip_text = "Damage type (resistance, immunity and vulnerability apply). Untyped ignores them."
 	UIKit.expand(dto)
 	h.add_child(dto)
@@ -1158,6 +1549,7 @@ func _refresh_inspect() -> void:
 	var co = UIKit.option(conds, "", func(id):
 		if id != "":
 			Session.request(_sel_req({"type": "dm_condition", "cond": id, "rounds": dm_cond_rounds})))
+	co.fit_to_longest_item = false
 	UIKit.expand(co)
 	h2.add_child(co)
 	var rs = UIKit.spin(0, 100, dm_cond_rounds, func(v): dm_cond_rounds = int(v))
@@ -1222,6 +1614,8 @@ func _build_roll_box(dm: bool) -> void:
 		items.append(["skill:" + s, "%s (%s)" % [str(s).replace("_", " ").capitalize(), str(Data.SKILLS[s]).to_upper()]])
 	var r1 = UIKit.hbox(4)
 	var ro = UIKit.option(items, roll_pick, func(id): roll_pick = id)
+	ro.fit_to_longest_item = false
+	ro.custom_minimum_size = Vector2(120, 0)
 	UIKit.expand(ro)
 	r1.add_child(ro)
 	if dm:
@@ -1336,7 +1730,7 @@ func _preview_at(cell: Vector2i) -> void:
 			if not area.is_empty():
 				var from_self: bool = a.target == "self_area" or area.get("shape", "") in ["cone", "line", "emanation"]
 				map_view.area_cells = eng.area_cells(c, area, cell, from_self)
-				var hits: Array = eng.creatures_in_cells(map_view.area_cells, c.id if from_self else "")
+				var hits: Array = eng.creatures_in_cells(map_view.area_cells, c.id if from_self else "").filter(_seen)
 				var foes = hits.filter(func(o): return eng.hostile(c, o)).size()
 				var friends = hits.size() - foes
 				_show_tip("%d enemies%s in area" % [foes, (", [!] %d allies" % friends) if friends > 0 else ""])
@@ -1560,7 +1954,10 @@ func _set_mode(m: String) -> void:
 			mode_lbl.text = "  %s: choose %s  (right-click / Esc to cancel)  " % [a.name, what]
 			confirm_btn.visible = mx > 1
 		"paint":
-			mode_lbl.text = "  Painting %s — drag on the map (right-click to stop)  " % ["floor", "wall", "difficult terrain", "water", "pit"][paint_value]
+			var what: String = {FOG_REVEAL: "revealed ground (fog of war)", FOG_HIDE: "fog back over explored ground"}.get(paint_value, "")
+			if what == "":
+				what = ["floor", "wall", "difficult terrain", "water", "pit"][paint_value]
+			mode_lbl.text = "  Painting %s — drag on the map (right-click to stop)  " % what
 		"spawn":
 			mode_lbl.text = "  Click cells to toggle player start points (right-click to stop)  "
 		"place_monster":
@@ -1640,6 +2037,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_DELETE:
 				if Session.is_dm() and mode == "":
 					_remove_selected()
+			KEY_C:
+				# Your own character sheet (or the selected party member's).
+				var want: String = control_cid if control_cid != "" else selected_cid
+				if want != "" and _can_view_sheet(Session.engine.C(want)):
+					if is_instance_valid(sheet_win) and sheet_cid == want:
+						sheet_win.close()
+					else:
+						_open_sheet(want)
 			KEY_H:
 				if Session.is_dm() and mode == "" and not _selection().is_empty() and not _selection().any(func(id): return _find(id).kind == "pc"):
 					Session.request(_sel_req({"type": "dm_hidden"}))
@@ -1651,7 +2056,7 @@ func _typing() -> bool:
 		return true
 	# A dialog such as the monster editor is open: keys belong to it, not the map.
 	for n in ui.get_children():
-		if n is MonsterEditor:
+		if n is MonsterEditor or n is MapGeneratorPanel:
 			return true
 	return false
 
@@ -1763,14 +2168,17 @@ func _target_click(cell: Vector2i) -> void:
 func _flush_paint() -> void:
 	if paint_buffer.is_empty():
 		return
-	Session.request({"type": "dm_cells", "cells": paint_buffer.duplicate(), "value": paint_value})
+	if paint_value in [FOG_REVEAL, FOG_HIDE]:
+		Session.request({"type": "dm_fog_paint", "cells": paint_buffer.duplicate(), "reveal": paint_value == FOG_REVEAL})
+	else:
+		Session.request({"type": "dm_cells", "cells": paint_buffer.duplicate(), "value": paint_value})
 	paint_buffer = []
 
 # ================================================================ misc
 
 func _center_on(cid: String) -> void:
 	var c = Session.engine.C(cid)
-	if not c.is_empty():
+	if not c.is_empty() and _seen(c):
 		var tw = create_tween()
 		tw.tween_property(cam, "position", (Vector2(c.pos) + Vector2(0.5, 0.5)) * CELL + Vector2(180, 60) / cam.zoom, 0.3)
 

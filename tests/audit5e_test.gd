@@ -207,15 +207,77 @@ func _ready() -> void:
 	check(int(pc.get("rr_uses", 0)) == 2, "Relentless Rage DC isn't reset by a new fight")
 	pc.hp = 1
 	eng.short_rest()
+	check(int(pc.hd_used.get("10", 0)) == 0 and pc.hp == 1, "a short rest doesn't spend hit dice by itself")
+	check(not eng.find_action(pc, "hit_die_10").is_empty() and eng.find_action(pc, "hit_die_10").enabled, "after the rest the player can spend a d10 hit die")
+	eng.execute(pc.id, "hit_die_10", {})
 	var spent: int = int(pc.hd_used.get("10", 0))
-	check(spent >= 1 and pc.hp > 1 and pc.hp <= pc.max_hp, "short rest spends hit dice to heal (spent %d, hp %d)" % [spent, pc.hp])
+	check(spent == 1 and pc.hp >= 1 and pc.hp <= pc.max_hp, "one click spends exactly one hit die (spent %d, hp %d)" % [spent, pc.hp])
 	check(int(pc.get("rr_uses", 0)) == 0, "a short rest resets Relentless Rage")
+	eng.start_combat()
+	check(eng.find_action(pc, "hit_die_10").is_empty(), "hit dice can't be spent once a fight starts")
+	eng.end_combat()
 	pc.hd_used["10"] = 5
 	pc.hp = 1
 	eng.short_rest()
-	check(pc.hp == 1, "no hit dice left: a short rest heals nothing")
+	check(eng.find_action(pc, "hit_die_10").is_empty(), "no hit dice left: nothing to spend")
 	eng.long_rest()
 	check(int(pc.hd_used["10"]) == 3, "long rest regains half the hit dice (2 of 5; got %d used)" % int(pc.hd_used["10"]))
+	check(eng.find_action(pc, "hit_die_10").is_empty(), "a long rest closes the hit dice window")
+
+	# --- A long rest needs at least 1 HP at the start to do anything for you.
+	pc.hd_used["10"] = 5
+	pc.slots_used = pc.slots_used.map(func(_x): return 0)
+	eng.apply_damage(pc, [{"amount": pc.hp, "type": "untyped"}], {}, {"magic": true})
+	check(pc.hp == 0 and not pc.death.dead, "the fighter drops to 0 HP")
+	eng.long_rest()
+	check(pc.hp == 0 and int(pc.hd_used["10"]) == 5, "dying at 0 HP: a long rest heals nothing and gives no hit dice back")
+	pc.death.stable = true
+	eng.long_rest()
+	check(pc.hp == 1 and int(pc.hd_used["10"]) == 5, "stable at 0 HP: wakes with 1 HP but still no rest benefits (hp %d)" % pc.hp)
+	eng.long_rest()
+	check(pc.hp == pc.max_hp and int(pc.hd_used["10"]) == 3, "with 1 HP the next long rest works normally")
+
+	# --- Grapple and Shove: replace one attack, Athletics contest, size limit, release.
+	var brute = hero([{"id": "fighter", "level": 5, "subclass": "champion"}], {"base_scores": {"str": 20, "dex": 10, "con": 14, "int": 10, "wis": 10, "cha": 10}})
+	cs = board([[brute, Vector2i(2, 2)]], [["goblin", "enemy", Vector2i(3, 2)], ["ogre", "enemy", Vector2i(9, 2)]])
+	var br: Dictionary = cs[0]
+	var gb: Dictionary = cs[1]
+	ogre = cs[2]
+	var won := false
+	for i in 30:
+		give_turn(br)
+		eng.execute(br.id, "grapple", {"targets": [gb.id]})
+		check(int(br.turn.attacks) == 1, "Grapple uses one attack of the Attack action (Extra Attack leaves one)")
+		if eng.has_cond(gb, "grappled"):
+			won = true
+			break
+	check(won, "a STR 20 fighter grapples a goblin within 30 tries")
+	check(eng.eff_speed(gb) == 0, "the grappled goblin has speed 0")
+	check(not eng.find_action(gb, "escape").is_empty(), "the goblin can try to escape")
+	give_turn(br)
+	eng.execute(br.id, "release", {})
+	check(not eng.has_cond(gb, "grappled"), "Release Grapple lets go")
+	won = false
+	for i in 30:
+		give_turn(br)
+		eng.execute(br.id, "shove_prone", {"targets": [gb.id]})
+		if eng.has_cond(gb, "prone"):
+			won = true
+			break
+	check(won, "Shove (Prone) knocks the goblin down within 30 tries")
+	var p0: Vector2i = gb.pos
+	eng.remove_effects_where(gb, func(e): return e.get("cond", "") == "prone")
+	for i in 30:
+		give_turn(br)
+		eng.execute(br.id, "shove_push", {"targets": [gb.id]})
+		if gb.pos != p0:
+			break
+	check(gb.pos != p0 and eng.dist(br, gb) > 5, "Shove (Push) moves the goblin away")
+	var halfling = hero([{"id": "rogue", "level": 1, "subclass": "thief"}], {"race": "halfling"})
+	cs = board([[halfling, Vector2i(2, 2)]], [["ogre", "enemy", Vector2i(3, 2)]])
+	give_turn(cs[0])
+	eng.execute(cs[0].id, "grapple", {"targets": [cs[1].id]})
+	check(not eng.has_cond(cs[1], "grappled") and int(cs[0].turn.action) == 1, "a Small creature can't grapple a Large ogre (and loses no action)")
 
 	# --- Being incapacitated ends concentration.
 	var clr = hero([{"id": "cleric", "level": 3, "subclass": "life"}], {"spells": {"cleric": ["bless", "sacred_flame"]}})
