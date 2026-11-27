@@ -5,13 +5,20 @@ const CHAR_DIR := "user://characters"
 const PORTRAIT_DIR := "user://portraits"
 const MAP_DIR := "user://maps"
 const PORTRAIT_SIZE := 256
+const MONSTER_DIR := "user://monsters"
+const BG_DIR := "user://backgrounds"
+const BG_MAX := 2560
 
 var _tex_cache := {}
 var portrait_bytes := {}  # key -> PackedByteArray (received over the network or loaded)
+var bg_bytes := {}   # key -> jpg bytes
+var _bg_cache := {}
 
 func _ready() -> void:
-	for d in [CHAR_DIR, PORTRAIT_DIR, MAP_DIR]:
+	for d in [CHAR_DIR, PORTRAIT_DIR, MAP_DIR, MONSTER_DIR, BG_DIR]:
 		DirAccess.make_dir_recursive_absolute(d)
+	for m in list_custom_monsters():
+		Data.register_monster(m)
 
 func new_id() -> String:
 	var s = ""
@@ -122,6 +129,80 @@ func load_map(name: String) -> Dictionary:
 		return {}
 	var d = Data.normalize(JSON.parse_string(FileAccess.get_file_as_string(p)))
 	return d if d is Dictionary else {}
+
+
+# ---------------------------------------------------------------- custom monsters
+
+func list_custom_monsters() -> Array:
+	var out: Array = []
+	var dir = DirAccess.open(MONSTER_DIR)
+	if dir:
+		for f in dir.get_files():
+			if f.ends_with(".json"):
+				var m = Data.normalize(JSON.parse_string(FileAccess.get_file_as_string(MONSTER_DIR + "/" + f)))
+				if m is Dictionary and m.has("id"):
+					out.append(m)
+	return out
+
+func save_custom_monster(m: Dictionary) -> void:
+	var f = FileAccess.open(MONSTER_DIR + "/" + str(m.id).validate_filename() + ".json", FileAccess.WRITE)
+	f.store_string(JSON.stringify(m, "\t"))
+	Data.register_monster(m)
+
+func delete_custom_monster(id: String) -> void:
+	DirAccess.remove_absolute(MONSTER_DIR + "/" + id.validate_filename() + ".json")
+	Data.unregister_monster(id)
+
+# ---------------------------------------------------------------- map backgrounds
+
+## Import an image as a map background (downscaled to BG_MAX px on the long side). Returns its key or "".
+func import_background(path: String) -> String:
+	var img = Image.load_from_file(path)
+	if img == null or img.is_empty():
+		return ""
+	var big = maxi(img.get_width(), img.get_height())
+	if big > BG_MAX:
+		var f = float(BG_MAX) / big
+		img.resize(maxi(1, int(img.get_width() * f)), maxi(1, int(img.get_height() * f)), Image.INTERPOLATE_LANCZOS)
+	img.convert(Image.FORMAT_RGB8)
+	var key = new_id()
+	var bytes = img.save_jpg_to_buffer(0.88)
+	var f2 = FileAccess.open(BG_DIR + "/" + key + ".jpg", FileAccess.WRITE)
+	f2.store_buffer(bytes)
+	bg_bytes[key] = bytes
+	return key
+
+func get_bg_bytes(key: String) -> PackedByteArray:
+	if key == "":
+		return PackedByteArray()
+	if bg_bytes.has(key):
+		return bg_bytes[key]
+	var p = BG_DIR + "/" + key.validate_filename() + ".jpg"
+	if FileAccess.file_exists(p):
+		bg_bytes[key] = FileAccess.get_file_as_bytes(p)
+		return bg_bytes[key]
+	return PackedByteArray()
+
+func register_bg(key: String, bytes: PackedByteArray) -> void:
+	if key == "" or bytes.is_empty():
+		return
+	bg_bytes[key] = bytes
+	_bg_cache.erase(key)
+
+func bg_texture(key: String) -> Texture2D:
+	if key == "":
+		return null
+	if _bg_cache.has(key):
+		return _bg_cache[key]
+	var bytes = get_bg_bytes(key)
+	if bytes.is_empty():
+		return null
+	var img = Image.new()
+	if img.load_jpg_from_buffer(bytes) != OK:
+		return null
+	var tex = ImageTexture.create_from_image(img)
+	_bg_cache[key] = tex
+	return tex
 
 # ---------------------------------------------------------------- premade characters
 

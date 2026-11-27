@@ -78,6 +78,7 @@ var races := {}
 var classes := {}
 var spells := {}
 var monsters := {}
+var custom_monsters := {}   # DM-made monsters (id -> def), also present in `monsters`
 var items := {}
 var features := {}
 var feats := {}
@@ -192,6 +193,15 @@ func weapons() -> Array:
 
 func armors() -> Array:
 	return items.values().filter(func(i): return i.kind == "armor")
+
+func register_monster(m: Dictionary, custom := true) -> void:
+	monsters[m.id] = m
+	if custom:
+		custom_monsters[m.id] = m
+
+func unregister_monster(id: String) -> void:
+	monsters.erase(id)
+	custom_monsters.erase(id)
 
 func monsters_sorted() -> Array:
 	var arr = monsters.values()

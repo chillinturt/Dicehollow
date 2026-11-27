@@ -101,6 +101,8 @@ static func icon_for(mid: String) -> String:
 ## Icon texture for a combatant (uses its wild shape form if it has one), or null.
 static func for_combatant(c: Dictionary) -> Texture2D:
 	var form: Dictionary = c.get("form", {})
+	if form.is_empty() and SVG.has(str(c.get("icon", ""))):
+		return texture(str(c.icon))
 	var mid := str(form.get("monster_id", "")) if not form.is_empty() else str(c.get("monster_id", ""))
 	return texture(icon_for(mid))
 

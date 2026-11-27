@@ -22,6 +22,9 @@ var range_ft := 0
 var hover := Vector2i(-1, -1)
 var show_spawns := false
 
+func _ready() -> void:
+	Session.bg_arrived.connect(func(_k): queue_redraw())
+
 func set_state(st: Dictionary) -> void:
 	state = st
 	queue_redraw()
@@ -37,6 +40,10 @@ func _draw() -> void:
 	var th: Dictionary = THEMES.get(state.get("theme", "stone"), THEMES.stone)
 	var cells: PackedByteArray = state.cells
 	draw_rect(Rect2(-CELL * 0.25, -CELL * 0.25, w * CELL + CELL * 0.5, h * CELL + CELL * 0.5), Color("#0b0910"))
+	var bg_tex: Texture2D = CharacterStore.bg_texture(str(state.get("bg", "")))
+	var wa := 0.55 if bg_tex else 1.0   # terrain is see-through over a background image
+	if bg_tex:
+		draw_texture_rect(bg_tex, Rect2(0, 0, w * CELL, h * CELL), false)
 	for y in h:
 		for x in w:
 			var v = cells[y * w + x]
@@ -47,25 +54,29 @@ func _draw() -> void:
 			base = base.lightened(fposmod(n, 0.04))
 			match v:
 				EngineBase.WALL:
-					draw_rect(r, th.wall)
-					draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 12)), th.wall_top)
+					draw_rect(r, Color(th.wall, wa))
+					draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 12)), Color(th.wall_top, wa))
 					draw_rect(Rect2(r.position + Vector2(3, r.size.y - 9), Vector2(r.size.x - 6, 6)), th.wall.darkened(0.3))
 				EngineBase.DIFFICULT:
-					draw_rect(r, base.darkened(0.12))
+					draw_rect(r, Color(base.darkened(0.12), 0.3 if bg_tex else 1.0))
 					for i in 5:
 						var p = r.position + Vector2(10 + (i * 23) % 44, 12 + (i * 17) % 40)
 						draw_circle(p, 4.0, base.darkened(0.45))
 						draw_circle(p + Vector2(-1, -1), 2.5, base.lightened(0.1))
 				EngineBase.WATER:
-					draw_rect(r, Color("#24527a"))
+					draw_rect(r, Color(0.14, 0.32, 0.48, 0.45 if bg_tex else 1.0))
 					draw_line(r.position + Vector2(8, 22), r.position + Vector2(28, 18), Color("#4a86b8"), 2)
 					draw_line(r.position + Vector2(30, 44), r.position + Vector2(54, 40), Color("#4a86b8"), 2)
 				EngineBase.PIT:
-					draw_rect(r, Color("#050407"))
+					draw_rect(r, Color(0.02, 0.016, 0.03, 0.6 if bg_tex else 1.0))
 					draw_rect(r, Color("#2a2230"), false, 2)
 				_:
-					draw_rect(r, base)
+					if not bg_tex:
+						draw_rect(r, base)
 	# Grid lines.
+	if bg_tex:
+		th = th.duplicate()
+		th.grid = Color(1, 1, 1, 0.22)
 	for x in w + 1:
 		draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, h * CELL), th.grid, 1)
 	for y in h + 1:

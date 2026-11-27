@@ -96,6 +96,7 @@ static func from_monster(id: String, mid: String) -> Dictionary:
 	c.team = "enemy"
 	c.monster_id = mid
 	c.color = m.get("token_color", "#a33")
+	c.icon = str(m.get("icon", ""))
 	c.sz = SIZE_CELLS.get(m.get("size", "medium"), 1)
 	c.size = str(m.get("size", "medium"))
 	c.senses = str(m.get("senses", ""))

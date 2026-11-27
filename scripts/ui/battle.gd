@@ -3,6 +3,7 @@ extends Node2D
 
 const CELL := 64
 const MapViewScript := preload("res://scripts/ui/map_view.gd")
+const MonsterEditorScript := preload("res://scripts/ui/monster_editor.gd")
 const TokenScript := preload("res://scripts/ui/token.gd")
 const Vfx := preload("res://scripts/ui/vfx.gd")
 const CAT_COLORS := {"attack": Color("#b5523b"), "spell": Color("#6b4fb0"), "feature": Color("#b08a2e"), "basic": Color("#4a5a6e"), "toggle": Color("#2f7a6a")}
@@ -52,6 +53,10 @@ var event_queue: Array = []
 var playing := false
 var last_turn_id := ""
 var monster_filter := ""
+var mon_fill: Callable
+var mon_list: ItemList
+var bg_dialog: FileDialog
+var bg_fit := true
 var _last_hit_col := Color("#ffcf8a")   # spark colour for the next damage number, from the last attack's fx
 var shown_hit := ""       # id of the held weapon hit this player was last asked about
 
@@ -73,6 +78,13 @@ func _ready() -> void:
 	Session.players_changed.connect(_refresh_dm)
 	Session.session_ended.connect(_on_session_ended)
 	Session.status.connect(func(t): _flash(t))
+	bg_dialog = FileDialog.new()
+	bg_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	bg_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	bg_dialog.use_native_dialog = true
+	bg_dialog.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp, *.bmp ; Images"])
+	bg_dialog.file_selected.connect(_on_bg_file)
+	add_child(bg_dialog)
 	map_view.set_state(Session.state)
 	cam.position = Vector2(Session.state.w, Session.state.h) * CELL * 0.5
 	cam.zoom = Vector2.ONE * 0.8
@@ -253,6 +265,7 @@ func _build_dm() -> void:
 	var search = UIKit.line("", "Search the bestiary…")
 	mv.add_child(search)
 	var il = ItemList.new()
+	mon_list = il
 	UIKit.expand(il, true, true)
 	il.custom_minimum_size = Vector2(0, 300)
 	mv.add_child(il)
@@ -260,15 +273,22 @@ func _build_dm() -> void:
 		il.clear()
 		for m in Data.monsters_sorted():
 			if monster_filter == "" or monster_filter in str(m.name).to_lower() or monster_filter in str(m.get("type", "")):
-				var i = il.add_item("CR %s  %s" % [Data.cr_text(m.cr), m.name])
+				var i = il.add_item("%sCR %s  %s" % ["★ " if Data.custom_monsters.has(m.id) else "", Data.cr_text(m.cr), m.name])
 				il.set_item_metadata(i, m.id)
 				il.set_item_tooltip(i, "%s %s, AC %d, HP %d" % [str(m.get("size", "")).capitalize(), m.get("type", ""), int(m.ac), int(m.hp)])
+	mon_fill = fill
 	fill.call()
 	search.text_changed.connect(func(t): monster_filter = t.to_lower(); fill.call())
 	il.item_selected.connect(func(i):
 		place_mid = il.get_item_metadata(i)
 		_set_mode("place_monster"))
 	mv.add_child(UIKit.check("Place as ally (party side)", false, func(p): place_ally = p))
+	var mb = UIKit.hbox()
+	mb.add_child(UIKit.expand(UIKit.btn("＋ New monster…", func(): _open_monster_editor({}))))
+	mb.add_child(UIKit.expand(UIKit.btn("Edit / copy selected…", func():
+		if place_mid != "":
+			_open_monster_editor(_editor_template(place_mid)))))
+	mv.add_child(mb)
 	# Map tab.
 	var mpv = UIKit.vbox(6)
 	var msc = UIKit.scroll(UIKit.margin(mpv, 6))
@@ -298,6 +318,12 @@ func _build_dm() -> void:
 	rs.add_child(hs)
 	rs.add_child(UIKit.btn("Resize", func(): Session.request({"type": "dm_resize", "w": int(ws.value), "h": int(hs.value)})))
 	mpv.add_child(rs)
+	mpv.add_child(UIKit.lbl("Background image:", 13, UIKit.MUTED))
+	var bgr = UIKit.hbox()
+	bgr.add_child(UIKit.expand(UIKit.btn("Upload image…", func(): bg_dialog.popup_centered_ratio(0.7))))
+	bgr.add_child(UIKit.expand(UIKit.btn("Remove", func(): Session.request({"type": "dm_background", "key": ""}))))
+	mpv.add_child(bgr)
+	mpv.add_child(UIKit.check("Fit grid height to the image", bg_fit, func(p): bg_fit = p))
 	mpv.add_child(UIKit.btn("Clear terrain", func(): Session.request({"type": "dm_clear_map"})))
 	mpv.add_child(HSeparator.new())
 	var mname = UIKit.line(str(Session.state.get("name", "map")), "Map name")
@@ -324,6 +350,33 @@ func _build_dm() -> void:
 	dm_tabs.get_child(3).name = "Party"
 	pv.set_meta("party", true)
 	_refresh_dm()
+
+func _open_monster_editor(tpl: Dictionary) -> void:
+	var ed = MonsterEditorScript.new(tpl)
+	ed.saved.connect(func(id):
+		place_mid = id
+		if mon_fill.is_valid():
+			mon_fill.call()
+		_flash("Monster saved: " + str(Data.monster(id).get("name", id))))
+	ed.deleted.connect(func(_id):
+		place_mid = ""
+		if mon_fill.is_valid():
+			mon_fill.call())
+	ui.add_child(ed)
+
+func _editor_template(mid: String) -> Dictionary:
+	var src: Dictionary = Data.monster(mid).duplicate(true)
+	if not Data.custom_monsters.has(mid):
+		src.erase("id")
+		src.name = str(src.get("name", "")) + " (custom)"
+	return src
+
+func _on_bg_file(path: String) -> void:
+	var key = CharacterStore.import_background(path)
+	if key == "":
+		_flash("Could not read that image.")
+		return
+	Session.request({"type": "dm_background", "key": key, "fit": bg_fit})
 
 func _refresh_dm() -> void:
 	if dm_tabs == null:

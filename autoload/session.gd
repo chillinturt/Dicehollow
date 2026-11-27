@@ -8,6 +8,7 @@ signal players_changed
 signal chat_received(text: String)
 signal status(text: String)
 signal portrait_arrived(key: String)
+signal bg_arrived(key: String)
 signal session_ended(reason: String)
 
 const DEFAULT_PORT := 7777
@@ -124,6 +125,8 @@ func _on_peer_connected(id: int) -> void:
 		# Send existing portraits & state to the newcomer.
 		for k in CharacterStore.portrait_bytes:
 			_rpc_portrait.rpc_id(id, k, CharacterStore.portrait_bytes[k])
+		if state.get("bg", "") != "":
+			_rpc_bg.rpc_id(id, state.bg, CharacterStore.get_bg_bytes(state.bg))
 		_rpc_state.rpc_id(id, state, [])
 		_rpc_players.rpc_id(id, players)
 
@@ -174,6 +177,11 @@ func _rpc_players(p: Dictionary) -> void:
 func _rpc_portrait(key: String, bytes: PackedByteArray) -> void:
 	CharacterStore.register_portrait(key, bytes)
 	portrait_arrived.emit(key)
+
+@rpc("authority", "reliable")
+func _rpc_bg(key: String, bytes: PackedByteArray) -> void:
+	CharacterStore.register_bg(key, bytes)
+	bg_arrived.emit(key)
 
 @rpc("any_peer", "reliable")
 func _rpc_request(req: Dictionary) -> void:
@@ -364,6 +372,8 @@ func _handle(peer: int, req: Dictionary) -> void:
 				state.cells.fill(EngineBase.FLOOR)
 		"dm_theme":
 			if dm: state.theme = req.theme
+		"dm_background":
+			if dm: _set_background(str(req.get("key", "")), req.get("fit", false))
 	_check_victory()
 	_broadcast(engine.events)
 	_maybe_run_ai()
@@ -413,6 +423,23 @@ func _run_ai_now() -> void:
 	_broadcast(engine.events)
 	_maybe_run_ai()
 
+## Set (or clear, with "") the map's background image and push its bytes to every player.
+func _set_background(key: String, fit := false) -> void:
+	if key != "" and CharacterStore.bg_texture(key) == null:
+		status.emit("That image could not be loaded.")
+		return
+	state.bg = key
+	if key == "":
+		return
+	_send_bg(key)
+	if fit:
+		var sz = CharacterStore.bg_texture(key).get_size()
+		_resize(state.w, roundi(state.w * sz.y / sz.x))
+
+func _send_bg(key: String) -> void:
+	if key != "" and multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		_rpc_bg.rpc(key, CharacterStore.get_bg_bytes(key))
+
 func _resize(w: int, h: int) -> void:
 	w = clampi(w, 8, 80)
 	h = clampi(h, 8, 60)
@@ -434,7 +461,11 @@ func map_snapshot() -> Dictionary:
 	var spawns: Array = []
 	for p in state.spawns:
 		spawns.append([p.x, p.y])
-	return {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone")}
+	var custom := {}
+	for m in mons:
+		if Data.custom_monsters.has(m.mid):
+			custom[m.mid] = Data.custom_monsters[m.mid]
+	return {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone"), "bg": state.get("bg", ""), "custom_monsters": custom}
 
 func _load_map(m: Dictionary) -> void:
 	if state.in_combat:
@@ -447,6 +478,13 @@ func _load_map(m: Dictionary) -> void:
 	if state.cells.size() != w * h:
 		state.cells.resize(w * h)
 	state.theme = m.get("theme", "stone")
+	for mid in m.get("custom_monsters", {}):
+		if not Data.monsters.has(mid):
+			CharacterStore.save_custom_monster(m.custom_monsters[mid])
+	state.bg = str(m.get("bg", ""))
+	if state.bg != "" and CharacterStore.bg_texture(state.bg) == null:
+		state.bg = ""
+	_send_bg(state.bg)
 	state.name = m.get("name", state.name)
 	for c in engine.all_combatants():
 		if c.kind != "pc":
