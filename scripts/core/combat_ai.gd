@@ -4,13 +4,28 @@ extends RefCounted
 
 var eng: CombatEngine
 
+## When false the AI never spends spell slots or limited-use features (Rage, Second Wind, Ki...):
+## it sticks to weapon attacks, cantrips and other free actions.
+var use_resources := true
+## When false the AI stays where it is (no moving, Dashing or repositioning).
+var allow_move := true
+
 func _init(engine: CombatEngine) -> void:
 	eng = engine
+
+## True if the action would burn a spell slot or a limited-use resource.
+func _costs_resources(a: Dictionary) -> bool:
+	if str(a.get("res", "")) != "":
+		return true
+	if a.kind == "spell" and not (a.slots as Array).is_empty() and int(a.slots[0]) > 0:
+		return true
+	return false
 
 func run_turn(c: Dictionary) -> void:
 	if not eng.alive(c) or c.hp <= 0 or eng.is_incapacitated(c):
 		return
-	_pre_buffs(c)
+	if use_resources:
+		_pre_buffs(c)
 	for a in eng.get_actions(c):
 		if a.id == "magic_stone_pickup" and a.enabled:
 			var pick = _eval_feature(c, a, {})
@@ -34,15 +49,17 @@ func run_turn(c: Dictionary) -> void:
 			var plan2 = _best_plan(c, ["attack"])
 			if not plan2.is_empty():
 				_do(c, plan2)
-			elif eng.move_budget(c) > 0 and eng.eff_speed(c) > 0:
+			elif allow_move and eng.move_budget(c) > 0 and eng.eff_speed(c) > 0:
 				var near0 = _nearest_enemy(c)
 				if not near0.is_empty() and eng.dist(c, near0) > 5:
 					_approach(c, near0)
 	# Nobody in sight, but foes are holed up in a Rope Trick: wait under the rope for them.
-	if _nearest_enemy(c).is_empty() and eng.move_budget(c) > 0 and eng.eff_speed(c) > 0:
+	if allow_move and _nearest_enemy(c).is_empty() and eng.move_budget(c) > 0 and eng.eff_speed(c) > 0:
 		_camp_rope(c)
 	# Couldn't reach anything: close the distance (Dash is pointless at speed 0).
-	if eng.can_pay(c, "action") and _nearest_enemy(c).size() > 0 and eng.eff_speed(c) > 0:
+	if not allow_move:
+		pass
+	elif eng.can_pay(c, "action") and _nearest_enemy(c).size() > 0 and eng.eff_speed(c) > 0:
 		var near = _nearest_enemy(c)
 		if eng.dist(c, near) > 5:
 			eng.execute(c.id, "dash", {})
@@ -195,11 +212,13 @@ func _pre_buffs(c: Dictionary) -> void:
 
 func _best_plan(c: Dictionary, costs: Array) -> Dictionary:
 	var actions = eng.get_actions(c)
-	var reach = eng.reachable(c, eng.move_budget(c) if eng.s.in_combat else 0)
+	var reach = eng.reachable(c, eng.move_budget(c) if eng.s.in_combat and allow_move else 0)
 	var best = {}
 	var best_v = 0.5
 	for a in actions:
 		if not a.enabled or not a.cost in costs or a.kind in ["toggle", "basic", "mspecial"]:
+			continue
+		if not use_resources and _costs_resources(a):
 			continue
 		var plan = _evaluate(c, a, reach)
 		if plan.is_empty():

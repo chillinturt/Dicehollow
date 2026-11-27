@@ -509,7 +509,7 @@ func _lingering_spell_tests() -> void:
 	eng.add_effect(warded, {"name": "Sanctuary", "tag": "sanctuary", "src": warded.id, "dc": 13, "rounds": 10})
 	rig_saves(gob, true)
 	r = eng.roll_attack(gob, warded, {"to_hit": 50})
-	check(r.get("target", {}).get("id", "") == other.id and r.hit, "a turned-away attacker switches to another target in reach")
+	check(r.get("target", {}).get("id", "") == other.id and (r.hit or int(r.nat) == 1), "a turned-away attacker switches to another target in reach")
 	r = eng.roll_attack(gob, warded, {"to_hit": 50}, {"fixed_target": true})
 	check(r.get("sanctuary", false) and not r.hit, "an opportunity attack can't switch targets")
 

@@ -29,6 +29,8 @@ var cat_row: HBoxContainer
 var econ_lbl: RichTextLabel
 var end_btn: Button
 var auto_btn: Button
+var auto_use_resources := true  # Auto Turn may spend spell slots / limited-use features
+var auto_move := true  # Auto Turn may move
 var tip: Label
 var banner: Label
 var mode_lbl: Label
@@ -59,6 +61,21 @@ var bg_dialog: FileDialog
 var bg_fit := true
 var _last_hit_col := Color("#ffcf8a")   # spark colour for the next damage number, from the last attack's fx
 var shown_hit := ""       # id of the held weapon hit this player was last asked about
+# DM tools: extra selected creatures (Ctrl+click) and the inspect panel's remembered inputs.
+var selected_ids: Array = []
+var place_hidden := false
+var dm_amount := 5
+var dm_dtype := "untyped"
+var dm_cond_rounds := 0
+var roll_pick := "save:dex"
+var roll_dc := 15
+var roll_damage := ""
+var roll_half := true
+var _inspect_key := ""
+var map_pick: OptionButton
+var map_name_edit: LineEdit
+var hidden_lbl: Label
+var _ending := false
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(UIKit.BG)
@@ -193,8 +210,14 @@ func _build_hud() -> void:
 	end_btn.custom_minimum_size = Vector2(0, 44)
 	end_btn.add_theme_font_size_override("font_size", 18)
 	ev.add_child(end_btn)
-	auto_btn = UIKit.btn("⚙ Auto Turn", func(): Session.request({"type": "ai_turn", "cid": control_cid}), "Let the AI play this turn: it moves, picks the best attack or spell and ends the turn.")
+	auto_btn = UIKit.btn("⚙ Auto Turn", func(): Session.request({"type": "ai_turn", "cid": control_cid, "resources": auto_use_resources, "move": auto_move}), "Let the AI play this turn: it moves, picks the best attack or spell and ends the turn.")
 	ev.add_child(auto_btn)
+	var res_chk = UIKit.check("Auto uses resources", auto_use_resources, func(p): auto_use_resources = p)
+	res_chk.tooltip_text = "Off: Auto Turn never spends spell slots or limited-use features; it sticks to weapons, cantrips and free actions."
+	ev.add_child(res_chk)
+	var mv_chk = UIKit.check("Auto moves", auto_move, func(p): auto_move = p)
+	mv_chk.tooltip_text = "Off: Auto Turn never moves, Dashes or repositions; it acts from where you stand."
+	ev.add_child(mv_chk)
 	bh.add_child(ev)
 	# DM toolbox (left).
 	if Session.is_dm():
@@ -253,7 +276,15 @@ func _build_dm() -> void:
 	cv.add_child(UIKit.btn("Long Rest (everyone)", func(): Session.request({"type": "dm_long_rest"})))
 	cv.add_child(UIKit.btn("Remove defeated monsters", func(): Session.request({"type": "dm_clear_dead"})))
 	cv.add_child(HSeparator.new())
-	cv.add_child(UIKit.lbl("Click any token to inspect it, adjust HP, toggle conditions or hand it to the AI.", 13, UIKit.MUTED))
+	var selr = UIKit.hbox(4)
+	selr.add_child(UIKit.expand(UIKit.btn("Select enemies", func(): _select_team("enemy"), "Select every living enemy on the map (then damage, roll saves or add conditions to all of them)")))
+	selr.add_child(UIKit.expand(UIKit.btn("Select party", func(): _select_team("party"), "Select every living party member")))
+	cv.add_child(selr)
+	hidden_lbl = UIKit.lbl("", 13, UIKit.MUTED)
+	cv.add_child(hidden_lbl)
+	cv.add_child(UIKit.btn("Reveal all hidden monsters", func(): Session.request({"type": "dm_reveal_all"}), "Spring the ambush: every hidden monster appears (and rolls initiative if a fight is on)"))
+	cv.add_child(HSeparator.new())
+	cv.add_child(UIKit.lbl("Click a token to inspect it: damage, heal, conditions, saves and checks. Ctrl+click selects several. Shift+click moves a token freely. Keys: Delete removes, H hides/reveals, Esc clears.", 13, UIKit.MUTED))
 	for l in cv.get_children():
 		if l is Label:
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -282,7 +313,10 @@ func _build_dm() -> void:
 	il.item_selected.connect(func(i):
 		place_mid = il.get_item_metadata(i)
 		_set_mode("place_monster"))
-	mv.add_child(UIKit.check("Place as ally (party side)", false, func(p): place_ally = p))
+	mv.add_child(UIKit.check("Place as ally (party side)", place_ally, func(p): place_ally = p))
+	var hc = UIKit.check("Place hidden (ambush: players can't see it)", place_hidden, func(p): place_hidden = p)
+	hc.tooltip_text = "Hidden monsters stay off the initiative and can't be targeted until you reveal them."
+	mv.add_child(hc)
 	var mb = UIKit.hbox()
 	mb.add_child(UIKit.expand(UIKit.btn("＋ New monster…", func(): _open_monster_editor({}))))
 	mb.add_child(UIKit.expand(UIKit.btn("Edit / copy selected…", func():
@@ -327,22 +361,33 @@ func _build_dm() -> void:
 	mpv.add_child(UIKit.btn("Clear terrain", func(): Session.request({"type": "dm_clear_map"})))
 	mpv.add_child(HSeparator.new())
 	var mname = UIKit.line(str(Session.state.get("name", "map")), "Map name")
+	map_name_edit = mname
 	mpv.add_child(mname)
 	mpv.add_child(UIKit.btn("Save map + monsters", func():
+		var nm: String = mname.text.strip_edges()
+		if nm.validate_filename() == "" or nm == "":
+			_flash("Give the map a name first.")
+			return
 		var snap = Session.map_snapshot()
-		snap.name = mname.text
-		CharacterStore.save_map(mname.text, snap)
-		_flash("Map saved: " + mname.text)))
-	var maps = CharacterStore.list_maps()
-	if not maps.is_empty():
-		var msel = [maps[0]]
-		var items: Array = []
-		for m in maps:
-			items.append([m, m])
-		var lh = UIKit.hbox()
-		lh.add_child(UIKit.expand(UIKit.option(items, maps[0], func(id): msel[0] = id)))
-		lh.add_child(UIKit.btn("Load", func(): Session.request({"type": "dm_load_map", "map": CharacterStore.load_map(msel[0])})))
-		mpv.add_child(lh)
+		snap.name = nm
+		var existed: bool = nm.validate_filename() in CharacterStore.list_maps()
+		CharacterStore.save_map(nm, snap)
+		_fill_maps(nm.validate_filename())
+		_flash(("Map overwritten: " if existed else "Map saved: ") + nm), "Saves terrain, start points, theme, background and every living monster (hidden ones too)"))
+	var lh = UIKit.hbox()
+	map_pick = OptionButton.new()
+	UIKit.expand(map_pick)
+	lh.add_child(map_pick)
+	lh.add_child(UIKit.btn("Load", func():
+		if map_pick.selected < 0:
+			return
+		var m = CharacterStore.load_map(str(map_pick.get_item_metadata(map_pick.selected)))
+		if m.is_empty():
+			_flash("That map could not be read.")
+			return
+		Session.request({"type": "dm_load_map", "map": m}), "Load the map. Monsters on the current map are replaced; characters move to the start points."))
+	mpv.add_child(lh)
+	_fill_maps("")
 	# Party tab.
 	var pv = UIKit.vbox(6)
 	pv.name = "Party"
@@ -377,6 +422,33 @@ func _on_bg_file(path: String) -> void:
 		_flash("Could not read that image.")
 		return
 	Session.request({"type": "dm_background", "key": key, "fit": bg_fit})
+
+## Refill the saved-maps list, selecting `pick` (or the first map).
+func _fill_maps(pick: String) -> void:
+	if map_pick == null:
+		return
+	map_pick.clear()
+	var maps = CharacterStore.list_maps()
+	for i in maps.size():
+		map_pick.add_item(maps[i], i)
+		map_pick.set_item_metadata(i, maps[i])
+		if maps[i] == pick:
+			map_pick.select(i)
+	if maps.is_empty():
+		map_pick.add_item("(no saved maps)", 0)
+		map_pick.set_item_metadata(0, "")
+		map_pick.disabled = true
+	else:
+		map_pick.disabled = false
+
+func _select_team(team: String) -> void:
+	var ids: Array = []
+	for c in Session.state.combatants.values():
+		if c.team == team and Session.engine.alive(c) and not (c.kind != "pc" and c.hp <= 0):
+			ids.append(c.id)
+	selected_cid = ids[0] if not ids.is_empty() else ""
+	selected_ids = ids.slice(1)
+	_refresh_ui()
 
 func _refresh_dm() -> void:
 	if dm_tabs == null:
@@ -413,7 +485,11 @@ func _sync_tokens(events: Array) -> void:
 		if e.get("t", "") in ["move", "teleport"]:
 			moving[e.cid] = true
 	var seen = {}
-	for c in Session.state.combatants.values():
+	var shown: Array = Session.state.combatants.values()
+	# The DM also sees hidden monsters, as faint ghosts.
+	if Session.is_dm():
+		shown += Session.state.get("reserve", {}).values()
+	for c in shown:
 		seen[c.id] = true
 		var tk = tokens.get(c.id)
 		if tk == null:
@@ -423,6 +499,8 @@ func _sync_tokens(events: Array) -> void:
 			tokens[c.id] = tk
 			tk.position = _token_pos(c)
 		tk.setup(c)
+		if _is_hidden(c.id):
+			tk.modulate.a = 0.35
 		if not moving.has(c.id) and not playing:
 			tk.position = _token_pos(c)
 	for id in tokens.keys():
@@ -473,7 +551,7 @@ func _play_events() -> void:
 				if ctk and e.get("name", "") == "cast":
 					Vfx.cast_circle(fx_root, ctk.center(), Color("#c8a0ff"))
 	playing = false
-	for c in Session.state.combatants.values():
+	for c in Session.state.combatants.values() + (Session.state.get("reserve", {}).values() if Session.is_dm() else []):
 		var tk3 = tokens.get(c.id)
 		if tk3:
 			tk3.position = _token_pos(c)
@@ -682,6 +760,18 @@ func _refresh_ui() -> void:
 			_show_banner("Your turn: " + cur.name)
 			Sfx.play("turn", 0.0)
 		_cancel_mode()
+	# Drop selections of creatures that have gone.
+	if selected_cid != "" and _find(selected_cid).is_empty():
+		selected_cid = ""
+	selected_ids = selected_ids.filter(func(id): return not _find(id).is_empty() and id != selected_cid)
+	if selected_cid == "" and not selected_ids.is_empty():
+		selected_cid = selected_ids.pop_front()
+	if hidden_lbl != null:
+		var nh: int = st.get("reserve", {}).size()
+		hidden_lbl.text = "%d hidden monster%s waiting" % [nh, "" if nh == 1 else "s"] if nh > 0 else "No hidden monsters"
+	if map_name_edit != null and not map_name_edit.has_focus() and str(st.get("name", "")) != map_name_edit.get_meta("shown", ""):
+		map_name_edit.set_meta("shown", str(st.get("name", "")))
+		map_name_edit.text = str(st.get("name", ""))
 	title_lbl.text = str(st.get("name", "Dicehollow"))
 	round_lbl.text = ("Round %d — %s's turn" % [st.round, cur.get("name", "")]) if st.in_combat else ("Exploration (no combat)" + ("  •  You are the DM" if Session.is_dm() else ""))
 	_refresh_initiative()
@@ -839,6 +929,12 @@ func _refresh_card() -> void:
 	v.add_child(UIKit.lbl(hp_txt, 14))
 	v.add_child(UIKit.bar(maxi(c.hp, 0), c.max_hp, UIKit.GOOD, 8))
 	var info = "AC %d   Speed %d ft" % [eng.eff_ac(c), eng.eff_speed(c)]
+	if not c.get("hd_max", {}).is_empty():
+		var left: Dictionary = eng.hit_dice_left(c)
+		var hd: PackedStringArray = []
+		for k in c.hd_max:
+			hd.append("%d/%dd%s" % [int(left.get(k, 0)), int(c.hd_max[k]), k])
+		info += "   HD " + " ".join(hd)
 	if not c.conc.is_empty():
 		info += "   ◈ " + str(c.conc.name)
 	v.add_child(UIKit.lbl(info, 13, UIKit.MUTED))
@@ -944,63 +1040,232 @@ func _refresh_hotbar() -> void:
 		b.pressed.connect(func(): _on_action_pressed(act))
 		hotbar.add_child(b)
 
+## A creature on the map, or (for the DM) one hidden from the players.
+func _find(cid: String) -> Dictionary:
+	var c: Dictionary = Session.engine.C(cid)
+	if c.is_empty() and Session.is_dm():
+		c = Session.state.get("reserve", {}).get(cid, {})
+	return c
+
+func _is_hidden(cid: String) -> bool:
+	return Session.state.get("reserve", {}).has(cid)
+
+## The DM's current selection (Ctrl+click adds and removes creatures), primary first.
+func _selection() -> Array:
+	var out: Array = []
+	for id in [selected_cid] + selected_ids:
+		if id != "" and not id in out and not _find(id).is_empty():
+			out.append(id)
+	return out
+
+func _sel_req(req: Dictionary) -> Dictionary:
+	req.cids = _selection()
+	return req
+
 func _refresh_inspect() -> void:
+	# Don't rebuild under the DM's fingers while they are typing a number or a name.
+	var fo = get_viewport().gui_get_focus_owner()
+	if fo != null and inspect_box.is_ancestor_of(fo) and (fo is LineEdit or fo is SpinBox) and _inspect_key == _selection_key():
+		return
+	_inspect_key = _selection_key()
 	UIKit.clear(inspect_box)
 	var eng: CombatEngine = Session.engine
-	var c = eng.C(selected_cid)
-	if c.is_empty():
-		inspect_box.add_child(UIKit.lbl("Click a token to inspect it.", 14, UIKit.MUTED))
-		return
 	var dm = Session.is_dm()
-	inspect_box.add_child(UIKit.lbl(str(c.name), 18, UIKit.GOLD))
-	inspect_box.add_child(UIKit.lbl(str(c.summary), 12, UIKit.MUTED))
-	var see: bool = dm or c.team == "party"
-	if see:
-		inspect_box.add_child(UIKit.lbl("HP %d/%d%s   AC %d   Speed %d" % [maxi(c.hp, 0), c.max_hp, (" +%d" % c.temp_hp) if c.temp_hp > 0 else "", eng.eff_ac(c), eng.eff_speed(c)], 14))
+	var sel := _selection()
+	var c = _find(selected_cid)
+	if c.is_empty():
+		inspect_box.add_child(UIKit.lbl("Click a token to inspect it." + ("\nCtrl+click to select several." if dm else ""), 14, UIKit.MUTED))
+		return
+	if sel.size() > 1:
+		var names: PackedStringArray = []
+		for id in sel:
+			var o = _find(id)
+			names.append("%s (%d/%d)" % [o.name, maxi(int(o.hp), 0), int(o.max_hp)])
+		inspect_box.add_child(UIKit.lbl("%d creatures selected" % sel.size(), 18, UIKit.GOLD))
+		var nl = UIKit.lbl(", ".join(names), 12, UIKit.MUTED)
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		inspect_box.add_child(nl)
 	else:
-		var frac = float(c.hp) / maxf(1.0, c.max_hp)
-		inspect_box.add_child(UIKit.lbl("Condition: " + ("Unhurt" if frac >= 1.0 else ("Wounded" if frac > 0.5 else ("Bloodied" if frac > 0.25 else ("Near death" if c.hp > 0 else "Down")))), 14))
-	var ab: PackedStringArray = []
-	for a in Data.ABILITIES:
-		ab.append("%s %d" % [a.to_upper(), int(c.scores.get(a, 10))])
-	inspect_box.add_child(UIKit.lbl("  ".join(ab), 11, UIKit.MUTED))
-	for e in c.effects:
-		if e.get("name", "") != "":
-			inspect_box.add_child(UIKit.lbl("• %s%s" % [e.name, (" (%d rd)" % int(e.rounds)) if int(e.get("rounds", 0)) < 100 else ""], 12, Color("#e0a0ff")))
-	if c.kind == "monster" and see:
-		var txt = ""
-		for a in c.attacks:
-			txt += "[b]%s[/b] %s\n" % [a.name, eng._weapon_desc(a)]
-		for a in c.mactions:
-			txt += "[b]%s[/b] %s\n" % [a.name, a.get("desc", "")]
-		for t in c.get("traits", []):
-			txt += "[i]%s.[/i] %s\n" % [t.name, t.get("desc", "")]
-		var r = UIKit.rich("[font_size=12]" + txt + "[/font_size]")
-		inspect_box.add_child(r)
-	if _can_control(c):
-		inspect_box.add_child(UIKit.check("AI plays this creature's turns", c.get("ai", false), func(p): Session.request({"type": "set_ai", "cid": c.id, "on": p})))
-	if dm:
-		var h = UIKit.hbox(4)
-		var amt = UIKit.spin(1, 999, 5)
-		h.add_child(amt)
-		h.add_child(UIKit.btn("Damage", func(): Session.request({"type": "dm_hp", "cid": c.id, "amount": -int(amt.value)})))
-		h.add_child(UIKit.btn("Heal", func(): Session.request({"type": "dm_hp", "cid": c.id, "amount": int(amt.value)})))
-		inspect_box.add_child(h)
-		var conds: Array = [["", "Toggle condition…"]]
-		for cd in Data.CONDITIONS:
-			conds.append([cd, ("✓ " if eng.has_cond(c, cd) else "") + cd.capitalize()])
-		inspect_box.add_child(UIKit.option(conds, "", func(id):
-			if id != "":
-				Session.request({"type": "dm_condition", "cid": c.id, "cond": id})))
-		var h2 = UIKit.hbox(4)
-		h2.add_child(UIKit.btn("Switch side", func(): Session.request({"type": "dm_team", "cid": c.id})))
-		h2.add_child(UIKit.btn("Remove", func(): Session.request({"type": "dm_remove", "cid": c.id}); selected_cid = ""))
-		inspect_box.add_child(h2)
+		inspect_box.add_child(UIKit.lbl(str(c.name) + ("  (hidden)" if _is_hidden(c.id) else ""), 18, UIKit.GOLD))
+		var sm = UIKit.lbl(str(c.summary), 12, UIKit.MUTED)
+		sm.autowrap_mode = TextServer.AUTOWRAP_WORD
+		inspect_box.add_child(sm)
+		var see: bool = dm or c.team == "party"
+		if see:
+			var hp_line := "HP %d/%d%s   AC %d   Speed %d" % [maxi(c.hp, 0), c.max_hp, (" +%d" % c.temp_hp) if c.temp_hp > 0 else "", eng.eff_ac(c), eng.eff_speed(c)]
+			if Session.state.in_combat and c.id in Session.state.order:
+				hp_line += "   Init %d" % int(c.get("init", 0))
+			inspect_box.add_child(UIKit.lbl(hp_line, 14))
+			if c.kind == "pc" and c.hp <= 0 and not c.death.get("dead", false):
+				inspect_box.add_child(UIKit.lbl("Dying: ✓%d  ✗%d%s" % [c.death.s, c.death.f, "  (stable)" if c.death.get("stable", false) else ""], 13, Color("#ff9c8f")))
+		else:
+			var frac = float(c.hp) / maxf(1.0, c.max_hp)
+			inspect_box.add_child(UIKit.lbl("Condition: " + ("Unhurt" if frac >= 1.0 else ("Wounded" if frac > 0.5 else ("Bloodied" if frac > 0.25 else ("Near death" if c.hp > 0 else "Down")))), 14))
+		var ab: PackedStringArray = []
+		for a in Data.ABILITIES:
+			ab.append("%s %d" % [a.to_upper(), int(c.scores.get(a, 10))])
+		inspect_box.add_child(UIKit.lbl("  ".join(ab), 11, UIKit.MUTED))
+		if see and int(c.get("passive", 0)) > 0:
+			inspect_box.add_child(UIKit.lbl("Passive Perception %d" % int(c.passive), 11, UIKit.MUTED))
+		for e in c.effects:
+			if e.get("name", "") != "":
+				inspect_box.add_child(UIKit.lbl("• %s%s" % [e.name, (" (%d rd)" % int(e.rounds)) if int(e.get("rounds", 0)) < 100 else ""], 12, Color("#e0a0ff")))
+		if c.kind == "monster" and see:
+			var txt = ""
+			for a in c.attacks:
+				txt += "[b]%s[/b] %s\n" % [a.name, eng._weapon_desc(a)]
+			for a in c.mactions:
+				txt += "[b]%s[/b] %s\n" % [a.name, a.get("desc", "")]
+			for t in c.get("traits", []):
+				txt += "[i]%s.[/i] %s\n" % [t.name, t.get("desc", "")]
+			var r = UIKit.rich("[font_size=12]" + txt + "[/font_size]")
+			inspect_box.add_child(r)
+		if _can_control(c) and not _is_hidden(c.id):
+			inspect_box.add_child(UIKit.check("AI plays this creature's turns", c.get("ai", false), func(p): Session.request({"type": "set_ai", "cid": c.id, "on": p})))
+	# Rolls: anyone can roll checks and saves for creatures they control; the DM can add a DC and damage.
+	var rollable: bool = dm or (_can_control(c) and sel.size() == 1)
+	if rollable and not sel.any(func(id): return _is_hidden(id)):
+		_build_roll_box(dm)
+	if not dm:
+		return
+	inspect_box.add_child(HSeparator.new())
+	# Hit points.
+	var h = UIKit.hbox(4)
+	var amt = UIKit.spin(0, 999, dm_amount, func(v): dm_amount = int(v))
+	amt.update_on_text_changed = true
+	amt.tooltip_text = "Amount for Damage, Half, Heal and Set HP"
+	h.add_child(amt)
+	var dtypes: Array = [["untyped", "Untyped"]]
+	for t in Data.DAMAGE_TYPES:
+		dtypes.append([t, t.capitalize()])
+	var dto = UIKit.option(dtypes, dm_dtype, func(id): dm_dtype = id)
+	dto.tooltip_text = "Damage type (resistance, immunity and vulnerability apply). Untyped ignores them."
+	UIKit.expand(dto)
+	h.add_child(dto)
+	inspect_box.add_child(h)
+	var h1 = UIKit.hbox(4)
+	h1.add_child(UIKit.expand(UIKit.btn("Damage", func(): Session.request(_sel_req({"type": "dm_hp", "amount": -dm_amount, "dtype": dm_dtype})), "Deal this much damage to the selected creatures")))
+	h1.add_child(UIKit.expand(UIKit.btn("Half", func(): Session.request(_sel_req({"type": "dm_hp", "amount": -(dm_amount / 2), "dtype": dm_dtype})), "Deal half (rounded down), e.g. a successful save")))
+	h1.add_child(UIKit.expand(UIKit.btn("Heal", func(): Session.request(_sel_req({"type": "dm_hp", "amount": dm_amount})), "Heal. Also restores a slain monster.")))
+	h1.add_child(UIKit.expand(UIKit.btn("Set HP", func(): Session.request(_sel_req({"type": "dm_set_hp", "hp": dm_amount})), "Set current HP to this number (above 0 brings the dead back)")))
+	inspect_box.add_child(h1)
+	# Conditions.
+	var h2 = UIKit.hbox(4)
+	var conds: Array = [["", "Toggle condition…"]]
+	for cd in Data.CONDITIONS:
+		var have: bool = sel.all(func(id): return eng.has_cond(_find(id), cd))
+		conds.append([cd, ("✓ " if have else "") + cd.capitalize()])
+	var co = UIKit.option(conds, "", func(id):
+		if id != "":
+			Session.request(_sel_req({"type": "dm_condition", "cond": id, "rounds": dm_cond_rounds})))
+	UIKit.expand(co)
+	h2.add_child(co)
+	var rs = UIKit.spin(0, 100, dm_cond_rounds, func(v): dm_cond_rounds = int(v))
+	rs.update_on_text_changed = true
+	rs.tooltip_text = "Rounds the condition lasts (0 = until removed). It ends at the end of the creature's own turn."
+	rs.prefix = "rd"
+	h2.add_child(rs)
+	inspect_box.add_child(h2)
+	var h3 = UIKit.hbox(4)
+	h3.add_child(UIKit.lbl("Exhaustion %d" % eng.exhaustion(c), 13, UIKit.MUTED))
+	h3.add_child(UIKit.btn("＋", func(): Session.request(_sel_req({"type": "dm_exhaustion", "delta": 1})), "Add a level of exhaustion"))
+	h3.add_child(UIKit.btn("－", func(): Session.request(_sel_req({"type": "dm_exhaustion", "delta": -1})), "Remove a level of exhaustion"))
+	inspect_box.add_child(h3)
+	# Single-creature tools: initiative, name, owner.
+	if sel.size() == 1 and not _is_hidden(c.id):
+		if Session.state.in_combat and c.id in Session.state.order:
+			var hi = UIKit.hbox(4)
+			hi.add_child(UIKit.lbl("Initiative", 13, UIKit.MUTED))
+			var isp = UIKit.spin(-10, 50, int(c.get("init", 0)))
+			isp.update_on_text_changed = true
+			hi.add_child(isp)
+			hi.add_child(UIKit.btn("Set", func(): Session.request({"type": "dm_init", "cid": c.id, "init": int(isp.value)}), "Use a rolled initiative (for players rolling their own dice)"))
+			inspect_box.add_child(hi)
+		var hn = UIKit.hbox(4)
+		var ne = UIKit.line(str(c.name), "Name")
+		UIKit.expand(ne)
+		hn.add_child(ne)
+		var do_rename = func(_t = ""): Session.request({"type": "dm_rename", "cid": c.id, "name": ne.text})
+		ne.text_submitted.connect(do_rename)
+		hn.add_child(UIKit.btn("Rename", do_rename))
+		inspect_box.add_child(hn)
 		if c.kind == "pc" and Session.players.size() > 1:
 			var owners: Array = []
 			for pid in Session.players:
-				owners.append([int(pid), str(Session.players[pid].name)])
+				owners.append([int(pid), "Played by " + str(Session.players[pid].name)])
 			inspect_box.add_child(UIKit.option(owners, int(c.owner), func(id): Session.request({"type": "dm_owner", "cid": c.id, "owner": id})))
+	var h4 = UIKit.hbox(4)
+	var any_pc: bool = sel.any(func(id): return _find(id).kind == "pc")
+	if not any_pc:
+		var hidden_now: bool = sel.all(func(id): return _is_hidden(id))
+		h4.add_child(UIKit.expand(UIKit.btn("Reveal" if hidden_now else "Hide", func(): Session.request(_sel_req({"type": "dm_hidden"})),
+			"Show it to the players (it joins the initiative if a fight is on)" if hidden_now else "Hide it from the players: it leaves the map and the initiative until revealed (H)")))
+	if not sel.any(func(id): return _is_hidden(id)):
+		h4.add_child(UIKit.expand(UIKit.btn("Switch side", func(): Session.request(_sel_req({"type": "dm_team"})))))
+	h4.add_child(UIKit.expand(UIKit.btn("Remove", func(): _remove_selected(), "Remove from the map (Delete)")))
+	inspect_box.add_child(h4)
+
+func _selection_key() -> String:
+	return ",".join(_selection())
+
+## Check / save roller under the inspect panel.
+func _build_roll_box(dm: bool) -> void:
+	inspect_box.add_child(HSeparator.new())
+	var items: Array = []
+	for a in Data.ABILITIES:
+		items.append(["save:" + a, "%s save" % Data.ABILITY_NAMES[a]])
+	for a in Data.ABILITIES:
+		items.append(["check:" + a, "%s check" % Data.ABILITY_NAMES[a]])
+	var sk: Array = Data.SKILLS.keys()
+	sk.sort()
+	for s in sk:
+		items.append(["skill:" + s, "%s (%s)" % [str(s).replace("_", " ").capitalize(), str(Data.SKILLS[s]).to_upper()]])
+	var r1 = UIKit.hbox(4)
+	var ro = UIKit.option(items, roll_pick, func(id): roll_pick = id)
+	UIKit.expand(ro)
+	r1.add_child(ro)
+	if dm:
+		var dcs = UIKit.spin(0, 40, roll_dc, func(v): roll_dc = int(v))
+		dcs.update_on_text_changed = true
+		dcs.prefix = "DC"
+		dcs.tooltip_text = "Difficulty class (0 = just roll and report totals)"
+		r1.add_child(dcs)
+	r1.add_child(UIKit.btn("Roll", func(): _do_roll(), "Roll for the selected creature(s)"))
+	inspect_box.add_child(r1)
+	if dm:
+		var r2 = UIKit.hbox(4)
+		var de = UIKit.line(roll_damage, "Damage on fail, e.g. 4d10")
+		de.text_changed.connect(func(t): roll_damage = t)
+		de.tooltip_text = "Optional. Rolled once; each creature that fails takes it all, and with 'half' a success takes half (Evasion applies to DEX saves)."
+		UIKit.expand(de)
+		r2.add_child(de)
+		r2.add_child(UIKit.check("half", roll_half, func(p): roll_half = p))
+		inspect_box.add_child(r2)
+
+func _do_roll() -> void:
+	var parts: PackedStringArray = roll_pick.split(":")
+	var req := {"type": "roll", "kind": "save" if parts[0] == "save" else "check"}
+	if parts[0] == "skill":
+		req.skill = parts[1]
+		req.ability = Data.SKILLS[parts[1]]
+	else:
+		req.ability = parts[1]
+	if Session.is_dm():
+		req.dc = roll_dc
+		if roll_damage.strip_edges() != "" and roll_dc > 0:
+			req.damage = roll_damage.strip_edges()
+			req.dtype = dm_dtype
+			req.half = roll_half
+	Session.request(_sel_req(req))
+
+func _remove_selected() -> void:
+	var sel := _selection()
+	if sel.is_empty():
+		return
+	Session.request({"type": "dm_remove", "cids": sel})
+	selected_cid = ""
+	selected_ids = []
+	_refresh_ui()
 
 # ================================================================ highlights & previews
 
@@ -1016,7 +1281,7 @@ func _refresh_highlights() -> void:
 	for id in tokens:
 		var tk = tokens[id]
 		tk.is_current = Session.state.in_combat and eng.current().get("id", "") == id
-		tk.is_selected = id == selected_cid or id == control_cid
+		tk.is_selected = id == selected_cid or id == control_cid or id in selected_ids
 		tk.is_targetable = false
 		tk.queue_redraw()
 	if c.is_empty():
@@ -1341,7 +1606,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			panning = false
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				_on_left_click(_cell_under_mouse(), mb.shift_pressed)
+				_on_left_click(_cell_under_mouse(), mb.shift_pressed, mb.ctrl_pressed or mb.meta_pressed)
 			elif painting:
 				painting = false
 				_flush_paint()
@@ -1357,17 +1622,41 @@ func _unhandled_input(event: InputEvent) -> void:
 		if cell != map_view.hover or mode == "target":
 			_preview_at(cell)
 	elif event is InputEventKey and event.pressed and not event.echo:
+		if _typing():
+			return
 		match event.keycode:
 			KEY_ESCAPE:
-				_cancel_mode()
+				if mode != "":
+					_cancel_mode()
+				elif Session.is_dm() and selected_cid != "":
+					selected_cid = ""
+					selected_ids = []
+					_refresh_ui()
 			KEY_E:
 				if not end_btn.disabled:
 					Session.request({"type": "end_turn"})
 			KEY_ENTER, KEY_KP_ENTER:
 				_confirm_targets()
+			KEY_DELETE:
+				if Session.is_dm() and mode == "":
+					_remove_selected()
+			KEY_H:
+				if Session.is_dm() and mode == "" and not _selection().is_empty() and not _selection().any(func(id): return _find(id).kind == "pc"):
+					Session.request(_sel_req({"type": "dm_hidden"}))
+
+## True while a text field has the keyboard (so WASD and hotkeys don't fire).
+func _typing() -> bool:
+	var fo = get_viewport().gui_get_focus_owner()
+	if fo is LineEdit or fo is TextEdit or fo is SpinBox:
+		return true
+	# A dialog such as the monster editor is open: keys belong to it, not the map.
+	for n in ui.get_children():
+		if n is MonsterEditor:
+			return true
+	return false
 
 func _process(delta: float) -> void:
-	if chat_in.has_focus():
+	if _typing():
 		return
 	var dir = Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): dir.x -= 1
@@ -1383,7 +1672,14 @@ func _zoom(f: float) -> void:
 	var after = get_global_mouse_position()
 	cam.position += before - after
 
-func _on_left_click(cell: Vector2i, shift: bool) -> void:
+## A hidden monster (DM only) whose space covers `cell`.
+func _hidden_at(cell: Vector2i) -> Dictionary:
+	for h in Session.state.get("reserve", {}).values():
+		if cell in Session.engine.occupied_cells(h):
+			return h
+	return {}
+
+func _on_left_click(cell: Vector2i, shift: bool, ctrl := false) -> void:
 	var eng: CombatEngine = Session.engine
 	match mode:
 		"paint":
@@ -1394,27 +1690,38 @@ func _on_left_click(cell: Vector2i, shift: bool) -> void:
 			Session.request({"type": "dm_spawn", "at": cell})
 			return
 		"place_monster":
-			if eng.in_bounds(cell) and not eng.blocks_move(cell):
-				Session.request({"type": "dm_place_monster", "mid": place_mid, "at": cell})
-				if place_ally:
-					await get_tree().create_timer(0.05).timeout
-					var newest = ""
-					for c in Session.state.combatants.values():
-						if c.get("monster_id", "") == place_mid and c.pos == cell:
-							newest = c.id
-					if newest != "":
-						Session.request({"type": "dm_team", "cid": newest})
+			if eng.in_bounds(cell):
+				Session.request({"type": "dm_place_monster", "mid": place_mid, "at": cell, "team": "party" if place_ally else "enemy", "hidden": place_hidden})
 			return
 		"target":
 			_target_click(cell)
 			return
 	var o = _creature_at_pointer(cell)
+	if o.is_empty() and Session.is_dm():
+		o = _hidden_at(cell)
 	var c = eng.C(control_cid)
 	if not o.is_empty():
+		if ctrl and Session.is_dm():
+			# Ctrl+click: add to or take out of the selection.
+			if o.id == selected_cid:
+				selected_cid = selected_ids.pop_front() if not selected_ids.is_empty() else ""
+			elif o.id in selected_ids:
+				selected_ids.erase(o.id)
+			elif selected_cid == "":
+				selected_cid = o.id
+			else:
+				selected_ids.append(o.id)
+			_refresh_ui()
+			return
 		selected_cid = o.id
-		if _can_control(o) and (not Session.state.in_combat or eng.is_turn_of(o)):
+		selected_ids = []
+		if _can_control(o) and not _is_hidden(o.id) and (not Session.state.in_combat or eng.is_turn_of(o)):
 			control_cid = o.id
 		_refresh_ui()
+		return
+	# The DM moves a hidden monster by selecting it and clicking an empty cell.
+	if Session.is_dm() and _is_hidden(selected_cid) and eng.in_bounds(cell):
+		Session.request({"type": "dm_move_hidden", "cid": selected_cid, "to": cell})
 		return
 	if c.is_empty() or not _can_control(c) or not eng.in_bounds(cell):
 		return
@@ -1482,6 +1789,10 @@ func _leave() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 func _on_session_ended(reason: String) -> void:
+	if _ending:
+		return
+	_ending = true
+	Session.last_end_reason = reason
 	_flash(reason)
 	await get_tree().create_timer(1.5).timeout
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

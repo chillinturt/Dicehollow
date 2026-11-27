@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="Dicehollow"
+config/version="0.3.0"
 config/description="A sprite-based virtual tabletop. DMs build encounters, players join with their own characters, and 5e combat resolves automatically."
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")

@@ -39,6 +39,10 @@ func _ready() -> void:
 	status_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	left.add_child(status_lbl)
 	Session.status.connect(func(t): status_lbl.text = t)
+	if Session.last_end_reason != "":
+		status_lbl.text = Session.last_end_reason
+		Session.last_end_reason = ""
+	left.add_child(UIKit.lbl("Version " + Session.VERSION, 12, UIKit.MUTED))
 	# Right column: context panel.
 	right = UIKit.vbox(10)
 	UIKit.expand(right, true, true)

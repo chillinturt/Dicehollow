@@ -72,6 +72,12 @@ static func from_character(id: String, ch: Dictionary, owner: int) -> Dictionary
 	c.class_levels = st.class_levels
 	c.subclasses = st.subclasses
 	c.feats = st.feats
+	# Hit dice by die size ("10": count), spent on short rests and half regained on a long rest.
+	var hd: Dictionary = {}
+	for die in st.hit_dice_pool:
+		hd[str(die)] = int(st.hit_dice_pool[die])
+	c.hd_max = hd
+	c.hd_used = {}
 	var res = {}
 	for k in st.resources:
 		var r: Dictionary = st.resources[k]

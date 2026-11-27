@@ -206,6 +206,9 @@ static func spell_counts(ch: Dictionary, c: Dictionary, scores: Dictionary) -> D
 		spells = maxi(1, m + int(lv / 2))
 	if c.id == "wizard":
 		spells = maxi(1, m + lv)  # prepared from spellbook
+	# A class with no spell slots yet (a 1st-level paladin) has no spells to prepare.
+	if _single_caster_level(caster_type(c), lv) == 0 and caster_type(c) != "pact":
+		spells = 0
 	return {"cantrips": cantrips, "spells": spells, "prepare": prep, "ability": ab}
 
 # ---------------------------------------------------------------- derive
@@ -330,7 +333,21 @@ static func derive(ch: Dictionary) -> Dictionary:
 	if tags.has("dwarven_toughness"): hp += lvl
 	if feats_set.has("draconic_resilience"): hp += cl.get("sorcerer", 0)
 	st.max_hp = maxi(1, hp)
-	st.hit_dice = "%dd%d" % [lvl, int(first_cd.get("hit_die", 8))]
+	# Hit dice are kept per die size: a multiclass character has one pool per class's die.
+	var hd_pool: Dictionary = {}
+	for c in ch.get("classes", []):
+		var die = int(Data.cls(c.id).get("hit_die", 8))
+		hd_pool[die] = int(hd_pool.get(die, 0)) + int(c.level)
+	if hd_pool.is_empty():
+		hd_pool[int(first_cd.get("hit_die", 8))] = lvl
+	st.hit_dice_pool = hd_pool
+	var hd_txt: PackedStringArray = []
+	var dies: Array = hd_pool.keys()
+	dies.sort()
+	dies.reverse()
+	for die in dies:
+		hd_txt.append("%dd%d" % [int(hd_pool[die]), int(die)])
+	st.hit_dice = " + ".join(hd_txt)
 
 	# --- armor class
 	var eq: Dictionary = ch.get("equipment", {})
@@ -361,7 +378,13 @@ static func derive(ch: Dictionary) -> Dictionary:
 	if feats_set.has("blessing_of_the_forge"): ac += 1
 	if "enhanced_defense" in ch.get("infusions", []) and cl.get("artificer", 0) >= 2:
 		ac += 2 if cl.artificer >= 10 else 1
-	if "dual_wielder" in feat_list and eq.get("weapons", []).size() >= 2: ac += 1
+	# Dual Wielder: +1 AC while wielding a separate melee weapon in each hand (so no shield).
+	if "dual_wielder" in feat_list and not shield:
+		var melee_n = 0
+		for wid in eq.get("weapons", []):
+			if Data.item(wid).get("melee", false):
+				melee_n += 1
+		if melee_n >= 2: ac += 1
 	st.ac = ac
 	st.ac_note = ac_note
 	# Armor or a shield you aren't proficient with: no spellcasting, disadvantage on STR/DEX rolls.
@@ -583,7 +606,9 @@ static func build_weapon_attacks(ch: Dictionary, st: Dictionary) -> Array:
 		var to_hit: int = mods[ability] + (pb if prof_ok else 0) + wbonus
 		if "archery" in styles and not w.melee: to_hit += 2
 		var die: String = w.damage
-		if "versatile" in w.props and not eq.get("shield", false) and not dual:
+		# Versatile weapons are swung two-handed when a hand is free, except by a Dueling
+		# fighter, who does better one-handed (1d8+2 beats 1d10; Dueling needs one hand).
+		if "versatile" in w.props and not eq.get("shield", false) and not dual and not "dueling" in styles:
 			die = w.get("versatile", die)
 		if f.has("martial_arts") and is_monk_weapon(w):
 			if Dice.average("1d%d" % st.vals.martial_die) > Dice.average(die):
@@ -617,7 +642,7 @@ static func build_weapon_attacks(ch: Dictionary, st: Dictionary) -> Array:
 		var ability = "dex" if ("finesse" in ow.props and mods.dex > mods.str) else "str"
 		var dmg: int = mini(mods[ability], 0) if not "two_weapon_fighting" in styles else mods[ability]
 		out.append({"id": "offhand", "name": "Off-hand " + ow.name, "weapon": oid, "melee": true, "ability": ability,
-			"to_hit": mods[ability] + pb + wbonus, "damage": [{"dice": Dice.add(ow.damage, str(dmg + wbonus)), "type": ow.type}],
+			"to_hit": mods[ability] + (pb if is_proficient_weapon(ow, st.weapon_prof) else 0) + wbonus, "damage": [{"dice": Dice.add(ow.damage, str(dmg + wbonus)), "type": ow.type}],
 			"die": ow.damage, "reach": 5, "range": 0, "long_range": 0, "props": ow.props, "magic": wbonus > 0,
 			"finesse": "finesse" in ow.props, "offhand": true, "cost": "bonus"})
 	# Unarmed strike.

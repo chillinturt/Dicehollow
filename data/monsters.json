@@ -1943,6 +1943,7 @@
    "bludgeoning"
   ],
   "condition_immune": [
+   "exhaustion",
    "poisoned"
   ],
   "senses": "darkvision 60 ft., passive Perception 9",
@@ -2143,6 +2144,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "poisoned"
   ],
@@ -2222,6 +2224,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "poisoned"
   ],
@@ -2322,6 +2325,7 @@
    "radiant"
   ],
   "condition_immune": [
+   "exhaustion",
    "frightened",
    "grappled",
    "paralyzed",
@@ -2414,6 +2418,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "grappled",
    "paralyzed",
@@ -2504,6 +2509,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "grappled",
    "paralyzed",
    "poisoned",
@@ -2603,6 +2609,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "poisoned"
   ],
   "senses": "darkvision 60 ft., passive Perception 13",
@@ -2715,6 +2722,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "grappled",
    "paralyzed",
@@ -2920,6 +2928,7 @@
    "fire"
   ],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "frightened",
    "paralyzed",
@@ -3027,6 +3036,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "frightened",
    "grappled",
@@ -3135,6 +3145,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "charmed",
    "frightened",
    "grappled",
@@ -5729,6 +5740,7 @@
   "immune": [],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "blinded",
    "charmed",
    "deafened",
@@ -5822,6 +5834,7 @@
   "immune": [],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "blinded",
    "charmed",
    "deafened",
@@ -6298,6 +6311,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "blinded",
    "charmed",
    "deafened",
@@ -6384,6 +6398,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "blinded",
    "charmed",
    "deafened",
@@ -7644,6 +7659,7 @@
    "thunder"
   ],
   "condition_immune": [
+   "exhaustion",
    "paralyzed",
    "petrified",
    "poisoned",
@@ -7731,6 +7747,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "grappled",
    "paralyzed",
    "petrified",
@@ -7830,6 +7847,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "grappled",
    "paralyzed",
    "petrified",
@@ -7936,6 +7954,7 @@
   ],
   "vulnerable": [],
   "condition_immune": [
+   "exhaustion",
    "grappled",
    "paralyzed",
    "petrified",

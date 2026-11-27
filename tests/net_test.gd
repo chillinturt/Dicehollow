@@ -17,6 +17,18 @@ func _ready() -> void:
 		Session.request({"type": "dm_start_combat"})
 		await get_tree().create_timer(8.0).timeout
 		print("[server] combatants: ", Session.state.combatants.values().map(func(c): return "%s hp=%d owner=%d" % [c.name, c.hp, c.owner]))
+	elif role == "client_old":
+		# A player on another release is turned away with a clear message.
+		var why := [""]
+		Session.session_ended.connect(func(r): why[0] = r)
+		Session.VERSION = "0.0.1"
+		await get_tree().create_timer(0.8).timeout
+		Session.join("127.0.0.1", 7799, "Oldie", CharacterStore.premades()[0])
+		for i in 50:
+			await get_tree().create_timer(0.1).timeout
+			if why[0] != "":
+				break
+		print("[client_old] ", "KICKED OK: " + why[0] if why[0].contains("Version mismatch") else "NOT KICKED")
 	else:
 		await get_tree().create_timer(0.8).timeout
 		var ch: Dictionary = CharacterStore.premades()[3]

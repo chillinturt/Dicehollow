@@ -526,15 +526,28 @@ func add_effect(t: Dictionary, e: Dictionary) -> Dictionary:
 			if v is Dictionary and cond in v.get("conds", []) and str(from.get("type", "")) in v.get("types", []):
 				log_line("%s is protected from being %s." % [nm(t), cond])
 				return {}
+	var exh_level: bool = float(e.get("mods", {}).get("exhaustion", 0)) > 0
+	if exh_level and "exhaustion" in t.get("cond_immune", []):
+		log_line("%s is immune to exhaustion." % nm(t))
+		return {}
 	if not e.has("eid"):
 		e.eid = new_id("e")
 	if not e.has("mods"):
 		e.mods = {}
-	# Same named effect from the same source refreshes instead of stacking.
-	for old in t.effects.duplicate():
-		if old.get("name", "") == e.get("name", "") and old.get("src", "") == e.get("src", "") and e.get("name", "") != "":
-			t.effects.erase(old)
+	# Same named effect from the same source refreshes instead of stacking. Exhaustion levels
+	# are one effect each and do stack.
+	if not exh_level:
+		for old in t.effects.duplicate():
+			if old.get("name", "") == e.get("name", "") and old.get("src", "") == e.get("src", "") and e.get("name", "") != "":
+				t.effects.erase(old)
 	t.effects.append(e)
+	if exh_level:
+		_apply_exhaustion(t)
+	# An incapacitated creature loses concentration (stunned, paralysed, asleep, banished...).
+	if cond in ["incapacitated", "paralyzed", "stunned", "unconscious", "petrified", "banished"] and not t.get("conc", {}).is_empty() \
+			and not (e.get("src", "") == t.id and e.get("spell", "") == t.conc.get("spell", "")):
+		log_line("  %s is incapacitated and loses concentration." % nm(t))
+		end_concentration(t, true)
 	if e.get("tag", "") == "dominated":
 		refresh_teams()
 	if cond == "prone":
@@ -749,6 +762,36 @@ func eff_speed(c: Dictionary) -> int:
 func exhaustion(c: Dictionary) -> int:
 	return int(mod_sum(c, "exhaustion"))
 
+## Hit point maximum after exhaustion: level 4 halves it.
+func eff_max_hp(c: Dictionary) -> int:
+	var mx: int = int(c.max_hp)
+	return mx / 2 if exhaustion(c) >= 4 else mx
+
+## Consequences of a new exhaustion level: at 4 the HP maximum halves (current HP drops to fit),
+## at 6 the creature dies.
+func _apply_exhaustion(t: Dictionary) -> void:
+	var lv: int = exhaustion(t)
+	log_line("  %s now has %d level%s of exhaustion." % [nm(t), lv, "" if lv == 1 else "s"])
+	if lv >= 6 and alive(t):
+		if t.get("kind", "") == "pc":
+			_kill(t, "exhaustion")
+		else:
+			t.hp = 0
+			t.dead = true
+			log_line("  [color=#ff5050]%s dies of exhaustion![/color]" % nm(t))
+		return
+	if int(t.hp) > eff_max_hp(t):
+		t.hp = eff_max_hp(t)
+
+## Remove one level of exhaustion (a long rest, Greater Restoration). Returns true if one was removed.
+func remove_exhaustion_level(t: Dictionary) -> bool:
+	for i in range(t.effects.size() - 1, -1, -1):
+		var e: Dictionary = t.effects[i]
+		if float(e.get("mods", {}).get("exhaustion", 0)) > 0:
+			t.effects.remove_at(i)
+			return true
+	return false
+
 func _auras_affecting(t: Dictionary) -> Array:
 	var out: Array = []
 	for o in all_combatants():
@@ -795,7 +838,8 @@ func attack_advantage(a: Dictionary, t: Dictionary, melee: bool, atk: Dictionary
 	var d = dist(a, t)
 	if mod_any(a, "advantage_attack"): adv = true
 	if mod_any(t, "grants_advantage"): adv = true
-	if has_cond(a, "invisible") or a.get("hidden", false): adv = true
+	# An unseen attacker has advantage, unless the target sees invisible things (blindsight, truesight).
+	if (has_cond(a, "invisible") and not _sees_invisible(t)) or a.get("hidden", false): adv = true
 	for cond in ["blinded", "paralyzed", "restrained", "stunned", "unconscious", "petrified"]:
 		if has_cond(t, cond): adv = true
 	if has_cond(t, "prone"):
@@ -828,7 +872,7 @@ func attack_advantage(a: Dictionary, t: Dictionary, melee: bool, atk: Dictionary
 			dis = true
 	for cond in ["blinded", "frightened", "poisoned", "prone", "restrained"]:
 		if has_cond(a, cond): dis = true
-	if has_cond(t, "invisible") or t.get("hidden", false): dis = true
+	if (has_cond(t, "invisible") and not _sees_invisible(a)) or t.get("hidden", false): dis = true
 	if not melee:
 		if not a.get("feats", []).has("crossbow_expert"):
 			for o in enemies_of(a):
@@ -904,6 +948,12 @@ func size_rank(c: Dictionary) -> int:
 
 func _has_sense(c: Dictionary, sense: String) -> bool:
 	return str(c.get("senses", "")).to_lower().contains(sense)
+
+## Whether `o` perceives invisible creatures (blindsight or truesight; a blinded creature only by blindsight).
+func _sees_invisible(o: Dictionary) -> bool:
+	if has_cond(o, "blinded"):
+		return _has_sense(o, "blindsight")
+	return _has_sense(o, "blindsight") or _has_sense(o, "truesight")
 
 ## Whether `o` can see `t` (blindness, invisibility, hiding; blindsight and truesight help).
 func can_see(o: Dictionary, t: Dictionary) -> bool:
@@ -1194,6 +1244,9 @@ func roll_attack(a: Dictionary, t: Dictionary, atk: Dictionary, opts := {}) -> D
 	return res
 
 func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool, opts: Dictionary) -> Dictionary:
+	# Attacking a hostile creature keeps a rage going (see CombatEngine.end_turn).
+	if hostile(a, t):
+		a.rage_kept = true
 	var adv = attack_advantage(a, t, melee, atk) + int(opts.get("adv", 0))
 	# Pre-roll defensive reactions that impose disadvantage.
 	if adv >= 0 and hostile(a, t):
@@ -1254,8 +1307,8 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 			note = fx2.note
 		total = fx2.total
 		ac = fx2.ac
-	# Melee hits on paralysed/unconscious creatures within 5 ft are criticals.
-	if hit and melee and dist(a, t) <= 5 and (has_cond(t, "paralyzed") or has_cond(t, "unconscious")):
+	# Any hit on a paralysed or unconscious creature from within 5 ft is a critical (melee or ranged).
+	if hit and dist(a, t) <= 5 and (has_cond(t, "paralyzed") or has_cond(t, "unconscious")):
 		crit = true
 	var res_txt = "[color=#ffd166]CRIT![/color]" if crit and hit else ("[color=#7fdc7f]HIT[/color]" if hit else "[color=#aaaaaa]MISS[/color]")
 	log_line("  %s → %s: %d%s%s = %d vs AC %d %s%s" % [nm(a), nm(t), nat, how, (" " + Rules.fmt_mod(int(atk.get("to_hit", 0))) if extra == "" else " " + Rules.fmt_mod(int(atk.get("to_hit", 0))) + extra), total, ac, res_txt, (" (" + note + ")") if note != "" else ""])
@@ -1421,14 +1474,15 @@ func apply_damage(t: Dictionary, parts: Array, src: Dictionary, opts := {}) -> i
 		var typ: String = p.type
 		var bps = typ in ["bludgeoning", "piercing", "slashing"]
 		var mundane_only: bool = t.get("mundane_resist", false) and bps
+		# Flat reductions (Heavy Armor Master) come before resistance and vulnerability (PHB p.197).
+		if bps and not magic and t.get("heavy_armor", false) and t.get("feats", []).has("heavy_armor_master"):
+			amt = maxi(0, amt - 3)
 		if typ in immune and not (mundane_only and magic):
 			amt = 0
 		elif typ in resist and typ != ignore_res and not (mundane_only and magic and typ in t.resist):
 			amt = amt / 2
 		if typ in vulnerable:
 			amt *= 2
-		if bps and not magic and t.get("heavy_armor", false) and t.get("feats", []).has("heavy_armor_master"):
-			amt = maxi(0, amt - 3)
 		total += amt
 		breakdown.append("%d %s" % [amt, typ])
 	# Path to the Grave: double the next attack's damage.
@@ -1488,6 +1542,8 @@ func apply_damage(t: Dictionary, parts: Array, src: Dictionary, opts := {}) -> i
 		else:
 			total -= fh
 			end_wild_shape(t)
+	# Taking damage keeps a rage going.
+	t.rage_kept = true
 	var was_up: bool = t.hp > 0
 	t.hp -= total
 	# Harm can't drop a creature below 1 hit point.
@@ -1623,7 +1679,7 @@ func _on_zero(t: Dictionary, src: Dictionary, overflow: int, opts: Dictionary, w
 			float_text(t.id, "Death Ward", "#ffd166")
 			return
 	var can_cling: bool = not opts.get("destroy", false)
-	if can_cling and t.tags.has("relentless_endurance") and res_left(t, "relentless_endurance") > 0 and t.hp > -t.max_hp:
+	if can_cling and was_up and t.tags.has("relentless_endurance") and res_left(t, "relentless_endurance") > 0 and t.hp > -t.max_hp:
 		spend_res(t, "relentless_endurance")
 		t.hp = 1
 		log_line("  %s refuses to fall! (Relentless Endurance)" % nm(t))
@@ -1650,6 +1706,8 @@ func _on_zero(t: Dictionary, src: Dictionary, overflow: int, opts: Dictionary, w
 				_kill(t, "massive damage")
 				return
 			t.death.f += 2 if opts.get("crit", false) else 1
+			# Taking damage ends stability: the creature is dying again.
+			t.death.stable = false
 			t.hp = 0
 			log_line("  %s suffers a death save failure (%d/3)." % [nm(t), t.death.f])
 			if t.death.f >= 3:
@@ -1719,7 +1777,7 @@ func heal_creature(t: Dictionary, amount: int, src: Dictionary, why := "") -> in
 		log_line("  %s can't regain hit points right now." % nm(t))
 		return 0
 	var before: int = t.hp
-	t.hp = mini(t.max_hp, maxi(t.hp, 0) + amount)
+	t.hp = mini(eff_max_hp(t), maxi(t.hp, 0) + amount)
 	var gained: int = t.hp - maxi(before, 0)
 	if before <= 0 and t.hp > 0:
 		t.death = {"s": 0, "f": 0, "stable": false, "dead": false}

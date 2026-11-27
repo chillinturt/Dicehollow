@@ -151,17 +151,72 @@ func _draw() -> void:
 	var badges: Array = []
 	if not data.get("conc", {}).is_empty():
 		badges.append(["C", Color("#c8a0ff")])
+	var seen := {}
 	for e in data.get("effects", []):
+		if badges.size() >= 5:
+			break
 		var cond: String = e.get("cond", "")
-		if cond != "" and badges.size() < 5:
-			badges.append([cond.substr(0, 2).capitalize(), Color("#e0a0ff")])
-		elif e.get("tag", "") in ["rage", "bladesong", "haste", "bonded", "bardic_inspiration", "hunters_mark", "hex", "hexblade_curse"] and badges.size() < 5:
-			badges.append([str(e.tag).substr(0, 2).capitalize(), Color("#ffd166")])
+		var key := ""
+		var bcol := Color("#e0a0ff")
+		if cond != "":
+			key = cond
+		elif e.get("tag", "") in ["rage", "bladesong", "haste", "bonded", "bardic_inspiration", "hunters_mark", "hex", "hexblade_curse"]:
+			key = str(e.tag)
+			bcol = Color("#ffd166")
+		elif e.get("spell", "") == "faerie_fire" or str(e.get("name", "")) == "Outlined" or e.get("mods", {}).get("grants_advantage", false):
+			key = "outlined"
+			bcol = Color("#ff9be8")
+		if key == "" or seen.has(key):
+			continue
+		seen[key] = true
+		badges.append([key, bcol])
 	for i in badges.size():
 		var bp = Vector2(10 + i * 17, 10)
 		draw_circle(bp, 8, Color(0, 0, 0, 0.8))
 		draw_circle(bp, 7, Color(badges[i][1], 0.9))
-		draw_string(ThemeDB.fallback_font, bp + Vector2(-6, 4), badges[i][0], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.BLACK)
+		if not _draw_glyph(str(badges[i][0]), bp):
+			var txt := str(badges[i][0]) if str(badges[i][0]) == "C" else str(badges[i][0]).substr(0, 2).capitalize()
+			draw_string(ThemeDB.fallback_font, bp + Vector2(-6, 4), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.BLACK)
 	if data.get("dead", false) or data.get("death", {}).get("dead", false):
 		draw_line(c - Vector2(r, r) * 0.6, c + Vector2(r, r) * 0.6, Color("#ff3030"), 5)
 		draw_line(c + Vector2(-r, r) * 0.6, c + Vector2(r, -r) * 0.6, Color("#ff3030"), 5)
+
+
+## Small vector glyphs for status badges, centred on p. Returns false if there is no glyph for the key.
+func _draw_glyph(key: String, p: Vector2) -> bool:
+	var k := Color.BLACK
+	match key:
+		"outlined":  # Faerie Fire: a glowing starburst.
+			for i in 4:
+				var a := PI * 0.25 * i
+				var d := Vector2(cos(a), sin(a)) * 5.5
+				draw_line(p - d, p + d, k, 1.5)
+			draw_circle(p, 2.0, k)
+		"restrained", "grappled":  # Web: spokes plus a ring.
+			for i in 4:
+				var a2 := PI * 0.25 * i
+				var d2 := Vector2(cos(a2), sin(a2)) * 5.5
+				draw_line(p - d2, p + d2, k, 1.0)
+			draw_arc(p, 3.0, 0, TAU, 12, k, 1.0)
+		"frightened":
+			draw_line(p + Vector2(0, -5), p + Vector2(0, 1), k, 2.0)
+			draw_circle(p + Vector2(0, 4), 1.3, k)
+		"poisoned":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -5), p + Vector2(3.5, 1), p + Vector2(0, 5), p + Vector2(-3.5, 1)]), k)
+		"prone":
+			draw_line(p + Vector2(-5, 3), p + Vector2(5, 3), k, 2.0)
+			draw_circle(p + Vector2(-3.5, -1), 1.8, k)
+		"blinded":
+			draw_arc(p, 4.0, PI, TAU, 8, k, 1.5)
+			draw_arc(p, 4.0, 0, PI, 8, k, 1.5)
+			draw_line(p + Vector2(-5, 5), p + Vector2(5, -5), k, 1.5)
+		"paralyzed", "stunned", "unconscious", "petrified", "incapacitated":
+			draw_rect(Rect2(p + Vector2(-3.5, -4), Vector2(2.5, 8)), k)
+			draw_rect(Rect2(p + Vector2(1, -4), Vector2(2.5, 8)), k)
+		"charmed":
+			draw_circle(p + Vector2(-2, -1.5), 2.3, k)
+			draw_circle(p + Vector2(2, -1.5), 2.3, k)
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-4.2, -0.5), p + Vector2(4.2, -0.5), p + Vector2(0, 4.5)]), k)
+		_:
+			return false
+	return true

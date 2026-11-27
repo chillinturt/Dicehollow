@@ -16,7 +16,7 @@ Combat runs BG3-style: click a hotbar action, click a target, and the rules reso
    - Over the internet: the host forwards TCP/UDP port 7777 on their router and shares their public IP, or everyone joins the same [Tailscale](https://tailscale.com/) network (free, no port forwarding) and uses the host's Tailscale IP.
    - Allow Dicehollow through Windows Firewall when asked.
 
-Everyone should run the same release version.
+Everyone must run the same release version. The DM turns away a player on a different version, and the version shows on the main menu.
 
 ## Modify it in Godot
 
@@ -91,11 +91,20 @@ The engine enforces the movement rules:
 - Legendary Resistance (monsters).
 
 ### DM toolbox (left panel)
-- **Combat:** start combat (rolls initiative), end it, force the next turn, run the AI for the current turn, toggle whether monsters play automatically, free-move tokens (or hold Shift), short or long rest, and clear the dead. A short rest lasts an hour, so it ends the fight and any spell or effect of an hour or less, such as Spirit Guardians, Spiritual Weapon or Bless. Longer ones, like Mage Armor and Aid, carry on. A long rest also undoes Harm's cut to maximum HP. After a short rest, a wizard with Arcane Recovery gets **Recover Lv N Slot** actions to choose which slots to regain. They stay until the next fight or long rest, and if the wizard doesn't use them, Arcane Recovery is saved for a later short rest. Game time passes at one round per combat round, an hour per short rest and eight per long rest. Revivify only works on someone who died within the last minute (10 rounds).
-- **Monsters:** search the bestiary (102 SRD creatures) and click the map to place them, as enemies or allies.
-- **Map:** paint floor, walls, difficult terrain, water and pits with a 1–3 brush. Set player start points, pick a theme (stone, cave, forest, tavern, snow), resize the map, and save or load maps together with their monster placements.
-- **Party:** see who's connected and add characters you control.
-- **Inspect panel** (click any token): deal damage or heal, toggle conditions, switch sides, hand control to the AI, reassign a character to a player, or remove the token.
+- **Combat:** start combat (rolls initiative), end it, force the next turn, run the AI for the current turn, toggle whether monsters play automatically, free-move tokens (or hold Shift), short or long rest, and clear slain monsters (dead player characters stay so they can be raised). **Select enemies / Select party** selects a whole side at once. A short rest lasts an hour, so it ends the fight and any spell or effect of an hour or less, such as Spirit Guardians, Spiritual Weapon or Bless. Longer ones, like Mage Armor and Aid, carry on. During a short rest each hurt character spends hit dice (largest first) until healed or out of dice: each die heals its roll + CON modifier, plus Song of Rest. A long rest restores up to half the hit dice, removes one level of exhaustion, and also undoes Harm's cut to maximum HP. After a short rest, a wizard with Arcane Recovery gets **Recover Lv N Slot** actions to choose which slots to regain. They stay until the next fight or long rest, and if the wizard doesn't use them, Arcane Recovery is saved for a later short rest. Game time passes at one round per combat round, an hour per short rest and eight per long rest. Revivify only works on someone who died within the last minute (10 rounds).
+- **Monsters:** search the bestiary (102 SRD creatures plus your own) and click the map to place them, as enemies or allies. Monsters can't be stacked or placed in walls. Duplicates are numbered (Goblin, Goblin 2, ...). Tick **Place hidden** to set up an ambush: hidden monsters show only to the DM, as faint ghosts. They stay off the initiative and can't be targeted until you **Reveal** them (one at a time, or **Reveal all hidden monsters** on the Combat tab). A monster revealed mid-fight rolls initiative and joins in. Select a hidden monster and click an empty cell to move it. **New monster / Edit / copy selected** opens the monster editor.
+- **Map:** paint floor, walls, difficult terrain, water and pits with a 1–3 brush (walls and pits never paint over a creature). Set player start points, pick a theme (stone, cave, forest, tavern, snow), upload a background image, resize the map, and save or load maps together with their monsters, including hidden ones and their names. Shrinking or loading a map moves anyone left off the map or inside a wall to the nearest free cell.
+- **Party:** see who's connected and add characters you control. If a player's connection drops, the DM controls their character. When the player rejoins with the same character they take that token back, so no duplicate is made.
+
+**Inspect panel** (click any token; **Ctrl+click** to select several, then everything below applies to all of them):
+- **HP:** type an amount, then **Damage**, **Half** (for a successful save), **Heal** or **Set HP**. Damage is untyped by default, so the creature takes exactly that much. Pick a damage type to apply resistance, immunity and vulnerability. Healing or setting HP above 0 brings back a monster slain by mistake. Setting a PC to 0 knocks them unconscious under the normal rules.
+- **Conditions:** toggle any condition, optionally for a number of rounds. A timed condition ends at the end of the creature's own turn. **Exhaustion** levels go up and down with ＋/－, and their effects apply (disadvantage on checks, halved speed, and so on).
+- **Rolls:** roll any saving throw, ability check or skill check for the selection. Set a **DC** and optional **damage** (for example `4d10`, with **half** on a success) to run a trap or an effect the engine doesn't automate. The damage is rolled once, and Evasion applies to DEX saves. Players can use the same roller for their own character's checks and saves.
+- **Initiative:** set a creature's initiative to a number a player rolled at the table. The order re-sorts without changing whose turn it is.
+- Rename a creature, switch its side, hide or reveal it, hand control to the AI, reassign a character to a player, or remove the token.
+- **Keys:** Delete removes the selection, H hides or reveals it, and Esc clears it.
+
+**Chat dice:** `/roll 2d6+3`, `/roll 1d20+5 adv` (or `dis`). `/hroll 1d20` makes a private roll that only you and the DM see.
 
 ## What the engine automates
 - Attack rolls with advantage and disadvantage from conditions, Pack Tactics, Reckless Attack, prone, invisibility, range and Help. Crits, including Improved Critical, Hexblade's Curse, and automatic crits on paralyzed or unconscious targets.
@@ -111,7 +120,7 @@ The engine enforces the movement rules:
 ## Not yet automated
 - Spells with `combat: null` in the data (utility, summoning, walls without damage). They still spend the slot and the action, and the DM adjudicates the effect.
 - Cover, vision and lighting, grappling or shoving initiated by players, dragging a grappled creature, mounted combat, the Ready action, Haste's lethargy, and legendary or lair actions. Legendary Resistance is supported.
-- Out-of-combat skill checks. Use `/roll 1d20+5` in chat.
+- Fog of war. Hide monsters with the DM tools until they should appear.
 - Character levelling happens in the character builder, not in-game. There's no XP tracking yet.
 
 ## Layout
@@ -141,7 +150,9 @@ Saved data lives in `%APPDATA%\Godot\app_userdata\Dicehollow\` (characters, port
     Godot..._console.exe --headless --path . res://tests/spell_test.tscn   # spell and effect mechanics, then casts every automated spell (exit code 1 on failure)
     Godot..._console.exe --headless --path . res://tests/spell_audit_test.tscn   # the spells fixed in docs/SPELL_AUDIT.md (exit code 1 on failure)
     Godot..._console.exe --headless --path . res://tests/class_test.tscn   # Wizard, Cleric and Paladin playtest fixes (exit code 1 on failure)
-    Godot..._console.exe --headless --path . res://tests/net_test.tscn -- server   (and in a second terminal: -- client)
+    Godot..._console.exe --headless --path . res://tests/audit5e_test.tscn    # 5e 2014 rules audit fixes: hit dice, exhaustion, rage, sneak attack, death saves (exit code 1 on failure)
+    Godot..._console.exe --headless --path . res://tests/dm_tools_test.tscn   # DM toolbox: placement, hidden monsters, HP, conditions, group rolls, initiative, map changes (exit code 1 on failure)
+    Godot..._console.exe --headless --path . res://tests/net_test.tscn -- server   (and in a second terminal: -- client, or -- client_old to check that a mismatched version is turned away)
 
 ## Content note
 Spell and monster data was generated for this prototype. Monsters are limited to the open SRD 5.1.

@@ -53,7 +53,7 @@ func start_combat() -> void:
 			continue
 		c.turn = new_turn(c)
 		c.acted = false
-		c.rr_uses = 0
+		# Relentless Rage's DC only resets on a short or long rest (see the rest functions).
 		if c.kind == "summon":
 			continue
 		var adv = 1 if c.get("init_adv", false) else 0
@@ -113,6 +113,7 @@ func end_combat() -> void:
 		# Combat-length effects (1 minute or less) end with the fight, conditions included.
 		# Prone, grapples and other holds (which have no timer) end too.
 		remove_effects_where(c, func(e): return int(e.get("rounds", 0)) <= 10 or e.get("cond", "") == "prone" or e.has("escape_dc"))
+		_frenzy_check(c)
 		c.hidden = false
 		# Creatures kept in being by a concentration spell (Animate Objects) go when the fight ends.
 		if c.get("conc_summon", "") != "" and not c.dead:
@@ -135,6 +136,7 @@ func begin_turn(c: Dictionary) -> void:
 	refresh_teams()
 	log_line("[color=#c9a14a]— %s's turn (round %d) —[/color]" % [c.name, s.round])
 	tick_effects(c.id, "start")
+	_frenzy_check(c)
 	_tick_zones(c)
 	_tick_ropes(c.id)
 	_tick_items(c.id)
@@ -455,7 +457,8 @@ func _death_save(c: Dictionary) -> void:
 	if c.death.stable:
 		log_line("%s is unconscious but stable." % nm(c))
 		return
-	var r = Dice.d20()
+	# A death save is a saving throw: a halfling's Lucky rerolls a natural 1.
+	var r: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll)
 	if r == 20:
 		c.hp = 1
 		c.death = {"s": 0, "f": 0, "stable": false, "dead": false}
@@ -495,10 +498,24 @@ func end_turn() -> void:
 	_aura_triggers(c, "end_turn")
 	_zone_triggers(c, "end_turn")
 	tick_effects(c.id, "end")
+	# Rage ends early when the barbarian's turn ends and it hasn't attacked a hostile creature or
+	# taken damage since its last turn.
+	if has_tag(c, "rage") and not c.get("rage_kept", true):
+		remove_effects_where(c, func(e): return e.get("tag", "") == "rage")
+		log_line("%s's rage fades: no attack made and no damage taken this round." % nm(c))
+	c.rage_kept = false
+	_frenzy_check(c)
 	if c.has("toggles"):
 		c.toggles.erase("reckless")
 	c.hidden = c.get("hidden", false) and c.turn.get("stayed_hidden", true)
 	_advance()
+
+## Berserker Frenzy: when a rage it frenzied in ends, the barbarian suffers a level of exhaustion.
+func _frenzy_check(c: Dictionary) -> void:
+	if c.get("frenzied", false) and not has_tag(c, "rage"):
+		c.frenzied = false
+		log_line("%s's frenzy leaves them exhausted." % nm(c))
+		add_effect(c, {"name": "Exhaustion", "src": c.id, "rounds": 99999, "tick_cid": "none", "mods": {"exhaustion": 1}, "exhaustion": true})
 
 ## Flesh to Stone, Contagion: the creature saves at the end of each of its turns, counting successes
 ## and failures. Three failures bring on the "on_fail" effect (petrified, a disease); three successes
@@ -1716,6 +1733,9 @@ func _spell_actions(c: Dictionary) -> Array:
 			if mod_any(c, "no_spells"):
 				a.enabled = false
 				a.reason = "Can't cast spells"
+			elif has_tag(c, "rage"):
+				a.enabled = false
+				a.reason = "Can't cast spells while raging"
 			elif c.get("armor_unproficient", false) and e["class"] != "race":
 				a.enabled = false
 				a.reason = "Wearing armor you aren't proficient with"
@@ -2393,6 +2413,19 @@ func _smite_rider(c: Dictionary, t: Dictionary, e: Dictionary) -> void:
 	if not lasting and e.get("conc", false) and c.conc.get("spell", "") == e.get("spell", ""):
 		end_concentration(c, true)
 
+## "Once per turn" riders (Sneak Attack, Colossus Slayer) work once on every creature's turn, so a
+## rogue who sneak attacked on its own turn can do it again with an opportunity attack on the
+## enemy's turn. Keyed by the turn serial; outside combat there is no turn to limit.
+func _once_per_turn_free(c: Dictionary, key: String) -> bool:
+	if not s.in_combat:
+		return true
+	return int(c.get("once_turn", {}).get(key, -1)) != int(s.get("turn_serial", 0))
+
+func _use_once_per_turn(c: Dictionary, key: String) -> void:
+	if not c.get("once_turn", null) is Dictionary:
+		c.once_turn = {}
+	c.once_turn[key] = int(s.get("turn_serial", 0))
+
 ## Roll weapon damage including all class/race riders. Returns [{amount, type}].
 func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionary, ctx: Dictionary) -> Array:
 	var crit: bool = res.get("crit", false)
@@ -2437,7 +2470,7 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 		parts[0].amount += 10
 		notes.append("power attack +10")
 	# Sneak Attack.
-	if int(c.vals.get("sneak_dice", 0)) > 0 and (atk.get("finesse", false) or not melee) and not once.get("sneak", false) and not atk.get("spell_attack", false):
+	if int(c.vals.get("sneak_dice", 0)) > 0 and (atk.get("finesse", false) or (not melee and not atk.get("thrown", false))) and _once_per_turn_free(c, "sneak") and not atk.get("spell_attack", false):
 		var ok: bool = res.get("adv", 0) > 0
 		if res.get("adv", 0) >= 0 and not ok:
 			for o in allies_of(c, false):
@@ -2451,7 +2484,7 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 						alone = false
 				ok = alone
 		if ok:
-			once.sneak = true
+			_use_once_per_turn(c, "sneak")
 			dmg_dice.call("%dd6" % int(c.vals.sneak_dice), weapon_type, "Sneak Attack")
 	# Divine Smite (toggle, consumed on use).
 	var smite_lv = int(c.get("toggles", {}).get("smite", 0))
@@ -2471,11 +2504,11 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 			once.divine_strike = true
 			var typ: String = weapon_type if f == "divine_strike_weapon" else f.replace("divine_strike_", "")
 			dmg_dice.call("%dd8" % int(c.vals.get("divine_strike_dice", 1)), typ, "Divine Strike")
-	if c.features.has("divine_fury") and has_tag(c, "rage") and wpn and not once.get("divine_fury", false):
+	if c.features.has("divine_fury") and has_tag(c, "rage") and wpn and my_turn and not once.get("divine_fury", false):
 		once.divine_fury = true
 		dmg_dice.call("1d6+%d" % (c.class_levels.get("barbarian", 3) / 2), "radiant", "Divine Fury")
-	if c.features.has("colossus_slayer") and wpn and t.hp < t.max_hp and not once.get("colossus", false):
-		once.colossus = true
+	if c.features.has("colossus_slayer") and wpn and t.hp < t.max_hp and _once_per_turn_free(c, "colossus"):
+		_use_once_per_turn(c, "colossus")
 		dmg_dice.call("1d8", weapon_type, "Colossus Slayer")
 	if c.features.has("dreadful_strikes") and wpn and not once.get("dreadful_" + t.id, false):
 		once["dreadful_" + t.id] = true
@@ -4736,9 +4769,15 @@ func _feature(c: Dictionary, a: Dictionary, targets: Array, cellp: Vector2i, par
 			add_effect(c, {"name": "Rage", "tag": "rage", "src": c.id, "rounds": 10, "tick_cid": c.id})
 			log_line("%s flies into a [color=#ff5050][b]RAGE[/b][/color]!" % nm(c))
 			fx("burst", c.pos, c.pos, "#ff4040", [], "rage")
+			# A raging barbarian can't cast spells or concentrate on them.
+			end_concentration(c)
+			# The rage lasts past this turn only if it attacks a hostile creature or takes damage.
+			c.rage_kept = false
 		"end_rage":
 			remove_effects_where(c, func(e): return e.get("tag", "") == "rage")
 		"frenzy", "war_priest", "war_magic", "polearm_master", "gwm_bonus", "spiritual_weapon_attack", "luminous_arrow", "martial_arts":
+			if a.id == "frenzy":
+				c.frenzied = true
 			if a.id == "gwm_bonus":
 				c.turn.gwm_bonus = false
 			_attack_with(c, t, a.atk, {"bonus_attack": true})
@@ -5053,9 +5092,11 @@ func short_rest() -> void:
 			if c.resources[k].reset == "short":
 				c.resources[k].cur = c.resources[k].max
 		c.pact_used = 0
-		# Spend hit dice: heal roughly half the missing HP.
-		if c.kind == "pc" and c.hp > 0 and c.hp < c.max_hp:
-			heal_creature(c, (c.max_hp - c.hp) / 2, c, "short rest")
+		c.rr_uses = 0
+		_frenzy_check(c)
+		# Spend hit dice, one at a time, until healed or out of dice.
+		if c.kind == "pc" and c.hp > 0:
+			spend_hit_dice(c)
 		# Arcane Recovery isn't spent automatically: the wizard may use it now (the "Recover Lv N
 		# Slot" actions, until the next fight or long rest) or save it for a later short rest.
 		if c.features.has("arcane_recovery") and res_left(c, "arcane_recovery") > 0:
@@ -5063,6 +5104,51 @@ func short_rest() -> void:
 			log_line("%s can use Arcane Recovery to regain up to %d levels of spell slots." % [nm(c), c.arcane_budget])
 	s.clock = int(s.get("clock", 0)) + 600  # an hour
 	log_line("[color=#8fd0ff]The party takes a short rest.[/color]")
+
+## Hit dice still unspent, by die size ("10": count).
+func hit_dice_left(c: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	var used: Dictionary = c.get("hd_used", {})
+	for k in c.get("hd_max", {}):
+		out[k] = maxi(0, int(c.hd_max[k]) - int(used.get(k, 0)))
+	return out
+
+## Short rest: spend hit dice (largest first) while the creature is hurt. Each die heals its roll
+## + CON modifier (at least 0; Durable makes it at least twice the CON modifier). Song of Rest adds
+## its die once if any hit die was spent. `max_dice` < 0 means no limit. Returns HP regained.
+func spend_hit_dice(c: Dictionary, max_dice := -1) -> int:
+	if not c.has("hd_max"):
+		return 0
+	if not c.get("hd_used", null) is Dictionary:
+		c.hd_used = {}
+	var gained = 0
+	var spent = 0
+	var conm: int = int(c.mods.get("con", 0))
+	while c.hp < eff_max_hp(c) and (max_dice < 0 or spent < max_dice):
+		var die = 0
+		var left = hit_dice_left(c)
+		for k in left:
+			if int(left[k]) > 0 and int(k) > die:
+				die = int(k)
+		if die == 0:
+			break
+		c.hd_used[str(die)] = int(c.hd_used.get(str(die), 0)) + 1
+		spent += 1
+		var r: int = Dice.d(die)
+		var amt: int = maxi(0, r + conm)
+		if c.get("feats", []).has("durable"):
+			amt = maxi(amt, 2 * conm)
+		gained += heal_creature(c, amt, c, "hit die d%d: %d%s" % [die, r, Rules.fmt_mod(conm)])
+	if spent > 0:
+		var bard: Dictionary = {}
+		for o in allies_of(c):
+			if o.features.has("song_of_rest") and alive(o) and o.hp > 0:
+				bard = o
+		if not bard.is_empty() and c.hp < eff_max_hp(c):
+			var bl: int = int(bard.class_levels.get("bard", 2))
+			var sd: int = 6 if bl < 9 else (8 if bl < 13 else (10 if bl < 17 else 12))
+			gained += heal_creature(c, Dice.d(sd), bard, "Song of Rest")
+	return gained
 
 ## A rest is at least as long as Rope Trick's hour.
 func _end_all_ropes() -> void:
@@ -5080,8 +5166,21 @@ func long_rest() -> void:
 		# Harm's cut to the hit point maximum lasts until a long rest.
 		c.max_hp = int(c.max_hp) + int(c.get("max_hp_cut", 0))
 		c.max_hp_cut = 0
-		c.hp = c.max_hp
+		c.rr_uses = 0
+		_frenzy_check(c)
 		c.temp_hp = 0
+		# Regain spent hit dice up to half the character's total (at least one), largest dice first.
+		if c.get("hd_used", null) is Dictionary and c.has("hd_max"):
+			var total_hd = 0
+			for k in c.hd_max:
+				total_hd += int(c.hd_max[k])
+			var back: int = maxi(1, total_hd / 2)
+			var sizes: Array = c.hd_used.keys()
+			sizes.sort_custom(func(x, y): return int(x) > int(y))
+			for k in sizes:
+				var n: int = mini(back, int(c.hd_used[k]))
+				c.hd_used[k] = int(c.hd_used[k]) - n
+				back -= n
 		c.death = {"s": 0, "f": 0, "stable": false, "dead": false}
 		for k in c.resources:
 			c.resources[k].cur = c.resources[k].max
@@ -5089,6 +5188,10 @@ func long_rest() -> void:
 			c.slots_used[i] = 0
 		c.pact_used = 0
 		c.effects = c.effects.filter(func(e): return int(e.get("rounds", 0)) > 4800 and e.get("cond", "") != "prone")
+		# A long rest (with food and drink) removes one level of exhaustion.
+		if remove_exhaustion_level(c):
+			log_line("%s shakes off a level of exhaustion (%d left)." % [nm(c), exhaustion(c)])
+		c.hp = eff_max_hp(c)
 		c.conc = {}
 		c.form = {}
 		c.ward = 0
