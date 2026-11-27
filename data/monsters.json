@@ -1,0 +1,8870 @@
+[
+ {
+  "id": "commoner",
+  "name": "Commoner",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 0,
+  "xp": 10,
+  "ac": 10,
+  "ac_note": "",
+  "hp": 4,
+  "hit_dice": "1d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 10,
+   "con": 10,
+   "int": 10,
+   "wis": 10,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any one language (usually Common)",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Club",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b8a07a"
+ },
+ {
+  "id": "bandit",
+  "name": "Bandit",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-lawful alignment",
+  "cr": 0.125,
+  "xp": 25,
+  "ac": 12,
+  "ac_note": "leather armor",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 12,
+   "con": 12,
+   "int": 10,
+   "wis": 10,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any one language (usually Common)",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Scimitar",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Light Crossbow",
+    "kind": "ranged",
+    "to_hit": 3,
+    "range": 80,
+    "long_range": 320,
+    "damage": [
+     {
+      "dice": "1d8+1",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a5a3a"
+ },
+ {
+  "id": "bandit_captain",
+  "name": "Bandit Captain",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-lawful alignment",
+  "cr": 2,
+  "xp": 450,
+  "ac": 15,
+  "ac_note": "studded leather",
+  "hp": 65,
+  "hit_dice": "10d8+20",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 16,
+   "con": 14,
+   "int": 14,
+   "wis": 11,
+   "cha": 14
+  },
+  "prof": 2,
+  "saves": {
+   "str": 4,
+   "dex": 5,
+   "wis": 2
+  },
+  "skills": {
+   "athletics": 4,
+   "deception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any two languages",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Scimitar",
+     "Scimitar",
+     "Dagger"
+    ],
+    "desc": "Two scimitar attacks and one dagger attack, or two thrown daggers."
+   },
+   {
+    "name": "Scimitar",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Dagger",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Dagger",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "1d4+3",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [
+   {
+    "name": "Parry",
+    "kind": "special",
+    "desc": "Adds 2 to AC against one melee attack that would hit, if it can see the attacker and holds a melee weapon."
+   }
+  ],
+  "legendary_actions": [],
+  "token_color": "#6e3b22"
+ },
+ {
+  "id": "guard",
+  "name": "Guard",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 0.125,
+  "xp": 25,
+  "ac": 16,
+  "ac_note": "chain shirt, shield",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 13,
+   "dex": 12,
+   "con": 12,
+   "int": 10,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 12",
+  "languages": "any one language (usually Common)",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Spear",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Spear",
+    "kind": "ranged",
+    "to_hit": 3,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a6e8a"
+ },
+ {
+  "id": "thug",
+  "name": "Thug",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-good alignment",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 11,
+  "ac_note": "leather armor",
+  "hp": 32,
+  "hit_dice": "5d8+10",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 11,
+   "con": 14,
+   "int": 10,
+   "wis": 10,
+   "cha": 11
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "intimidation": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Mace",
+     "Mace"
+    ],
+    "desc": "Two melee attacks."
+   },
+   {
+    "name": "Mace",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Heavy Crossbow",
+    "kind": "ranged",
+    "to_hit": 2,
+    "range": 100,
+    "long_range": 400,
+    "damage": [
+     {
+      "dice": "1d10",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5e4a3a"
+ },
+ {
+  "id": "cultist",
+  "name": "Cultist",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-good alignment",
+  "cr": 0.125,
+  "xp": 25,
+  "ac": 12,
+  "ac_note": "leather armor",
+  "hp": 9,
+  "hit_dice": "2d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 12,
+   "con": 10,
+   "int": 10,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "deception": 2,
+   "religion": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Dark Devotion",
+    "desc": "Advantage on saves against being charmed or frightened."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Scimitar",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a2a4a"
+ },
+ {
+  "id": "cult_fanatic",
+  "name": "Cult Fanatic",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-good alignment",
+  "cr": 2,
+  "xp": 450,
+  "ac": 13,
+  "ac_note": "leather armor",
+  "hp": 33,
+  "hit_dice": "6d8+6",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 14,
+   "con": 12,
+   "int": 10,
+   "wis": 13,
+   "cha": 14
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "deception": 4,
+   "persuasion": 4,
+   "religion": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 11",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Dark Devotion",
+    "desc": "Advantage on saves against being charmed or frightened."
+   },
+   {
+    "name": "Spellcasting",
+    "desc": "4th-level Wisdom caster (save DC 11, +3 to hit)."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Dagger",
+     "Dagger"
+    ],
+    "desc": "Two melee attacks."
+   },
+   {
+    "name": "Dagger",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Dagger",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "spellcasting": {
+   "ability": "wis",
+   "dc": 11,
+   "attack": 3,
+   "slots": [
+    4,
+    3
+   ],
+   "at_will": [
+    "light",
+    "sacred_flame",
+    "thaumaturgy"
+   ],
+   "spells": [
+    "command",
+    "inflict_wounds",
+    "shield_of_faith",
+    "hold_person",
+    "spiritual_weapon"
+   ]
+  },
+  "token_color": "#7a1f4a"
+ },
+ {
+  "id": "acolyte",
+  "name": "Acolyte",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 10,
+  "ac_note": "",
+  "hp": 9,
+  "hit_dice": "2d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 10,
+   "con": 10,
+   "int": 10,
+   "wis": 14,
+   "cha": 11
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "medicine": 4,
+   "religion": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 12",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Spellcasting",
+    "desc": "1st-level Wisdom caster (save DC 12, +4 to hit)."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Club",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "spellcasting": {
+   "ability": "wis",
+   "dc": 12,
+   "attack": 4,
+   "slots": [
+    3
+   ],
+   "at_will": [
+    "light",
+    "sacred_flame",
+    "thaumaturgy"
+   ],
+   "spells": [
+    "bless",
+    "cure_wounds",
+    "sanctuary"
+   ]
+  },
+  "token_color": "#d8cfa8"
+ },
+ {
+  "id": "priest",
+  "name": "Priest",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 2,
+  "xp": 450,
+  "ac": 13,
+  "ac_note": "chain shirt",
+  "hp": 27,
+  "hit_dice": "5d8+5",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 10,
+   "con": 12,
+   "int": 13,
+   "wis": 16,
+   "cha": 13
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "medicine": 7,
+   "persuasion": 3,
+   "religion": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "any two languages",
+  "traits": [
+   {
+    "name": "Divine Eminence",
+    "desc": "As a bonus action, spends a spell slot so its melee hits deal an extra 3d6 radiant until end of turn (+1d6 per slot level above 1st)."
+   },
+   {
+    "name": "Spellcasting",
+    "desc": "5th-level Wisdom caster (save DC 13, +5 to hit)."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Mace",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "spellcasting": {
+   "ability": "wis",
+   "dc": 13,
+   "attack": 5,
+   "slots": [
+    4,
+    3,
+    2
+   ],
+   "at_will": [
+    "light",
+    "sacred_flame",
+    "thaumaturgy"
+   ],
+   "spells": [
+    "cure_wounds",
+    "guiding_bolt",
+    "sanctuary",
+    "lesser_restoration",
+    "spiritual_weapon",
+    "dispel_magic",
+    "spirit_guardians"
+   ]
+  },
+  "token_color": "#e8d070"
+ },
+ {
+  "id": "mage",
+  "name": "Mage",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 6,
+  "xp": 2300,
+  "ac": 12,
+  "ac_note": "15 with mage armor",
+  "hp": 40,
+  "hit_dice": "9d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 9,
+   "dex": 14,
+   "con": 11,
+   "int": 17,
+   "wis": 12,
+   "cha": 11
+  },
+  "prof": 3,
+  "saves": {
+   "int": 6,
+   "wis": 4
+  },
+  "skills": {
+   "arcana": 6,
+   "history": 6
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 11",
+  "languages": "any four languages",
+  "traits": [
+   {
+    "name": "Spellcasting",
+    "desc": "9th-level Intelligence caster (save DC 14, +6 to hit). Usually casts mage armor before combat."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Dagger",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Dagger",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "spellcasting": {
+   "ability": "int",
+   "dc": 14,
+   "attack": 6,
+   "slots": [
+    4,
+    3,
+    3,
+    3,
+    1
+   ],
+   "at_will": [
+    "fire_bolt",
+    "light",
+    "mage_hand",
+    "prestidigitation"
+   ],
+   "spells": [
+    "detect_magic",
+    "mage_armor",
+    "magic_missile",
+    "shield",
+    "misty_step",
+    "suggestion",
+    "counterspell",
+    "fireball",
+    "fly",
+    "greater_invisibility",
+    "ice_storm",
+    "cone_of_cold"
+   ]
+  },
+  "token_color": "#3a4ab0"
+ },
+ {
+  "id": "scout",
+  "name": "Scout",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 13,
+  "ac_note": "leather armor",
+  "hp": 16,
+  "hit_dice": "3d8+3",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 14,
+   "con": 12,
+   "int": 11,
+   "wis": 13,
+   "cha": 11
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "nature": 4,
+   "perception": 5,
+   "stealth": 6,
+   "survival": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 15",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Keen Hearing and Sight",
+    "desc": "Advantage on Perception checks that rely on hearing or sight.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Shortsword",
+     "Shortsword"
+    ],
+    "desc": "Two melee attacks or two ranged attacks."
+   },
+   {
+    "name": "Shortsword",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Longbow",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 150,
+    "long_range": 600,
+    "damage": [
+     {
+      "dice": "1d8+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a6a3a"
+ },
+ {
+  "id": "veteran",
+  "name": "Veteran",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 3,
+  "xp": 700,
+  "ac": 17,
+  "ac_note": "splint",
+  "hp": 58,
+  "hit_dice": "9d8+18",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 13,
+   "con": 14,
+   "int": 10,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "athletics": 5,
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 12",
+  "languages": "any one language (usually Common)",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Longsword",
+     "Longsword",
+     "Shortsword"
+    ],
+    "desc": "Two longsword attacks, plus a shortsword attack if it has one drawn."
+   },
+   {
+    "name": "Longsword",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Shortsword",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Heavy Crossbow",
+    "kind": "ranged",
+    "to_hit": 3,
+    "range": 100,
+    "long_range": 400,
+    "damage": [
+     {
+      "dice": "1d10+1",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a6a72"
+ },
+ {
+  "id": "knight",
+  "name": "Knight",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 3,
+  "xp": 700,
+  "ac": 18,
+  "ac_note": "plate",
+  "hp": 52,
+  "hit_dice": "8d8+16",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 11,
+   "con": 14,
+   "int": 11,
+   "wis": 11,
+   "cha": 15
+  },
+  "prof": 2,
+  "saves": {
+   "con": 4,
+   "wis": 2
+  },
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Brave",
+    "desc": "Advantage on saves against being frightened."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Greatsword",
+     "Greatsword"
+    ],
+    "desc": "Two melee attacks."
+   },
+   {
+    "name": "Greatsword",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Heavy Crossbow",
+    "kind": "ranged",
+    "to_hit": 2,
+    "range": 100,
+    "long_range": 400,
+    "damage": [
+     {
+      "dice": "1d10",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Leadership",
+    "kind": "special",
+    "desc": "Once per short rest: for 1 minute, allies within 30 ft that can hear it add 1d4 to attacks and saves (requires concentration-like focus; ends if incapacitated)."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [
+   {
+    "name": "Parry",
+    "kind": "special",
+    "desc": "Adds 2 to AC against one melee attack that would hit, if it can see the attacker and holds a melee weapon."
+   }
+  ],
+  "legendary_actions": [],
+  "token_color": "#c0c0d0"
+ },
+ {
+  "id": "gladiator",
+  "name": "Gladiator",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any alignment",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 16,
+  "ac_note": "studded leather, shield",
+  "hp": 112,
+  "hit_dice": "15d8+45",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 15,
+   "con": 16,
+   "int": 10,
+   "wis": 12,
+   "cha": 15
+  },
+  "prof": 3,
+  "saves": {
+   "str": 7,
+   "dex": 5,
+   "con": 6
+  },
+  "skills": {
+   "athletics": 10,
+   "intimidation": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 11",
+  "languages": "any one language (usually Common)",
+  "traits": [
+   {
+    "name": "Brave",
+    "desc": "Advantage on saves against being frightened."
+   },
+   {
+    "name": "Brute",
+    "desc": "Melee weapons deal one extra die of damage (included).",
+    "tag": "brute"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Spear",
+     "Spear",
+     "Shield Bash"
+    ],
+    "desc": "Three melee attacks, or two ranged attacks."
+   },
+   {
+    "name": "Spear",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Spear",
+    "kind": "ranged",
+    "to_hit": 7,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Shield Bash",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+4",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "save": "str",
+     "dc": 15,
+     "condition": "prone"
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [
+   {
+    "name": "Parry",
+    "kind": "special",
+    "desc": "Adds 3 to AC against one melee attack that would hit, if it can see the attacker and holds a melee weapon."
+   }
+  ],
+  "legendary_actions": [],
+  "token_color": "#a0602a"
+ },
+ {
+  "id": "assassin",
+  "name": "Assassin",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "any non-good alignment",
+  "cr": 8,
+  "xp": 3900,
+  "ac": 15,
+  "ac_note": "studded leather",
+  "hp": 78,
+  "hit_dice": "12d8+24",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 16,
+   "con": 14,
+   "int": 13,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 6,
+   "int": 4
+  },
+  "skills": {
+   "acrobatics": 6,
+   "deception": 3,
+   "perception": 3,
+   "stealth": 9
+  },
+  "resist": [
+   "poison"
+  ],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "Thieves' cant plus any two languages",
+  "traits": [
+   {
+    "name": "Assassinate",
+    "desc": "Advantage on attacks against creatures that have not acted yet in the first round; hits on surprised creatures are critical hits.",
+    "tag": "surprise_attack"
+   },
+   {
+    "name": "Evasion",
+    "desc": "Takes no damage on a successful Dex save for half damage, and half on a failure.",
+    "tag": "avoidance"
+   },
+   {
+    "name": "Sneak Attack",
+    "desc": "Once per turn, +4d6 damage on a hit with advantage or with an ally adjacent to the target."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Shortsword",
+     "Shortsword"
+    ],
+    "desc": "Two shortsword attacks."
+   },
+   {
+    "name": "Shortsword",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 15,
+     "damage": [
+      {
+       "dice": "7d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   },
+   {
+    "name": "Light Crossbow",
+    "kind": "ranged",
+    "to_hit": 6,
+    "range": 80,
+    "long_range": 320,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 15,
+     "damage": [
+      {
+       "dice": "7d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a2a30"
+ },
+ {
+  "id": "goblin",
+  "name": "Goblin",
+  "size": "small",
+  "type": "humanoid",
+  "alignment": "neutral evil",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 15,
+  "ac_note": "leather armor, shield",
+  "hp": 7,
+  "hit_dice": "2d6",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 8,
+   "dex": 14,
+   "con": 10,
+   "int": 10,
+   "wis": 8,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 6
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 9",
+  "languages": "Common, Goblin",
+  "traits": [
+   {
+    "name": "Nimble Escape",
+    "desc": "Can Disengage or Hide as a bonus action.",
+    "tag": "nimble_escape"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Scimitar",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Shortbow",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 80,
+    "long_range": 320,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a8a3a"
+ },
+ {
+  "id": "hobgoblin",
+  "name": "Hobgoblin",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "lawful evil",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 18,
+  "ac_note": "chain mail, shield",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 13,
+   "dex": 12,
+   "con": 12,
+   "int": 10,
+   "wis": 10,
+   "cha": 9
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common, Goblin",
+  "traits": [
+   {
+    "name": "Martial Advantage",
+    "desc": "Once per turn, +2d6 damage to a creature it hits if an ally is within 5 ft of that creature.",
+    "tag": "martial_advantage"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Longsword",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+1",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Longbow",
+    "kind": "ranged",
+    "to_hit": 3,
+    "range": 150,
+    "long_range": 600,
+    "damage": [
+     {
+      "dice": "1d8+1",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#3a6a2a"
+ },
+ {
+  "id": "bugbear",
+  "name": "Bugbear",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "chaotic evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 16,
+  "ac_note": "hide armor, shield",
+  "hp": 27,
+  "hit_dice": "5d8+5",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 14,
+   "con": 13,
+   "int": 8,
+   "wis": 11,
+   "cha": 9
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 6,
+   "survival": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common, Goblin",
+  "traits": [
+   {
+    "name": "Brute",
+    "desc": "Melee weapons deal one extra die of damage (included).",
+    "tag": "brute"
+   },
+   {
+    "name": "Surprise Attack",
+    "desc": "+2d6 damage the first time it hits a surprised creature in the first round.",
+    "tag": "surprise_attack"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Morningstar",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Javelin",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Javelin",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 30,
+    "long_range": 120,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a6a28"
+ },
+ {
+  "id": "kobold",
+  "name": "Kobold",
+  "size": "small",
+  "type": "humanoid",
+  "alignment": "lawful evil",
+  "cr": 0.125,
+  "xp": 25,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 5,
+  "hit_dice": "2d6-2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 7,
+   "dex": 15,
+   "con": 9,
+   "int": 8,
+   "wis": 7,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 8",
+  "languages": "Common, Draconic",
+  "traits": [
+   {
+    "name": "Sunlight Sensitivity",
+    "desc": "Disadvantage on attacks and sight-based Perception while in sunlight.",
+    "tag": "sunlight_sensitivity"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Dagger",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Sling",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 30,
+    "long_range": 120,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#a0582a"
+ },
+ {
+  "id": "orc",
+  "name": "Orc",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "chaotic evil",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 13,
+  "ac_note": "hide armor",
+  "hp": 15,
+  "hit_dice": "2d8+6",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 12,
+   "con": 16,
+   "int": 7,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "intimidation": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common, Orc",
+  "traits": [
+   {
+    "name": "Aggressive",
+    "desc": "As a bonus action, moves up to its speed toward a hostile creature it can see.",
+    "tag": "aggressive"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Greataxe",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d12+3",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Javelin",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 30,
+    "long_range": 120,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a7a3a"
+ },
+ {
+  "id": "gnoll",
+  "name": "Gnoll",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "chaotic evil",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 15,
+  "ac_note": "hide armor, shield",
+  "hp": 22,
+  "hit_dice": "5d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 14,
+   "dex": 12,
+   "con": 11,
+   "int": 6,
+   "wis": 10,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Gnoll",
+  "traits": [
+   {
+    "name": "Rampage",
+    "desc": "After reducing a creature to 0 HP with a melee attack, can move half its speed and bite as a bonus action.",
+    "tag": "rampage"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Spear",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Longbow",
+    "kind": "ranged",
+    "to_hit": 3,
+    "range": 150,
+    "long_range": 600,
+    "damage": [
+     {
+      "dice": "1d8+1",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#a08a4a"
+ },
+ {
+  "id": "lizardfolk",
+  "name": "Lizardfolk",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "neutral",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 15,
+  "ac_note": "natural armor, shield",
+  "hp": 22,
+  "hit_dice": "4d8+4",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 10,
+   "con": 13,
+   "int": 7,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 4,
+   "survival": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "Draconic",
+  "traits": [
+   {
+    "name": "Hold Breath",
+    "desc": "Can hold its breath for 15 minutes."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Heavy Club"
+    ],
+    "desc": "Two melee attacks, each with a different weapon."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Heavy Club",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Spiked Shield",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Javelin",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 30,
+    "long_range": 120,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a7a5a"
+ },
+ {
+  "id": "skeleton",
+  "name": "Skeleton",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "lawful evil",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 13,
+  "ac_note": "armor scraps",
+  "hp": 13,
+  "hit_dice": "2d8+4",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 14,
+   "con": 15,
+   "int": 6,
+   "wis": 8,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [
+   "bludgeoning"
+  ],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 9",
+  "languages": "understands languages it knew in life but can't speak",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Shortsword",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Shortbow",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 80,
+    "long_range": 320,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#d8d4c4"
+ },
+ {
+  "id": "zombie",
+  "name": "Zombie",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "neutral evil",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 8,
+  "ac_note": "",
+  "hp": 22,
+  "hit_dice": "3d8+9",
+  "speed": 20,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 13,
+   "dex": 6,
+   "con": 16,
+   "int": 3,
+   "wis": 6,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {
+   "wis": 0
+  },
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 8",
+  "languages": "understands languages it knew in life but can't speak",
+  "traits": [
+   {
+    "name": "Undead Fortitude",
+    "desc": "When reduced to 0 HP by non-radiant, non-critical damage, makes a Con save (DC 5 + damage) to drop to 1 HP instead.",
+    "tag": "undead_fortitude"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a7a5a"
+ },
+ {
+  "id": "ogre_zombie",
+  "name": "Ogre Zombie",
+  "size": "large",
+  "type": "undead",
+  "alignment": "neutral evil",
+  "cr": 2,
+  "xp": 450,
+  "ac": 8,
+  "ac_note": "",
+  "hp": 85,
+  "hit_dice": "9d10+36",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 6,
+   "con": 18,
+   "int": 3,
+   "wis": 6,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {
+   "wis": 0
+  },
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 8",
+  "languages": "understands Common and Giant but can't speak",
+  "traits": [
+   {
+    "name": "Undead Fortitude",
+    "desc": "When reduced to 0 HP by non-radiant, non-critical damage, makes a Con save (DC 5 + damage) to drop to 1 HP instead.",
+    "tag": "undead_fortitude"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Morningstar",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a6a4a"
+ },
+ {
+  "id": "ghoul",
+  "name": "Ghoul",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 22,
+  "hit_dice": "5d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 13,
+   "dex": 15,
+   "con": 10,
+   "int": 7,
+   "wis": 10,
+   "cha": 6
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+2",
+      "type": "slashing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 10,
+     "condition": "paralyzed",
+     "duration_rounds": 10,
+     "save_ends": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a7a6a"
+ },
+ {
+  "id": "ghast",
+  "name": "Ghast",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 2,
+  "xp": 450,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 36,
+  "hit_dice": "8d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 17,
+   "con": 10,
+   "int": 11,
+   "wis": 10,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "necrotic"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common",
+  "traits": [
+   {
+    "name": "Stench",
+    "desc": "Creatures starting their turn within 5 ft must make a DC 10 Con save or be poisoned until the start of their next turn; success grants 24-hour immunity."
+   },
+   {
+    "name": "Turning Defiance",
+    "desc": "It and ghouls within 30 ft have advantage on saves against turn undead."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "slashing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 10,
+     "condition": "paralyzed",
+     "duration_rounds": 10,
+     "save_ends": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5e5e50"
+ },
+ {
+  "id": "shadow",
+  "name": "Shadow",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 16,
+  "hit_dice": "3d8+3",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 6,
+   "dex": 14,
+   "con": 13,
+   "int": 6,
+   "wis": 10,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 4
+  },
+  "resist": [
+   "acid",
+   "cold",
+   "fire",
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [
+   "radiant"
+  ],
+  "condition_immune": [
+   "frightened",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Amorphous",
+    "desc": "Can move through a space as narrow as 1 inch."
+   },
+   {
+    "name": "Shadow Stealth",
+    "desc": "Can Hide as a bonus action while in dim light or darkness."
+   },
+   {
+    "name": "Sunlight Weakness",
+    "desc": "Disadvantage on attacks, ability checks and saves while in sunlight.",
+    "tag": "sunlight_sensitivity"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Strength Drain",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+2",
+      "type": "necrotic"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a2a38"
+ },
+ {
+  "id": "specter",
+  "name": "Specter",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 22,
+  "hit_dice": "5d8",
+  "speed": 0,
+  "fly": 50,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 1,
+   "dex": 14,
+   "con": 11,
+   "int": 10,
+   "wis": 10,
+   "cha": 11
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "acid",
+   "cold",
+   "fire",
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained",
+   "unconscious"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "understands languages it knew in life but can't speak",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Incorporeal Movement",
+    "desc": "Can move through creatures and objects as difficult terrain; takes 1d10 force if it ends its turn inside an object.",
+    "tag": "incorporeal_movement"
+   },
+   {
+    "name": "Sunlight Sensitivity",
+    "desc": "Disadvantage on attacks and sight-based Perception while in sunlight.",
+    "tag": "sunlight_sensitivity"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Life Drain",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "3d6",
+      "type": "necrotic"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a8aa0"
+ },
+ {
+  "id": "will_o_wisp",
+  "name": "Will-o'-Wisp",
+  "size": "tiny",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 2,
+  "xp": 450,
+  "ac": 19,
+  "ac_note": "",
+  "hp": 22,
+  "hit_dice": "9d4",
+  "speed": 0,
+  "fly": 50,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 1,
+   "dex": 28,
+   "con": 10,
+   "int": 13,
+   "wis": 14,
+   "cha": 11
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "acid",
+   "cold",
+   "fire",
+   "necrotic",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "lightning",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "grappled",
+   "paralyzed",
+   "poisoned",
+   "prone",
+   "restrained",
+   "unconscious"
+  ],
+  "senses": "darkvision 120 ft., passive Perception 12",
+  "languages": "the languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Ephemeral",
+    "desc": "Cannot wear or carry anything."
+   },
+   {
+    "name": "Incorporeal Movement",
+    "desc": "Can move through creatures and objects as difficult terrain; takes 1d10 force if it ends its turn inside an object.",
+    "tag": "incorporeal_movement"
+   },
+   {
+    "name": "Variable Illumination",
+    "desc": "Sheds bright light in a 5-20 ft radius (its choice) and dim light beyond."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Shock",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8",
+      "type": "lightning"
+     }
+    ]
+   },
+   {
+    "name": "Invisibility",
+    "kind": "special",
+    "desc": "Turns invisible until it attacks, uses Consume Life, or loses concentration."
+   }
+  ],
+  "bonus_actions": [
+   {
+    "name": "Consume Life",
+    "kind": "special",
+    "desc": "Targets a dying creature within 5 ft: DC 10 Con save or it dies, and the wisp regains 3d6 HP."
+   }
+  ],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#9ad0ff"
+ },
+ {
+  "id": "wight",
+  "name": "Wight",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "neutral evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 14,
+  "ac_note": "studded leather",
+  "hp": 45,
+  "hit_dice": "6d8+18",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 14,
+   "con": 16,
+   "int": 10,
+   "wis": 13,
+   "cha": 15
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 4
+  },
+  "resist": [
+   "necrotic",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 13",
+  "languages": "the languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks that are not silvered."
+   },
+   {
+    "name": "Sunlight Sensitivity",
+    "desc": "Disadvantage on attacks and sight-based Perception while in sunlight.",
+    "tag": "sunlight_sensitivity"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Longsword",
+     "Longsword"
+    ],
+    "desc": "Two longsword attacks or two longbow attacks; may use Life Drain in place of one longsword attack."
+   },
+   {
+    "name": "Life Drain",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "necrotic"
+     }
+    ]
+   },
+   {
+    "name": "Longsword",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+2",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Longbow",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 150,
+    "long_range": 600,
+    "damage": [
+     {
+      "dice": "1d8+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a4a5a"
+ },
+ {
+  "id": "wraith",
+  "name": "Wraith",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "neutral evil",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 67,
+  "hit_dice": "9d8+27",
+  "speed": 0,
+  "fly": 60,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 6,
+   "dex": 16,
+   "con": 16,
+   "int": 12,
+   "wis": 14,
+   "cha": 15
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "acid",
+   "cold",
+   "fire",
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 12",
+  "languages": "the languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks that are not silvered."
+   },
+   {
+    "name": "Incorporeal Movement",
+    "desc": "Can move through creatures and objects as difficult terrain; takes 1d10 force if it ends its turn inside an object.",
+    "tag": "incorporeal_movement"
+   },
+   {
+    "name": "Sunlight Sensitivity",
+    "desc": "Disadvantage on attacks and sight-based Perception while in sunlight.",
+    "tag": "sunlight_sensitivity"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Life Drain",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "4d8+3",
+      "type": "necrotic"
+     }
+    ]
+   },
+   {
+    "name": "Create Specter",
+    "kind": "special",
+    "desc": "Raises a humanoid that died violently within 10 ft in the last minute as a specter under its control (max 7)."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#303040"
+ },
+ {
+  "id": "vampire_spawn",
+  "name": "Vampire Spawn",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "neutral evil",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 82,
+  "hit_dice": "11d8+33",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 16,
+   "con": 16,
+   "int": 11,
+   "wis": 10,
+   "cha": 12
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 6,
+   "wis": 3
+  },
+  "skills": {
+   "perception": 3,
+   "stealth": 6
+  },
+  "resist": [
+   "necrotic",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 13",
+  "languages": "the languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Regeneration",
+    "desc": "Regains 10 HP at the start of its turn if it has at least 1 HP and is not in sunlight or running water; radiant damage or holy water stops it for a turn.",
+    "tag": "regeneration",
+    "value": 10
+   },
+   {
+    "name": "Spider Climb",
+    "desc": "Can climb difficult surfaces, including ceilings, without a check.",
+    "tag": "spider_climb"
+   },
+   {
+    "name": "Vampire Weaknesses",
+    "desc": "Cannot enter homes uninvited; harmed by running water; a wooden stake through the heart paralyzes it; takes 20 radiant per turn in sunlight."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Claws",
+     "Bite"
+    ],
+    "desc": "Two attacks, only one of which can be a bite."
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+3",
+      "type": "slashing"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 13
+    }
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "piercing"
+     },
+     {
+      "dice": "2d6",
+      "type": "necrotic"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a1a2a"
+ },
+ {
+  "id": "mummy",
+  "name": "Mummy",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "lawful evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 11,
+  "ac_note": "natural armor",
+  "hp": 58,
+  "hit_dice": "9d8+18",
+  "speed": 20,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 8,
+   "con": 15,
+   "int": 6,
+   "wis": 10,
+   "cha": 12
+  },
+  "prof": 2,
+  "saves": {
+   "wis": 2
+  },
+  "skills": {},
+  "resist": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [
+   "fire"
+  ],
+  "condition_immune": [
+   "charmed",
+   "frightened",
+   "paralyzed",
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "the languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Dreadful Glare",
+     "Rotting Fist"
+    ],
+    "desc": "Uses Dreadful Glare and makes one Rotting Fist attack."
+   },
+   {
+    "name": "Rotting Fist",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "bludgeoning"
+     },
+     {
+      "dice": "3d6",
+      "type": "necrotic"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 12,
+     "desc": "Mummy rot: cannot regain HP and max HP drops by 3d6 every 24 hours."
+    }
+   },
+   {
+    "name": "Dreadful Glare",
+    "kind": "save",
+    "save": "wis",
+    "dc": 11,
+    "range": 60,
+    "condition": "frightened",
+    "duration_rounds": 1,
+    "desc": "One creature it can see within 60 ft is frightened until the end of the mummy's next turn; failing by 5+ also paralyzes it."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0a070"
+ },
+ {
+  "id": "banshee",
+  "name": "Banshee",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "chaotic evil",
+  "cr": 4,
+  "xp": 1100,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 58,
+  "hit_dice": "13d8",
+  "speed": 0,
+  "fly": 40,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 1,
+   "dex": 14,
+   "con": 10,
+   "int": 12,
+   "wis": 11,
+   "cha": 17
+  },
+  "prof": 2,
+  "saves": {
+   "wis": 2,
+   "cha": 5
+  },
+  "skills": {},
+  "resist": [
+   "acid",
+   "fire",
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "cold",
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "frightened",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Common, Elvish",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Detect Life",
+    "desc": "Senses living creatures within 5 miles."
+   },
+   {
+    "name": "Incorporeal Movement",
+    "desc": "Can move through creatures and objects as difficult terrain; takes 1d10 force if it ends its turn inside an object.",
+    "tag": "incorporeal_movement"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Corrupting Touch",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "3d6+2",
+      "type": "necrotic"
+     }
+    ]
+   },
+   {
+    "name": "Horrifying Visage",
+    "kind": "save",
+    "save": "wis",
+    "dc": 13,
+    "area": {
+     "shape": "emanation",
+     "size": 60
+    },
+    "condition": "frightened",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "desc": "Non-undead within 60 ft that can see it; a creature that saves is immune for 24 hours."
+   },
+   {
+    "name": "Wail",
+    "kind": "special",
+    "desc": "Once per day, not in sunlight: each creature within 30 ft that can hear it makes a DC 13 Con save; on a failure it drops to 0 HP, on a success it takes 3d6 psychic. Constructs and undead are unaffected."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#c8d8e8"
+ },
+ {
+  "id": "ghost",
+  "name": "Ghost",
+  "size": "medium",
+  "type": "undead",
+  "alignment": "any alignment",
+  "cr": 4,
+  "xp": 1100,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 45,
+  "hit_dice": "10d8",
+  "speed": 0,
+  "fly": 40,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 7,
+   "dex": 13,
+   "con": 10,
+   "int": 10,
+   "wis": 12,
+   "cha": 17
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "acid",
+   "fire",
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "cold",
+   "necrotic",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "frightened",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 11",
+  "languages": "any languages it knew in life",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Ethereal Sight",
+    "desc": "Can see 60 ft into the Ethereal Plane while on the Material Plane, and vice versa."
+   },
+   {
+    "name": "Incorporeal Movement",
+    "desc": "Can move through creatures and objects as difficult terrain; takes 1d10 force if it ends its turn inside an object.",
+    "tag": "incorporeal_movement"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Withering Touch",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "4d6+3",
+      "type": "necrotic"
+     }
+    ]
+   },
+   {
+    "name": "Etherealness",
+    "kind": "special",
+    "desc": "Shifts between the Ethereal and Material Planes."
+   },
+   {
+    "name": "Horrifying Visage",
+    "kind": "save",
+    "save": "wis",
+    "dc": 13,
+    "area": {
+     "shape": "emanation",
+     "size": 60
+    },
+    "condition": "frightened",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "desc": "Non-undead within 60 ft that can see it; failing by 5+ also ages the target 1d4x10 years. Savers are immune for 24 hours."
+   },
+   {
+    "name": "Possession",
+    "kind": "special",
+    "desc": "Recharge 6. One humanoid within 5 ft must succeed on a DC 13 Cha save or be possessed by the ghost until it drops to 0 HP or is turned/expelled.",
+    "recharge": 6
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0c8d8"
+ },
+ {
+  "id": "cat",
+  "name": "Cat",
+  "size": "tiny",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0,
+  "xp": 10,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 2,
+  "hit_dice": "1d4",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 30,
+  "scores": {
+   "str": 3,
+   "dex": 15,
+   "con": 10,
+   "int": 3,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 0,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#c08040"
+ },
+ {
+  "id": "wolf",
+  "name": "Wolf",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 12,
+   "dex": 15,
+   "con": 12,
+   "int": 3,
+   "wis": 12,
+   "cha": 6
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Hearing and Smell",
+    "desc": "Advantage on Perception checks that rely on hearing or smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+2",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "str",
+     "dc": 11,
+     "condition": "prone"
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a7a80"
+ },
+ {
+  "id": "dire_wolf",
+  "name": "Dire Wolf",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 37,
+  "hit_dice": "5d10+10",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 15,
+   "con": 15,
+   "int": 3,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Hearing and Smell",
+    "desc": "Advantage on Perception checks that rely on hearing or smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "str",
+     "dc": 13,
+     "condition": "prone"
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a5a62"
+ },
+ {
+  "id": "giant_spider",
+  "name": "Giant Spider",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 26,
+  "hit_dice": "4d10+4",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 30,
+  "scores": {
+   "str": 14,
+   "dex": 16,
+   "con": 12,
+   "int": 2,
+   "wis": 11,
+   "cha": 4
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 7
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Spider Climb",
+    "desc": "Can climb difficult surfaces, including ceilings, without a check.",
+    "tag": "spider_climb"
+   },
+   {
+    "name": "Web Sense",
+    "desc": "Knows the location of anything touching its web."
+   },
+   {
+    "name": "Web Walker",
+    "desc": "Ignores movement restrictions caused by webbing."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 11,
+     "damage": [
+      {
+       "dice": "2d8",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   },
+   {
+    "name": "Web",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 30,
+    "long_range": 60,
+    "damage": [],
+    "on_hit": {
+     "condition": "restrained",
+     "escape_dc": 12
+    },
+    "recharge": 5,
+    "desc": "Restrains on hit; escape DC 12 Str, or destroy the web (AC 10, 5 HP)."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#3a2a2a"
+ },
+ {
+  "id": "giant_rat",
+  "name": "Giant Rat",
+  "size": "small",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.125,
+  "xp": 25,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 7,
+  "hit_dice": "2d6",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 7,
+   "dex": 15,
+   "con": 11,
+   "int": 2,
+   "wis": 10,
+   "cha": 4
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a5a4a"
+ },
+ {
+  "id": "swarm_of_rats",
+  "name": "Swarm of Rats",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 10,
+  "ac_note": "",
+  "hp": 24,
+  "hit_dice": "7d8-7",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 9,
+   "dex": 11,
+   "con": 9,
+   "int": 2,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed",
+   "frightened",
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "prone",
+   "restrained",
+   "stunned"
+  ],
+  "senses": "darkvision 30 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Swarm",
+    "desc": "Can occupy and move through other creatures' spaces and tiny openings; cannot regain HP or gain temp HP. Bites drop to 1d6 at half HP or less."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bites",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a3a30"
+ },
+ {
+  "id": "brown_bear",
+  "name": "Brown Bear",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 11,
+  "ac_note": "natural armor",
+  "hp": 34,
+  "hit_dice": "4d10+12",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 30,
+  "scores": {
+   "str": 19,
+   "dex": 10,
+   "con": 16,
+   "int": 2,
+   "wis": 13,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "One bite and one claws attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a4428"
+ },
+ {
+  "id": "black_bear",
+  "name": "Black Bear",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 11,
+  "ac_note": "natural armor",
+  "hp": 19,
+  "hit_dice": "3d8+6",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 30,
+  "scores": {
+   "str": 15,
+   "dex": 10,
+   "con": 14,
+   "int": 2,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "One bite and one claws attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+2",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a2420"
+ },
+ {
+  "id": "polar_bear",
+  "name": "Polar Bear",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 2,
+  "xp": 450,
+  "ac": 12,
+  "ac_note": "natural armor",
+  "hp": 42,
+  "hit_dice": "5d10+15",
+  "speed": 40,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 20,
+   "dex": 10,
+   "con": 16,
+   "int": 2,
+   "wis": 13,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "One bite and one claws attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+5",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+5",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#e8e8e0"
+ },
+ {
+  "id": "boar",
+  "name": "Boar",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 11,
+  "ac_note": "natural armor",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 13,
+   "dex": 11,
+   "con": 12,
+   "int": 2,
+   "wis": 9,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 9",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Charge",
+    "desc": "Moving 20+ ft straight before a tusk hit adds 1d6 slashing; target makes a DC 11 Str save or falls prone.",
+    "tag": "charge"
+   },
+   {
+    "name": "Relentless",
+    "desc": "Once per short rest, when reduced to 0 HP by 7 or less damage, drops to 1 HP instead."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Tusk",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a4030"
+ },
+ {
+  "id": "giant_poisonous_snake",
+  "name": "Giant Poisonous Snake",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 14,
+  "ac_note": "",
+  "hp": 11,
+  "hit_dice": "2d8+2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 18,
+   "con": 13,
+   "int": 2,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 10 ft., passive Perception 12",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "1d4+4",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 11,
+     "damage": [
+      {
+       "dice": "3d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a8a2a"
+ },
+ {
+  "id": "constrictor_snake",
+  "name": "Constrictor Snake",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 13,
+  "hit_dice": "2d10+2",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 14,
+   "con": 12,
+   "int": 1,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 10 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Constrict",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+2",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 14,
+     "desc": "Target is grappled and restrained until the grapple ends; the snake can't constrict another target."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a6a3a"
+ },
+ {
+  "id": "giant_constrictor_snake",
+  "name": "Giant Constrictor Snake",
+  "size": "huge",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 2,
+  "xp": 450,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 60,
+  "hit_dice": "8d12+8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 14,
+   "con": 12,
+   "int": 1,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 10 ft., passive Perception 12",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Constrict",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 16,
+     "desc": "Target is grappled and restrained until the grapple ends; the snake can't constrict another target."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a5a2a"
+ },
+ {
+  "id": "panther",
+  "name": "Panther",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 13,
+  "hit_dice": "3d8",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 40,
+  "scores": {
+   "str": 14,
+   "dex": 15,
+   "con": 10,
+   "int": 3,
+   "wis": 14,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4,
+   "stealth": 6
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 14",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pounce",
+    "desc": "Moving 20+ ft straight before a claw hit forces a DC 12 Str save or the target falls prone; it can then bite as a bonus action.",
+    "tag": "pounce"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+2",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#1e1e24"
+ },
+ {
+  "id": "lion",
+  "name": "Lion",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 26,
+  "hit_dice": "4d10+4",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 15,
+   "con": 13,
+   "int": 3,
+   "wis": 12,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3,
+   "stealth": 6
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   },
+   {
+    "name": "Pounce",
+    "desc": "Moving 20+ ft straight before a claw hit forces a DC 13 Str save or the target falls prone; it can then bite as a bonus action.",
+    "tag": "pounce"
+   },
+   {
+    "name": "Running Leap",
+    "desc": "With a 10 ft run-up it can long jump up to 25 ft."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#c8a050"
+ },
+ {
+  "id": "giant_badger",
+  "name": "Giant Badger",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 10,
+  "ac_note": "",
+  "hp": 13,
+  "hit_dice": "2d8+4",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "burrow": 10,
+  "scores": {
+   "str": 13,
+   "dex": 10,
+   "con": 15,
+   "int": 2,
+   "wis": 12,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 30 ft., passive Perception 11",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "One bite and one claws attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+1",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a5a5a"
+ },
+ {
+  "id": "giant_hyena",
+  "name": "Giant Hyena",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 45,
+  "hit_dice": "6d10+12",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 14,
+   "con": 14,
+   "int": 2,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Rampage",
+    "desc": "After reducing a creature to 0 HP with a melee attack, can move half its speed and bite as a bonus action.",
+    "tag": "rampage"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#9a8058"
+ },
+ {
+  "id": "giant_toad",
+  "name": "Giant Toad",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 39,
+  "hit_dice": "6d10+6",
+  "speed": 20,
+  "fly": 0,
+  "swim": 40,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 13,
+   "con": 13,
+   "int": 2,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 30 ft., passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   },
+   {
+    "name": "Standing Leap",
+    "desc": "Long jump 20 ft and high jump 10 ft, with or without a run-up."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d10+2",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d10",
+      "type": "poison"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 13,
+     "desc": "Target is grappled and restrained; the toad can't bite another target."
+    }
+   },
+   {
+    "name": "Swallow",
+    "kind": "special",
+    "desc": "Bite attack against a Medium or smaller creature it is grappling; on a hit the target is swallowed (blinded, restrained, 3d6 acid each turn)."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a7a3a"
+ },
+ {
+  "id": "giant_frog",
+  "name": "Giant Frog",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 18,
+  "hit_dice": "4d8",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 12,
+   "dex": 13,
+   "con": 11,
+   "int": 2,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 2,
+   "stealth": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 30 ft., passive Perception 12",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   },
+   {
+    "name": "Standing Leap",
+    "desc": "Long jump 20 ft and high jump 10 ft, with or without a run-up."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 11,
+     "desc": "Target is grappled and restrained; the frog can't bite another target."
+    }
+   },
+   {
+    "name": "Swallow",
+    "kind": "special",
+    "desc": "Bite attack against a Small or smaller creature it is grappling; on a hit the target is swallowed (blinded, restrained, 2d4 acid each turn)."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a8a4a"
+ },
+ {
+  "id": "giant_wasp",
+  "name": "Giant Wasp",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 13,
+  "hit_dice": "3d8",
+  "speed": 10,
+  "fly": 50,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 14,
+   "con": 10,
+   "int": 1,
+   "wis": 10,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Sting",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 11,
+     "damage": [
+      {
+       "dice": "3d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#d0a020"
+ },
+ {
+  "id": "crocodile",
+  "name": "Crocodile",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 12,
+  "ac_note": "natural armor",
+  "hp": 19,
+  "hit_dice": "3d10+3",
+  "speed": 20,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 10,
+   "con": 13,
+   "int": 2,
+   "wis": 10,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Hold Breath",
+    "desc": "Can hold its breath for 15 minutes."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d10+2",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 12,
+     "desc": "Target is grappled and restrained; the crocodile can't bite another target."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a5a2a"
+ },
+ {
+  "id": "giant_eagle",
+  "name": "Giant Eagle",
+  "size": "large",
+  "type": "beast",
+  "alignment": "neutral good",
+  "cr": 1,
+  "xp": 200,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 26,
+  "hit_dice": "4d10+4",
+  "speed": 10,
+  "fly": 80,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 17,
+   "con": 13,
+   "int": 8,
+   "wis": 14,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 14",
+  "languages": "Giant Eagle, understands Common and Auran but can't speak them",
+  "traits": [
+   {
+    "name": "Keen Sight",
+    "desc": "Advantage on Perception checks that rely on sight.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Beak",
+     "Talons"
+    ],
+    "desc": "One beak and one talons attack."
+   },
+   {
+    "name": "Beak",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Talons",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a6030"
+ },
+ {
+  "id": "giant_elk",
+  "name": "Giant Elk",
+  "size": "huge",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 2,
+  "xp": 450,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 42,
+  "hit_dice": "5d12+10",
+  "speed": 60,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 16,
+   "con": 14,
+   "int": 7,
+   "wis": 14,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 14",
+  "languages": "Giant Elk, understands Common, Elvish and Sylvan but can't speak them",
+  "traits": [
+   {
+    "name": "Charge",
+    "desc": "Moving 20+ ft straight before a ram hit adds 2d6 damage; target makes a DC 14 Str save or falls prone.",
+    "tag": "charge"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Ram",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Hooves",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "4d8+4",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "desc": "Only against a prone creature."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a5530"
+ },
+ {
+  "id": "giant_octopus",
+  "name": "Giant Octopus",
+  "size": "large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 52,
+  "hit_dice": "8d10+8",
+  "speed": 10,
+  "fly": 0,
+  "swim": 60,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 13,
+   "con": 13,
+   "int": 4,
+   "wis": 10,
+   "cha": 4
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4,
+   "stealth": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Hold Breath",
+    "desc": "Can hold its breath for 1 hour while out of water."
+   },
+   {
+    "name": "Underwater Camouflage",
+    "desc": "Advantage on Stealth checks while underwater."
+   },
+   {
+    "name": "Water Breathing",
+    "desc": "Can breathe only underwater."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Tentacles",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 15,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 16,
+     "desc": "Target is grappled and restrained; the octopus can't use tentacles on another target."
+    }
+   },
+   {
+    "name": "Ink Cloud",
+    "kind": "special",
+    "desc": "Once per short rest, while underwater: a 20 ft radius cloud of ink heavily obscures the area for 1 minute; the octopus can then Dash as a bonus action."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#a04a5a"
+ },
+ {
+  "id": "ape",
+  "name": "Ape",
+  "size": "medium",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 19,
+  "hit_dice": "3d8+6",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 30,
+  "scores": {
+   "str": 16,
+   "dex": 14,
+   "con": 14,
+   "int": 6,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "athletics": 5,
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 13",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Fist",
+     "Fist"
+    ],
+    "desc": "Two fist attacks."
+   },
+   {
+    "name": "Fist",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Rock",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 25,
+    "long_range": 50,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a4a3a"
+ },
+ {
+  "id": "giant_ape",
+  "name": "Giant Ape",
+  "size": "huge",
+  "type": "beast",
+  "alignment": "unaligned",
+  "cr": 7,
+  "xp": 2900,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 157,
+  "hit_dice": "15d12+60",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 40,
+  "scores": {
+   "str": 23,
+   "dex": 14,
+   "con": 18,
+   "int": 7,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "athletics": 9,
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 14",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Fist",
+     "Fist"
+    ],
+    "desc": "Two fist attacks."
+   },
+   {
+    "name": "Fist",
+    "kind": "melee",
+    "to_hit": 9,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "3d10+6",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Rock",
+    "kind": "ranged",
+    "to_hit": 9,
+    "range": 50,
+    "long_range": 100,
+    "damage": [
+     {
+      "dice": "7d6+6",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a3a2a"
+ },
+ {
+  "id": "hippogriff",
+  "name": "Hippogriff",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 19,
+  "hit_dice": "3d10+3",
+  "speed": 40,
+  "fly": 60,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 13,
+   "con": 13,
+   "int": 2,
+   "wis": 12,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 15",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Sight",
+    "desc": "Advantage on Perception checks that rely on sight.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Beak",
+     "Claws"
+    ],
+    "desc": "One beak and one claws attack."
+   },
+   {
+    "name": "Beak",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d10+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b08a5a"
+ },
+ {
+  "id": "griffon",
+  "name": "Griffon",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 2,
+  "xp": 450,
+  "ac": 12,
+  "ac_note": "",
+  "hp": 59,
+  "hit_dice": "7d10+21",
+  "speed": 30,
+  "fly": 80,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 15,
+   "con": 16,
+   "int": 2,
+   "wis": 13,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 5
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 15",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Sight",
+    "desc": "Advantage on Perception checks that rely on sight.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Beak",
+     "Claws"
+    ],
+    "desc": "One beak and one claws attack."
+   },
+   {
+    "name": "Beak",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#c09040"
+ },
+ {
+  "id": "worg",
+  "name": "Worg",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "neutral evil",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 26,
+  "hit_dice": "4d10+4",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 13,
+   "con": 13,
+   "int": 7,
+   "wis": 11,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "Goblin, Worg",
+  "traits": [
+   {
+    "name": "Keen Hearing and Smell",
+    "desc": "Advantage on Perception checks that rely on hearing or smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "str",
+     "dc": 13,
+     "condition": "prone"
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#3a3a3a"
+ },
+ {
+  "id": "harpy",
+  "name": "Harpy",
+  "size": "medium",
+  "type": "monstrosity",
+  "alignment": "chaotic evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 38,
+  "hit_dice": "7d8+7",
+  "speed": 20,
+  "fly": 40,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 12,
+   "dex": 13,
+   "con": 12,
+   "int": 7,
+   "wis": 10,
+   "cha": 13
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 10",
+  "languages": "Common",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Claws",
+     "Club"
+    ],
+    "desc": "One claws attack and one club attack."
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+1",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Club",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+1",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Luring Song",
+    "kind": "save",
+    "save": "wis",
+    "dc": 11,
+    "area": {
+     "shape": "emanation",
+     "size": 300
+    },
+    "condition": "charmed",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "desc": "Charmed creatures must move toward the harpy and are incapacitated; repeat the save when harmed or at end of turn. Requires concentration."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a6a8a"
+ },
+ {
+  "id": "cockatrice",
+  "name": "Cockatrice",
+  "size": "small",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 11,
+  "ac_note": "",
+  "hp": 27,
+  "hit_dice": "6d6+6",
+  "speed": 20,
+  "fly": 40,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 6,
+   "dex": 12,
+   "con": 12,
+   "int": 2,
+   "wis": 13,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 11",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+1",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 11,
+     "condition": "restrained",
+     "duration_rounds": 1,
+     "desc": "Non-petrification-immune targets start turning to stone: restrained, then petrified for 24 hours if they fail the save again at the end of their next turn."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0a050"
+ },
+ {
+  "id": "merrow",
+  "name": "Merrow",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "chaotic evil",
+  "cr": 2,
+  "xp": 450,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 45,
+  "hit_dice": "6d10+12",
+  "speed": 10,
+  "fly": 0,
+  "swim": 40,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 10,
+   "con": 15,
+   "int": 8,
+   "wis": 10,
+   "cha": 9
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Abyssal, Aquan",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "Two attacks: one bite and one with claws or harpoon."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Harpoon",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "desc": "Huge or smaller target: Str contest or pulled up to 20 ft toward the merrow."
+    }
+   },
+   {
+    "name": "Thrown Harpoon",
+    "kind": "ranged",
+    "to_hit": 6,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a6a5a"
+ },
+ {
+  "id": "ogre",
+  "name": "Ogre",
+  "size": "large",
+  "type": "giant",
+  "alignment": "chaotic evil",
+  "cr": 2,
+  "xp": 450,
+  "ac": 11,
+  "ac_note": "hide armor",
+  "hp": 59,
+  "hit_dice": "7d10+21",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 8,
+   "con": 16,
+   "int": 5,
+   "wis": 7,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 8",
+  "languages": "Common, Giant",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Greatclub",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Javelin",
+    "kind": "ranged",
+    "to_hit": 6,
+    "range": 30,
+    "long_range": 120,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a7a4a"
+ },
+ {
+  "id": "gelatinous_cube",
+  "name": "Gelatinous Cube",
+  "size": "large",
+  "type": "ooze",
+  "alignment": "unaligned",
+  "cr": 2,
+  "xp": 450,
+  "ac": 6,
+  "ac_note": "",
+  "hp": 84,
+  "hit_dice": "8d10+40",
+  "speed": 15,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 14,
+   "dex": 3,
+   "con": 20,
+   "int": 1,
+   "wis": 6,
+   "cha": 1
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [
+   "blinded",
+   "charmed",
+   "deafened",
+   "frightened",
+   "prone"
+  ],
+  "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Ooze Cube",
+    "desc": "Fills its space; creatures inside are engulfed and take 6d6 acid at the start of each of the cube's turns."
+   },
+   {
+    "name": "Transparent",
+    "desc": "Hard to spot while motionless: DC 15 Perception to notice; creatures walking into it unaware are engulfed.",
+    "tag": "false_appearance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Pseudopod",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "3d6",
+      "type": "acid"
+     }
+    ]
+   },
+   {
+    "name": "Engulf",
+    "kind": "save",
+    "save": "dex",
+    "dc": 12,
+    "area": {
+     "shape": "cube",
+     "size": 10
+    },
+    "damage": [
+     {
+      "dice": "3d6",
+      "type": "acid"
+     }
+    ],
+    "condition": "restrained",
+    "desc": "Moves through creatures; on a failed save a creature is engulfed (restrained, can't breathe, 6d6 acid per turn; DC 12 Str to escape). On success it is pushed aside."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#80c8a0"
+ },
+ {
+  "id": "gray_ooze",
+  "name": "Gray Ooze",
+  "size": "medium",
+  "type": "ooze",
+  "alignment": "unaligned",
+  "cr": 0.5,
+  "xp": 100,
+  "ac": 8,
+  "ac_note": "",
+  "hp": 22,
+  "hit_dice": "3d8+9",
+  "speed": 10,
+  "fly": 0,
+  "swim": 0,
+  "climb": 10,
+  "scores": {
+   "str": 12,
+   "dex": 6,
+   "con": 16,
+   "int": 1,
+   "wis": 6,
+   "cha": 2
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 2
+  },
+  "resist": [
+   "acid",
+   "cold",
+   "fire"
+  ],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [
+   "blinded",
+   "charmed",
+   "deafened",
+   "frightened",
+   "prone"
+  ],
+  "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Amorphous",
+    "desc": "Can move through a space as narrow as 1 inch."
+   },
+   {
+    "name": "Corrode Metal",
+    "desc": "Nonmagical metal weapons that hit it corrode (-1 damage each hit, destroyed at -5); its pseudopod corrodes metal armor (-1 AC)."
+   },
+   {
+    "name": "False Appearance",
+    "desc": "Indistinguishable from an oily rock or puddle while motionless.",
+    "tag": "false_appearance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Pseudopod",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+1",
+      "type": "bludgeoning"
+     },
+     {
+      "dice": "2d6",
+      "type": "acid"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a8a8a"
+ },
+ {
+  "id": "imp",
+  "name": "Imp",
+  "size": "tiny",
+  "type": "fiend",
+  "alignment": "lawful evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 10,
+  "hit_dice": "3d4+3",
+  "speed": 20,
+  "fly": 40,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 6,
+   "dex": 17,
+   "con": 13,
+   "int": 11,
+   "wis": 12,
+   "cha": 14
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "deception": 4,
+   "insight": 3,
+   "persuasion": 4,
+   "stealth": 5
+  },
+  "resist": [
+   "cold",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "fire",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 120 ft., passive Perception 11",
+  "languages": "Infernal, Common",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks that are not silvered."
+   },
+   {
+    "name": "Shapechanger",
+    "desc": "Can turn into a rat, raven or spider (or back) as an action."
+   },
+   {
+    "name": "Devil's Sight",
+    "desc": "Magical darkness does not impede its darkvision."
+   },
+   {
+    "name": "Magic Resistance",
+    "desc": "Advantage on saves against spells and magical effects.",
+    "tag": "magic_resistance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Sting",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 11,
+     "damage": [
+      {
+       "dice": "3d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   },
+   {
+    "name": "Invisibility",
+    "kind": "special",
+    "desc": "Turns invisible until it attacks or loses concentration."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#a02a20"
+ },
+ {
+  "id": "quasit",
+  "name": "Quasit",
+  "size": "tiny",
+  "type": "fiend",
+  "alignment": "chaotic evil",
+  "cr": 1,
+  "xp": 200,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 7,
+  "hit_dice": "3d4",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 5,
+   "dex": 17,
+   "con": 10,
+   "int": 7,
+   "wis": 10,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "stealth": 5
+  },
+  "resist": [
+   "cold",
+   "fire",
+   "lightning",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 120 ft., passive Perception 10",
+  "languages": "Abyssal, Common",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Shapechanger",
+    "desc": "Can turn into a bat, centipede or toad (or back) as an action."
+   },
+   {
+    "name": "Magic Resistance",
+    "desc": "Advantage on saves against spells and magical effects.",
+    "tag": "magic_resistance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d4+3",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 10,
+     "damage": [
+      {
+       "dice": "2d4",
+       "type": "poison"
+      }
+     ],
+     "condition": "poisoned",
+     "duration_rounds": 10,
+     "save_ends": true
+    }
+   },
+   {
+    "name": "Scare",
+    "kind": "save",
+    "save": "wis",
+    "dc": 10,
+    "range": 20,
+    "condition": "frightened",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "desc": "Once per day: one creature within 20 ft; disadvantage on the repeat save if the quasit is in sight."
+   },
+   {
+    "name": "Invisibility",
+    "kind": "special",
+    "desc": "Turns invisible until it attacks, uses Scare, or loses concentration."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a2a3a"
+ },
+ {
+  "id": "dretch",
+  "name": "Dretch",
+  "size": "small",
+  "type": "fiend",
+  "alignment": "chaotic evil",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 11,
+  "ac_note": "natural armor",
+  "hp": 18,
+  "hit_dice": "4d6+4",
+  "speed": 20,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 11,
+   "con": 12,
+   "int": 5,
+   "wis": 8,
+   "cha": 3
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "cold",
+   "fire",
+   "lightning"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 9",
+  "languages": "Abyssal, telepathy 60 ft. (works only with creatures that understand Abyssal)",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "One bite and one claws attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 2,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Fetid Cloud",
+    "kind": "save",
+    "save": "con",
+    "dc": 11,
+    "area": {
+     "shape": "emanation",
+     "size": 10
+    },
+    "condition": "poisoned",
+    "duration_rounds": 1,
+    "desc": "Once per day: a nauseating gas cloud lasts 1 minute; poisoned creatures can take an action or bonus action, not both, and no reactions."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a5a4a"
+ },
+ {
+  "id": "hell_hound",
+  "name": "Hell Hound",
+  "size": "medium",
+  "type": "fiend",
+  "alignment": "lawful evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 45,
+  "hit_dice": "7d8+14",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 12,
+   "con": 14,
+   "int": 6,
+   "wis": 13,
+   "cha": 6
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 5
+  },
+  "resist": [],
+  "immune": [
+   "fire"
+  ],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 15",
+  "languages": "understands Infernal but can't speak it",
+  "traits": [
+   {
+    "name": "Keen Hearing and Smell",
+    "desc": "Advantage on Perception checks that rely on hearing or smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Pack Tactics",
+    "desc": "Advantage on attacks against a creature if an ally is within 5 ft of it and not incapacitated.",
+    "tag": "pack_tactics"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     },
+     {
+      "dice": "2d6",
+      "type": "fire"
+     }
+    ]
+   },
+   {
+    "name": "Fire Breath",
+    "kind": "save",
+    "save": "dex",
+    "dc": 12,
+    "area": {
+     "shape": "cone",
+     "size": 15
+    },
+    "damage": [
+     {
+      "dice": "6d6",
+      "type": "fire"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0301a"
+ },
+ {
+  "id": "animated_armor",
+  "name": "Animated Armor",
+  "size": "medium",
+  "type": "construct",
+  "alignment": "unaligned",
+  "cr": 1,
+  "xp": 200,
+  "ac": 18,
+  "ac_note": "natural armor",
+  "hp": 33,
+  "hit_dice": "6d8+6",
+  "speed": 25,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 14,
+   "dex": 11,
+   "con": 13,
+   "int": 1,
+   "wis": 3,
+   "cha": 1
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison",
+   "psychic"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "blinded",
+   "charmed",
+   "deafened",
+   "frightened",
+   "paralyzed",
+   "petrified",
+   "poisoned"
+  ],
+  "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 6",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Antimagic Susceptibility",
+    "desc": "Incapacitated inside an antimagic field; fails a save against dispel magic (DC = caster's spell DC) or falls unconscious for 1 minute."
+   },
+   {
+    "name": "False Appearance",
+    "desc": "Indistinguishable from an ordinary suit of armor while motionless.",
+    "tag": "false_appearance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Slam",
+     "Slam"
+    ],
+    "desc": "Two melee attacks."
+   },
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#8a8a98"
+ },
+ {
+  "id": "flying_sword",
+  "name": "Flying Sword",
+  "size": "small",
+  "type": "construct",
+  "alignment": "unaligned",
+  "cr": 0.25,
+  "xp": 50,
+  "ac": 17,
+  "ac_note": "natural armor",
+  "hp": 17,
+  "hit_dice": "5d6",
+  "speed": 0,
+  "fly": 50,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 12,
+   "dex": 15,
+   "con": 11,
+   "int": 1,
+   "wis": 5,
+   "cha": 1
+  },
+  "prof": 2,
+  "saves": {
+   "dex": 4
+  },
+  "skills": {},
+  "resist": [],
+  "immune": [
+   "poison",
+   "psychic"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "blinded",
+   "charmed",
+   "deafened",
+   "frightened",
+   "paralyzed",
+   "petrified",
+   "poisoned"
+  ],
+  "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 7",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Antimagic Susceptibility",
+    "desc": "Incapacitated inside an antimagic field; fails a save against dispel magic (DC = caster's spell DC) or falls unconscious for 1 minute."
+   },
+   {
+    "name": "False Appearance",
+    "desc": "Indistinguishable from an ordinary sword while motionless.",
+    "tag": "false_appearance"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Longsword",
+    "kind": "melee",
+    "to_hit": 3,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+1",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0b8c8"
+ },
+ {
+  "id": "owlbear",
+  "name": "Owlbear",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 3,
+  "xp": 700,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 59,
+  "hit_dice": "7d10+21",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 20,
+   "dex": 12,
+   "con": 17,
+   "int": 3,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 13",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Keen Sight and Smell",
+    "desc": "Advantage on Perception checks that rely on sight or smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Beak",
+     "Claws"
+    ],
+    "desc": "One beak and one claws attack."
+   },
+   {
+    "name": "Beak",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d10+5",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+5",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a5a3a"
+ },
+ {
+  "id": "minotaur",
+  "name": "Minotaur",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "chaotic evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 76,
+  "hit_dice": "9d10+27",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 11,
+   "con": 16,
+   "int": 6,
+   "wis": 16,
+   "cha": 9
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 7
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 17",
+  "languages": "Abyssal",
+  "traits": [
+   {
+    "name": "Charge",
+    "desc": "Moving 10+ ft straight before a gore hit adds 2d8 piercing; target makes a DC 14 Str save or is pushed 10 ft and knocked prone.",
+    "tag": "charge"
+   },
+   {
+    "name": "Labyrinthine Recall",
+    "desc": "Perfectly recalls any path it has travelled."
+   },
+   {
+    "name": "Reckless",
+    "desc": "At the start of its turn it can gain advantage on melee attacks; attacks against it then have advantage until its next turn.",
+    "tag": "reckless"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Greataxe",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d12+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Gore",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a3a2a"
+ },
+ {
+  "id": "manticore",
+  "name": "Manticore",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "lawful evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 68,
+  "hit_dice": "8d10+24",
+  "speed": 30,
+  "fly": 50,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 17,
+   "dex": 16,
+   "con": 17,
+   "int": 7,
+   "wis": 12,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 11",
+  "languages": "Common",
+  "traits": [
+   {
+    "name": "Tail Spike Regrowth",
+    "desc": "Has 24 tail spikes; used spikes regrow after a long rest."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "Three attacks: one bite and two claws, or three tail spikes."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+3",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Tail Spike",
+    "kind": "ranged",
+    "to_hit": 5,
+    "range": 100,
+    "long_range": 200,
+    "damage": [
+     {
+      "dice": "1d8+3",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#9a5a30"
+ },
+ {
+  "id": "werewolf",
+  "name": "Werewolf",
+  "size": "medium",
+  "type": "humanoid",
+  "alignment": "chaotic evil",
+  "cr": 3,
+  "xp": 700,
+  "ac": 12,
+  "ac_note": "natural armor in wolf or hybrid form (11 in humanoid form)",
+  "hp": 58,
+  "hit_dice": "9d8+18",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 15,
+   "dex": 13,
+   "con": 14,
+   "int": 10,
+   "wis": 11,
+   "cha": 10
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4,
+   "stealth": 3
+  },
+  "resist": [],
+  "immune": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 14",
+  "languages": "Common (can't speak in wolf form)",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks that are not silvered."
+   },
+   {
+    "name": "Shapechanger",
+    "desc": "Can turn into a wolf-humanoid hybrid or a wolf (speed 40) as an action. Stats shown are for hybrid form."
+   },
+   {
+    "name": "Keen Hearing and Smell",
+    "desc": "Advantage on Perception checks that rely on hearing or smell.",
+    "tag": "keen_senses"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claws"
+    ],
+    "desc": "Hybrid form: one bite and one claws attack (humanoid form: two spear attacks)."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+2",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 12,
+     "desc": "Humanoids that fail are cursed with werewolf lycanthropy."
+    }
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d4+2",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Spear",
+    "kind": "melee",
+    "to_hit": 4,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Spear",
+    "kind": "ranged",
+    "to_hit": 4,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "1d6+2",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a5a48"
+ },
+ {
+  "id": "basilisk",
+  "name": "Basilisk",
+  "size": "medium",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 3,
+  "xp": 700,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 52,
+  "hit_dice": "8d8+16",
+  "speed": 20,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 16,
+   "dex": 8,
+   "con": 15,
+   "int": 2,
+   "wis": 8,
+   "cha": 7
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {},
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 9",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Petrifying Gaze",
+    "desc": "A creature starting its turn within 30 ft that can see its eyes makes a DC 12 Con save (unless it averts its eyes): fail by 5+ is instant petrification, otherwise restrained then petrified at the end of its next turn on another failure."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 5,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "piercing"
+     },
+     {
+      "dice": "2d6",
+      "type": "poison"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a6a3a"
+ },
+ {
+  "id": "doppelganger",
+  "name": "Doppelganger",
+  "size": "medium",
+  "type": "monstrosity",
+  "alignment": "neutral",
+  "cr": 3,
+  "xp": 700,
+  "ac": 14,
+  "ac_note": "",
+  "hp": 52,
+  "hit_dice": "8d8+16",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 11,
+   "dex": 18,
+   "con": 14,
+   "int": 11,
+   "wis": 12,
+   "cha": 14
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "deception": 6,
+   "insight": 3
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [
+   "charmed"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 11",
+  "languages": "Common",
+  "traits": [
+   {
+    "name": "Shapechanger",
+    "desc": "Can polymorph into any Small or Medium humanoid it has seen, or back, as an action."
+   },
+   {
+    "name": "Ambusher",
+    "desc": "Advantage on attacks against creatures it has surprised."
+   },
+   {
+    "name": "Surprise Attack",
+    "desc": "+3d6 damage the first time it hits a surprised creature in the first round.",
+    "tag": "surprise_attack"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Slam",
+     "Slam"
+    ],
+    "desc": "Two melee attacks."
+   },
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+4",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Read Thoughts",
+    "kind": "special",
+    "desc": "Magically reads the surface thoughts of one creature within 60 ft; has advantage on Insight, Deception, Intimidation and Persuasion checks against it."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#9a9aa8"
+ },
+ {
+  "id": "troll",
+  "name": "Troll",
+  "size": "large",
+  "type": "giant",
+  "alignment": "chaotic evil",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 84,
+  "hit_dice": "8d10+40",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 13,
+   "con": 20,
+   "int": 7,
+   "wis": 9,
+   "cha": 7
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 12",
+  "languages": "Giant",
+  "traits": [
+   {
+    "name": "Keen Smell",
+    "desc": "Advantage on Perception checks that rely on smell.",
+    "tag": "keen_senses"
+   },
+   {
+    "name": "Regeneration",
+    "desc": "Regains 10 HP at the start of its turn; acid or fire damage stops this for a turn. Dies only if it starts its turn at 0 HP without regenerating.",
+    "tag": "regeneration",
+    "value": 10
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "One bite and two claw attacks."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a6a3a"
+ },
+ {
+  "id": "ettin",
+  "name": "Ettin",
+  "size": "large",
+  "type": "giant",
+  "alignment": "chaotic evil",
+  "cr": 4,
+  "xp": 1100,
+  "ac": 12,
+  "ac_note": "natural armor",
+  "hp": 85,
+  "hit_dice": "10d10+30",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 21,
+   "dex": 8,
+   "con": 17,
+   "int": 6,
+   "wis": 10,
+   "cha": 8
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "Giant, Orc",
+  "traits": [
+   {
+    "name": "Two Heads",
+    "desc": "Advantage on Perception checks and on saves against being blinded, charmed, deafened, frightened, stunned or knocked unconscious."
+   },
+   {
+    "name": "Wakeful",
+    "desc": "One head is always awake."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Battleaxe",
+     "Morningstar"
+    ],
+    "desc": "One battleaxe and one morningstar attack."
+   },
+   {
+    "name": "Battleaxe",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+5",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Morningstar",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+5",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a6a50"
+ },
+ {
+  "id": "hill_giant",
+  "name": "Hill Giant",
+  "size": "huge",
+  "type": "giant",
+  "alignment": "chaotic evil",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 105,
+  "hit_dice": "10d12+40",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 21,
+   "dex": 8,
+   "con": 19,
+   "int": 5,
+   "wis": 9,
+   "cha": 6
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 2
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "passive Perception 12",
+  "languages": "Giant",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Greatclub",
+     "Greatclub"
+    ],
+    "desc": "Two greatclub attacks."
+   },
+   {
+    "name": "Greatclub",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "3d8+5",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Rock",
+    "kind": "ranged",
+    "to_hit": 8,
+    "range": 60,
+    "long_range": 240,
+    "damage": [
+     {
+      "dice": "3d10+5",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#9a7a50"
+ },
+ {
+  "id": "stone_giant",
+  "name": "Stone Giant",
+  "size": "huge",
+  "type": "giant",
+  "alignment": "neutral",
+  "cr": 7,
+  "xp": 2900,
+  "ac": 17,
+  "ac_note": "natural armor",
+  "hp": 126,
+  "hit_dice": "11d12+55",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 23,
+   "dex": 15,
+   "con": 20,
+   "int": 10,
+   "wis": 12,
+   "cha": 9
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 5,
+   "con": 8,
+   "wis": 4
+  },
+  "skills": {
+   "athletics": 12,
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "Giant",
+  "traits": [
+   {
+    "name": "Stone Camouflage",
+    "desc": "Advantage on Stealth checks to hide in rocky terrain."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Greatclub",
+     "Greatclub"
+    ],
+    "desc": "Two greatclub attacks."
+   },
+   {
+    "name": "Greatclub",
+    "kind": "melee",
+    "to_hit": 9,
+    "reach": 15,
+    "damage": [
+     {
+      "dice": "3d8+6",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Rock",
+    "kind": "ranged",
+    "to_hit": 9,
+    "range": 60,
+    "long_range": 240,
+    "damage": [
+     {
+      "dice": "4d10+6",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "save": "str",
+     "dc": 17,
+     "condition": "prone"
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [
+   {
+    "name": "Rock Catching",
+    "kind": "special",
+    "desc": "If a rock or similar object is hurled at it, it can catch it with a DC 10 Dex save, taking no damage."
+   }
+  ],
+  "legendary_actions": [],
+  "token_color": "#8a8a80"
+ },
+ {
+  "id": "chuul",
+  "name": "Chuul",
+  "size": "large",
+  "type": "aberration",
+  "alignment": "chaotic evil",
+  "cr": 4,
+  "xp": 1100,
+  "ac": 16,
+  "ac_note": "natural armor",
+  "hp": 93,
+  "hit_dice": "11d10+33",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 10,
+   "con": 16,
+   "int": 5,
+   "wis": 11,
+   "cha": 5
+  },
+  "prof": 2,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "understands Deep Speech but can't speak",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   },
+   {
+    "name": "Sense Magic",
+    "desc": "Senses magic within 120 ft at will."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Pincer",
+     "Pincer"
+    ],
+    "desc": "Two pincer attacks; if grappling a creature it can also use Tentacles once."
+   },
+   {
+    "name": "Pincer",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "bludgeoning"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 14,
+     "desc": "Large or smaller target; it has two pincers, each able to grapple one target."
+    }
+   },
+   {
+    "name": "Tentacles",
+    "kind": "special",
+    "desc": "One creature grappled by it: DC 13 Con save or poisoned for 1 minute, and paralyzed while poisoned this way; repeats the save each turn."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#4a5a6a"
+ },
+ {
+  "id": "gorgon",
+  "name": "Gorgon",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 19,
+  "ac_note": "natural armor",
+  "hp": 114,
+  "hit_dice": "12d10+48",
+  "speed": 40,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 20,
+   "dex": 11,
+   "con": 18,
+   "int": 2,
+   "wis": 12,
+   "cha": 7
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [
+   "petrified"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Trampling Charge",
+    "desc": "Moving 20+ ft straight before a gore hit forces a DC 16 Str save or the target falls prone; it can then attack the prone target with hooves as a bonus action.",
+    "tag": "charge"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Gore",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d12+5",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Hooves",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d10+5",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Petrifying Breath",
+    "kind": "save",
+    "save": "con",
+    "dc": 13,
+    "area": {
+     "shape": "cone",
+     "size": 30
+    },
+    "condition": "restrained",
+    "recharge": 5,
+    "desc": "Restrained creatures turn to stone (petrified) if they fail the save again at the end of their next turn."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#6a7a80"
+ },
+ {
+  "id": "salamander",
+  "name": "Salamander",
+  "size": "large",
+  "type": "elemental",
+  "alignment": "neutral evil",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 90,
+  "hit_dice": "12d10+24",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 14,
+   "con": 15,
+   "int": 11,
+   "wis": 10,
+   "cha": 12
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "fire"
+  ],
+  "vulnerable": [
+   "cold"
+  ],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Ignan",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Heated Body",
+    "desc": "Creatures that touch it or hit it with a melee attack within 5 ft take 2d6 fire."
+   },
+   {
+    "name": "Heated Weapons",
+    "desc": "Its metal melee weapons deal an extra 1d6 fire (included)."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Spear",
+     "Tail"
+    ],
+    "desc": "One spear attack and one tail attack."
+   },
+   {
+    "name": "Spear",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d6",
+      "type": "fire"
+     }
+    ]
+   },
+   {
+    "name": "Thrown Spear",
+    "kind": "ranged",
+    "to_hit": 7,
+    "range": 20,
+    "long_range": 60,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d6",
+      "type": "fire"
+     }
+    ]
+   },
+   {
+    "name": "Tail",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "bludgeoning"
+     },
+     {
+      "dice": "2d6",
+      "type": "fire"
+     }
+    ],
+    "on_hit": {
+     "condition": "grappled",
+     "escape_dc": 14,
+     "desc": "Grappled and restrained; takes 2d6 fire at the start of each of its turns. Only one target at a time."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#d0501a"
+ },
+ {
+  "id": "earth_elemental",
+  "name": "Earth Elemental",
+  "size": "large",
+  "type": "elemental",
+  "alignment": "neutral",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 17,
+  "ac_note": "natural armor",
+  "hp": 126,
+  "hit_dice": "12d10+60",
+  "speed": 30,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "burrow": 30,
+  "scores": {
+   "str": 20,
+   "dex": 8,
+   "con": 20,
+   "int": 5,
+   "wis": 10,
+   "cha": 5
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [
+   "thunder"
+  ],
+  "condition_immune": [
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "unconscious"
+  ],
+  "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 10",
+  "languages": "Terran",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Earth Glide",
+    "desc": "Can burrow through nonmagical earth and stone without disturbing it."
+   },
+   {
+    "name": "Siege Monster",
+    "desc": "Deals double damage to objects and structures."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Slam",
+     "Slam"
+    ],
+    "desc": "Two slam attacks."
+   },
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d8+5",
+      "type": "bludgeoning"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#7a5a3a"
+ },
+ {
+  "id": "fire_elemental",
+  "name": "Fire Elemental",
+  "size": "large",
+  "type": "elemental",
+  "alignment": "neutral",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 13,
+  "ac_note": "",
+  "hp": 102,
+  "hit_dice": "12d10+36",
+  "speed": 50,
+  "fly": 0,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 10,
+   "dex": 17,
+   "con": 16,
+   "int": 6,
+   "wis": 10,
+   "cha": 7
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "fire",
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained",
+   "unconscious"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Ignan",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Fire Form",
+    "desc": "Can pass through narrow spaces; touching or hitting it in melee deals 1d10 fire and ignites the attacker. Entering a creature's space ignites it too."
+   },
+   {
+    "name": "Illumination",
+    "desc": "Sheds bright light 30 ft and dim light another 30 ft."
+   },
+   {
+    "name": "Water Susceptibility",
+    "desc": "Takes 1 cold damage per 5 ft moved in water or per gallon of water splashed on it."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Touch",
+     "Touch"
+    ],
+    "desc": "Two touch attacks."
+   },
+   {
+    "name": "Touch",
+    "kind": "melee",
+    "to_hit": 6,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+3",
+      "type": "fire"
+     }
+    ],
+    "on_hit": {
+     "desc": "Target catches fire: 1d10 fire at the start of each of its turns until someone uses an action to douse it."
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#ff6a1a"
+ },
+ {
+  "id": "air_elemental",
+  "name": "Air Elemental",
+  "size": "large",
+  "type": "elemental",
+  "alignment": "neutral",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 15,
+  "ac_note": "",
+  "hp": 90,
+  "hit_dice": "12d10+24",
+  "speed": 0,
+  "fly": 90,
+  "swim": 0,
+  "climb": 0,
+  "hover": true,
+  "scores": {
+   "str": 14,
+   "dex": 20,
+   "con": 14,
+   "int": 6,
+   "wis": 10,
+   "cha": 6
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "lightning",
+   "thunder",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained",
+   "unconscious"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Auran",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Air Form",
+    "desc": "Can enter hostile creatures' spaces and pass through 1-inch gaps."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Slam",
+     "Slam"
+    ],
+    "desc": "Two slam attacks."
+   },
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+5",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Whirlwind",
+    "kind": "save",
+    "save": "str",
+    "dc": 13,
+    "area": {
+     "shape": "emanation",
+     "size": 5
+    },
+    "damage": [
+     {
+      "dice": "3d8+2",
+      "type": "bludgeoning"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 4,
+    "condition": "prone",
+    "desc": "Each creature in its space: on a failure it takes damage and is flung up to 20 ft and knocked prone; half damage on a success."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#c8e0f0"
+ },
+ {
+  "id": "water_elemental",
+  "name": "Water Elemental",
+  "size": "large",
+  "type": "elemental",
+  "alignment": "neutral",
+  "cr": 5,
+  "xp": 1800,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 114,
+  "hit_dice": "12d10+48",
+  "speed": 30,
+  "fly": 0,
+  "swim": 90,
+  "climb": 0,
+  "scores": {
+   "str": 18,
+   "dex": 14,
+   "con": 18,
+   "int": 5,
+   "wis": 10,
+   "cha": 8
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {},
+  "resist": [
+   "acid",
+   "bludgeoning",
+   "piercing",
+   "slashing"
+  ],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "grappled",
+   "paralyzed",
+   "petrified",
+   "poisoned",
+   "prone",
+   "restrained",
+   "unconscious"
+  ],
+  "senses": "darkvision 60 ft., passive Perception 10",
+  "languages": "Aquan",
+  "traits": [
+   {
+    "name": "Mundane Weapon Resistance",
+    "desc": "Its resistance/immunity to bludgeoning, piercing and slashing applies only to nonmagical attacks."
+   },
+   {
+    "name": "Water Form",
+    "desc": "Can enter hostile creatures' spaces and pass through 1-inch gaps."
+   },
+   {
+    "name": "Freeze",
+    "desc": "Taking cold damage partially freezes it: speed reduced by 20 ft until the end of its next turn."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Slam",
+     "Slam"
+    ],
+    "desc": "Two slam attacks."
+   },
+   {
+    "name": "Slam",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Whelm",
+    "kind": "save",
+    "save": "str",
+    "dc": 15,
+    "area": {
+     "shape": "emanation",
+     "size": 5
+    },
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "bludgeoning"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 4,
+    "condition": "grappled",
+    "desc": "Each creature in its space: a failure means damage and grappled (escape DC 14), restrained and unable to breathe; half damage on a success."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a6ab0"
+ },
+ {
+  "id": "chimera",
+  "name": "Chimera",
+  "size": "large",
+  "type": "monstrosity",
+  "alignment": "chaotic evil",
+  "cr": 6,
+  "xp": 2300,
+  "ac": 14,
+  "ac_note": "natural armor",
+  "hp": 114,
+  "hit_dice": "12d10+48",
+  "speed": 30,
+  "fly": 60,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 11,
+   "con": 19,
+   "int": 3,
+   "wis": 14,
+   "cha": 10
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 8
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 18",
+  "languages": "understands Draconic but can't speak",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Horns",
+     "Claws"
+    ],
+    "desc": "Bite, horns and claws; may use Fire Breath in place of the bite or claws when available."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Horns",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d12+4",
+      "type": "bludgeoning"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Fire Breath",
+    "kind": "save",
+    "save": "dex",
+    "dc": 15,
+    "area": {
+     "shape": "cone",
+     "size": 15
+    },
+    "damage": [
+     {
+      "dice": "7d8",
+      "type": "fire"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#a04a2a"
+ },
+ {
+  "id": "oni",
+  "name": "Oni",
+  "size": "large",
+  "type": "giant",
+  "alignment": "lawful evil",
+  "cr": 7,
+  "xp": 2900,
+  "ac": 16,
+  "ac_note": "chain mail",
+  "hp": 110,
+  "hit_dice": "13d10+39",
+  "speed": 30,
+  "fly": 30,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 11,
+   "con": 16,
+   "int": 14,
+   "wis": 12,
+   "cha": 15
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 3,
+   "con": 6,
+   "wis": 4,
+   "cha": 5
+  },
+  "skills": {
+   "arcana": 5,
+   "deception": 8,
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "Common, Giant",
+  "traits": [
+   {
+    "name": "Innate Spellcasting",
+    "desc": "Charisma (DC 13). At will: darkness, invisibility. 1/day each: charm person, cone of cold, gaseous form, sleep."
+   },
+   {
+    "name": "Magic Weapons",
+    "desc": "Its weapon attacks count as magical."
+   },
+   {
+    "name": "Regeneration",
+    "desc": "Regains 10 HP at the start of its turn if it has at least 1 HP.",
+    "tag": "regeneration",
+    "value": 10
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Glaive",
+     "Glaive"
+    ],
+    "desc": "Two attacks, with claws or glaive."
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "1d8+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Glaive",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d10+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Change Shape",
+    "kind": "special",
+    "desc": "Polymorphs into a Small or Medium humanoid or a Large giant, or back; glaive damage drops to 1d10+4 when Small or Medium."
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "spellcasting": {
+   "ability": "cha",
+   "dc": 13,
+   "attack": 5,
+   "slots": [],
+   "at_will": [
+    "darkness",
+    "invisibility"
+   ],
+   "spells": [
+    "charm_person",
+    "cone_of_cold",
+    "gaseous_form",
+    "sleep"
+   ]
+  },
+  "token_color": "#3a4a8a"
+ },
+ {
+  "id": "hydra",
+  "name": "Hydra",
+  "size": "huge",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "cr": 8,
+  "xp": 3900,
+  "ac": 15,
+  "ac_note": "natural armor",
+  "hp": 172,
+  "hit_dice": "15d12+75",
+  "speed": 30,
+  "fly": 0,
+  "swim": 30,
+  "climb": 0,
+  "scores": {
+   "str": 20,
+   "dex": 12,
+   "con": 20,
+   "int": 2,
+   "wis": 10,
+   "cha": 7
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 6
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 16",
+  "languages": "—",
+  "traits": [
+   {
+    "name": "Hold Breath",
+    "desc": "Can hold its breath for 1 hour."
+   },
+   {
+    "name": "Multiple Heads",
+    "desc": "Has five heads. Losing 25+ damage in one turn severs a head; it dies with no heads. At the end of its turn each severed head regrows as two unless it took fire damage, healing 10 HP per new head."
+   },
+   {
+    "name": "Reactive Heads",
+    "desc": "Gets one extra reaction per head beyond the first, usable only for opportunity attacks."
+   },
+   {
+    "name": "Wakeful",
+    "desc": "One head is always awake while others sleep."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Bite",
+     "Bite",
+     "Bite",
+     "Bite"
+    ],
+    "desc": "One bite per head (five to start)."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 8,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "1d10+5",
+      "type": "piercing"
+     }
+    ]
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a6a4a"
+ },
+ {
+  "id": "wyvern",
+  "name": "Wyvern",
+  "size": "large",
+  "type": "dragon",
+  "alignment": "unaligned",
+  "cr": 6,
+  "xp": 2300,
+  "ac": 13,
+  "ac_note": "natural armor",
+  "hp": 110,
+  "hit_dice": "13d10+39",
+  "speed": 20,
+  "fly": 80,
+  "swim": 0,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 10,
+   "con": 16,
+   "int": 5,
+   "wis": 12,
+   "cha": 6
+  },
+  "prof": 3,
+  "saves": {},
+  "skills": {
+   "perception": 4
+  },
+  "resist": [],
+  "immune": [],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "darkvision 60 ft., passive Perception 14",
+  "languages": "—",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Stinger"
+    ],
+    "desc": "One bite and one stinger; while flying it can use claws in place of one other attack."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ]
+   },
+   {
+    "name": "Claws",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d8+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Stinger",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "piercing"
+     }
+    ],
+    "on_hit": {
+     "save": "con",
+     "dc": 15,
+     "damage": [
+      {
+       "dice": "7d6",
+       "type": "poison"
+      }
+     ],
+     "half_on_save": true
+    }
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#5a6a3a"
+ },
+ {
+  "id": "young_black_dragon",
+  "name": "Young Black Dragon",
+  "size": "large",
+  "type": "dragon",
+  "alignment": "chaotic evil",
+  "cr": 7,
+  "xp": 2900,
+  "ac": 18,
+  "ac_note": "natural armor",
+  "hp": 127,
+  "hit_dice": "15d10+45",
+  "speed": 40,
+  "fly": 80,
+  "swim": 40,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 14,
+   "con": 17,
+   "int": 12,
+   "wis": 11,
+   "cha": 15
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 5,
+   "con": 6,
+   "wis": 3,
+   "cha": 5
+  },
+  "skills": {
+   "perception": 6,
+   "stealth": 5
+  },
+  "resist": [],
+  "immune": [
+   "acid"
+  ],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 16",
+  "languages": "Common, Draconic",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "One bite and two claw attacks."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d10+4",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d8",
+      "type": "acid"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Acid Breath",
+    "kind": "save",
+    "save": "dex",
+    "dc": 14,
+    "area": {
+     "shape": "line",
+     "size": 30
+    },
+    "damage": [
+     {
+      "dice": "11d8",
+      "type": "acid"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5,
+    "width": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a2a2a"
+ },
+ {
+  "id": "young_green_dragon",
+  "name": "Young Green Dragon",
+  "size": "large",
+  "type": "dragon",
+  "alignment": "lawful evil",
+  "cr": 8,
+  "xp": 3900,
+  "ac": 18,
+  "ac_note": "natural armor",
+  "hp": 136,
+  "hit_dice": "16d10+48",
+  "speed": 40,
+  "fly": 80,
+  "swim": 40,
+  "climb": 0,
+  "scores": {
+   "str": 19,
+   "dex": 12,
+   "con": 17,
+   "int": 16,
+   "wis": 13,
+   "cha": 15
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 4,
+   "con": 6,
+   "wis": 4,
+   "cha": 5
+  },
+  "skills": {
+   "deception": 5,
+   "perception": 7,
+   "stealth": 4
+  },
+  "resist": [],
+  "immune": [
+   "poison"
+  ],
+  "vulnerable": [],
+  "condition_immune": [
+   "poisoned"
+  ],
+  "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 17",
+  "languages": "Common, Draconic",
+  "traits": [
+   {
+    "name": "Amphibious",
+    "desc": "Can breathe air and water.",
+    "tag": "amphibious"
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "One bite and two claw attacks."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d10+4",
+      "type": "piercing"
+     },
+     {
+      "dice": "2d6",
+      "type": "poison"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Poison Breath",
+    "kind": "save",
+    "save": "con",
+    "dc": 14,
+    "area": {
+     "shape": "cone",
+     "size": 30
+    },
+    "damage": [
+     {
+      "dice": "12d6",
+      "type": "poison"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#2a7a3a"
+ },
+ {
+  "id": "young_red_dragon",
+  "name": "Young Red Dragon",
+  "size": "large",
+  "type": "dragon",
+  "alignment": "chaotic evil",
+  "cr": 10,
+  "xp": 5900,
+  "ac": 18,
+  "ac_note": "natural armor",
+  "hp": 178,
+  "hit_dice": "17d10+85",
+  "speed": 40,
+  "fly": 80,
+  "swim": 0,
+  "climb": 40,
+  "scores": {
+   "str": 23,
+   "dex": 10,
+   "con": 21,
+   "int": 14,
+   "wis": 11,
+   "cha": 19
+  },
+  "prof": 4,
+  "saves": {
+   "dex": 4,
+   "con": 9,
+   "wis": 4,
+   "cha": 8
+  },
+  "skills": {
+   "perception": 8,
+   "stealth": 4
+  },
+  "resist": [],
+  "immune": [
+   "fire"
+  ],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 18",
+  "languages": "Common, Draconic",
+  "traits": [],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "One bite and two claw attacks."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 10,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d10+6",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d6",
+      "type": "fire"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 10,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+6",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Fire Breath",
+    "kind": "save",
+    "save": "dex",
+    "dc": 17,
+    "area": {
+     "shape": "cone",
+     "size": 30
+    },
+    "damage": [
+     {
+      "dice": "16d6",
+      "type": "fire"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#b0201a"
+ },
+ {
+  "id": "young_white_dragon",
+  "name": "Young White Dragon",
+  "size": "large",
+  "type": "dragon",
+  "alignment": "chaotic evil",
+  "cr": 6,
+  "xp": 2300,
+  "ac": 17,
+  "ac_note": "natural armor",
+  "hp": 133,
+  "hit_dice": "14d10+56",
+  "speed": 40,
+  "fly": 80,
+  "swim": 40,
+  "climb": 0,
+  "burrow": 20,
+  "scores": {
+   "str": 18,
+   "dex": 10,
+   "con": 18,
+   "int": 6,
+   "wis": 11,
+   "cha": 12
+  },
+  "prof": 3,
+  "saves": {
+   "dex": 3,
+   "con": 7,
+   "wis": 3,
+   "cha": 4
+  },
+  "skills": {
+   "perception": 6,
+   "stealth": 3
+  },
+  "resist": [],
+  "immune": [
+   "cold"
+  ],
+  "vulnerable": [],
+  "condition_immune": [],
+  "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 16",
+  "languages": "Common, Draconic",
+  "traits": [
+   {
+    "name": "Ice Walk",
+    "desc": "Moves across icy surfaces without checks; difficult terrain of ice or snow costs no extra movement."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "kind": "multiattack",
+    "sequence": [
+     "Bite",
+     "Claw",
+     "Claw"
+    ],
+    "desc": "One bite and two claw attacks."
+   },
+   {
+    "name": "Bite",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 10,
+    "damage": [
+     {
+      "dice": "2d10+4",
+      "type": "piercing"
+     },
+     {
+      "dice": "1d8",
+      "type": "cold"
+     }
+    ]
+   },
+   {
+    "name": "Claw",
+    "kind": "melee",
+    "to_hit": 7,
+    "reach": 5,
+    "damage": [
+     {
+      "dice": "2d6+4",
+      "type": "slashing"
+     }
+    ]
+   },
+   {
+    "name": "Cold Breath",
+    "kind": "save",
+    "save": "con",
+    "dc": 15,
+    "area": {
+     "shape": "cone",
+     "size": 30
+    },
+    "damage": [
+     {
+      "dice": "10d8",
+      "type": "cold"
+     }
+    ],
+    "half_on_save": true,
+    "recharge": 5
+   }
+  ],
+  "bonus_actions": [],
+  "reactions": [],
+  "legendary_actions": [],
+  "token_color": "#d8e8f0"
+ }
+]

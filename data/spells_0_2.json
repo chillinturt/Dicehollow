@@ -1,0 +1,6066 @@
+[
+ {
+  "id": "acid_splash",
+  "name": "Acid Splash",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Up to two creatures within 5 ft of each other make a DEX save or take 1d6 acid; scales with level.",
+  "combat": {
+   "target": "enemy",
+   "max_targets": 2,
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "acid"
+    }
+   ],
+   "cantrip_scaling": true,
+   "near_first": 5
+  }
+ },
+ {
+  "id": "blade_ward",
+  "name": "Blade Ward",
+  "level": 0,
+  "school": "abjuration",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Until the end of your next turn you resist bludgeoning, piercing and slashing damage from weapon attacks.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Blade Ward",
+    "mods": {
+     "resist": [
+      "bludgeoning",
+      "piercing",
+      "slashing"
+     ]
+    },
+    "duration_rounds": 1
+   },
+   "special": "blade_ward"
+  }
+ },
+ {
+  "id": "chill_touch",
+  "name": "Chill Touch",
+  "level": 0,
+  "school": "necromancy",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Ranged spell attack for 1d8 necrotic; the target can't regain HP until your next turn (undead also get disadvantage against you).",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "necrotic"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Chilled",
+    "mods": {
+     "no_heal": true
+    },
+    "duration_rounds": 1
+   },
+   "special": "chill_touch"
+  }
+ },
+ {
+  "id": "dancing_lights",
+  "name": "Dancing Lights",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Conjure up to four floating torch-bright lights within 120 ft that you can move 60 ft as a bonus action.",
+  "combat": null
+ },
+ {
+  "id": "druidcraft",
+  "name": "Druidcraft",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Minor nature tricks within 30 ft: predict weather, bloom a flower, make a harmless sensory effect, light or snuff a small flame.",
+  "combat": null
+ },
+ {
+  "id": "eldritch_blast",
+  "name": "Eldritch Blast",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack beam for 1d10 force; you fire extra beams at 5th, 11th and 17th level.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d10",
+     "type": "force"
+    }
+   ],
+   "beams_scale": true,
+   "special": "eldritch_blast"
+  }
+ },
+ {
+  "id": "fire_bolt",
+  "name": "Fire Bolt",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack for 1d10 fire out to 120 ft; damage grows at 5th, 11th and 17th level.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d10",
+     "type": "fire"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "friends",
+  "name": "Friends",
+  "level": 0,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Gain advantage on Charisma checks against one non-hostile creature for 1 minute; it may resent you afterwards.",
+  "combat": null
+ },
+ {
+  "id": "guidance",
+  "name": "Guidance",
+  "level": 0,
+  "school": "divination",
+  "classes": [
+   "artificer",
+   "cleric",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A touched willing creature can add 1d4 to one ability check before the spell ends.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Guidance",
+    "duration_rounds": 10
+   },
+   "special": "guidance"
+  }
+ },
+ {
+  "id": "light",
+  "name": "Light",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched object sheds bright light 20 ft and dim light 20 ft more for 1 hour; DEX save if held by a hostile creature.",
+  "combat": null
+ },
+ {
+  "id": "mage_hand",
+  "name": "Mage Hand",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Create a spectral hand within 30 ft that can lift up to 10 lb and manipulate objects for 1 minute.",
+  "combat": null
+ },
+ {
+  "id": "mending",
+  "name": "Mending",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Repair a single break or tear up to 1 ft long in a touched object.",
+  "combat": null
+ },
+ {
+  "id": "message",
+  "name": "Message",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Whisper a short message to a creature within 120 ft, which can whisper a reply only you hear.",
+  "combat": null
+ },
+ {
+  "id": "minor_illusion",
+  "name": "Minor Illusion",
+  "level": 0,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Create a sound or a still image no larger than a 5-ft cube within 30 ft for 1 minute; Investigation reveals it.",
+  "combat": null
+ },
+ {
+  "id": "poison_spray",
+  "name": "Poison Spray",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 10,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 10 ft makes a CON save or takes 1d12 poison; scales with level.",
+  "combat": {
+   "target": "enemy",
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d12",
+     "type": "poison"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "prestidigitation",
+  "name": "Prestidigitation",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 10,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Perform small magical tricks within 10 ft: sparks, clean or soil, chill or warm, flavour, tiny marks or trinkets.",
+  "combat": null
+ },
+ {
+  "id": "produce_flame",
+  "name": "Produce Flame",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "A flame in your hand gives light for 10 minutes or can be hurled 30 ft as a ranged spell attack for 1d8 fire.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "fire"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "ray_of_frost",
+  "name": "Ray of Frost",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack for 1d8 cold and the target's speed drops by 10 ft until your next turn.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "cold"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Frosted",
+    "mods": {
+     "speed": -10
+    },
+    "duration_rounds": 1
+   },
+   "special": "ray_of_frost"
+  }
+ },
+ {
+  "id": "resistance",
+  "name": "Resistance",
+  "level": 0,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "cleric",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A touched willing creature can add 1d4 to one saving throw before the spell ends.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Resistance",
+    "mods": {
+     "save_dice": "1d4"
+    },
+    "duration_rounds": 10
+   },
+   "special": "resistance"
+  }
+ },
+ {
+  "id": "sacred_flame",
+  "name": "Sacred Flame",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 60 ft makes a DEX save (no cover bonus) or takes 1d8 radiant; scales with level.",
+  "combat": {
+   "target": "enemy",
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "radiant"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "shillelagh",
+  "name": "Shillelagh",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your club or quarterstaff uses your spellcasting ability, deals 1d8 and counts as magical for 1 minute.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Shillelagh",
+    "duration_rounds": 10
+   },
+   "special": "shillelagh"
+  }
+ },
+ {
+  "id": "shocking_grasp",
+  "name": "Shocking Grasp",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Melee spell attack (advantage vs metal armour) for 1d8 lightning; the target can't take reactions until its next turn.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "lightning"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Shocked",
+    "mods": {
+     "no_reactions": true
+    },
+    "duration_rounds": 1
+   },
+   "special": "shocking_grasp"
+  }
+ },
+ {
+  "id": "spare_the_dying",
+  "name": "Spare the Dying",
+  "level": 0,
+  "school": "necromancy",
+  "classes": [
+   "artificer",
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Touch a living creature at 0 HP to make it stable.",
+  "combat": {
+   "target": "ally",
+   "special": "spare_the_dying"
+  }
+ },
+ {
+  "id": "thaumaturgy",
+  "name": "Thaumaturgy",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Produce a minor wonder within 30 ft for 1 minute: booming voice, flickering flames, tremors, odd sounds, slamming doors, altered eyes.",
+  "combat": null
+ },
+ {
+  "id": "thorn_whip",
+  "name": "Thorn Whip",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Melee spell attack at up to 30 ft for 1d6 piercing; a Large or smaller target is pulled up to 10 ft toward you.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "piercing"
+    }
+   ],
+   "cantrip_scaling": true,
+   "pull": 10,
+   "max_size": "large"
+  }
+ },
+ {
+  "id": "true_strike",
+  "name": "True Strike",
+  "level": 0,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Focus on a creature within 30 ft to gain advantage on your first attack roll against it on your next turn.",
+  "combat": {
+   "target": "enemy",
+   "effect": {
+    "name": "True Strike",
+    "duration_rounds": 1
+   },
+   "special": "true_strike"
+  }
+ },
+ {
+  "id": "control_flames",
+  "name": "Control Flames",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Manipulate a nonmagical flame within 60 ft: spread it, snuff it, brighten or dim it, or shape it for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "create_bonfire",
+  "name": "Create Bonfire",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Make a 5-ft bonfire within 60 ft; creatures in or entering it make a DEX save or take 1d8 fire; scales with level.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 5
+   },
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "fire"
+    }
+   ],
+   "cantrip_scaling": true,
+   "zone": {
+    "trigger": "end_turn",
+    "save": "dex",
+    "damage": [
+     {
+      "dice": "1d8",
+      "type": "fire"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "frostbite",
+  "name": "Frostbite",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 60 ft makes a CON save or takes 1d6 cold and has disadvantage on its next weapon attack.",
+  "combat": {
+   "target": "enemy",
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "cold"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Frostbitten",
+    "mods": {
+     "disadvantage_attack": true
+    },
+    "duration_rounds": 1,
+    "one_own_attack": true,
+    "until_target_turn_end": true
+   }
+  }
+ },
+ {
+  "id": "gust",
+  "name": "Gust",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Push a Medium or smaller creature 5 ft (STR save), shove a small object 10 ft, or make a harmless breeze within 30 ft.",
+  "combat": {
+   "target": "creature",
+   "save": "str",
+   "push": 5,
+   "max_size": "medium"
+  }
+ },
+ {
+  "id": "infestation",
+  "name": "Infestation",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 30 ft makes a CON save or takes 1d6 poison and moves 5 ft in a random direction.",
+  "combat": {
+   "target": "enemy",
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "poison"
+    }
+   ],
+   "cantrip_scaling": true,
+   "random_move": 5
+  }
+ },
+ {
+  "id": "magic_stone",
+  "name": "Magic Stone",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "druid",
+   "warlock"
+  ],
+  "source": "XGtE",
+  "casting_time": "bonus",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Enchant up to three pebbles; each can be thrown 60 ft as a ranged spell attack for 1d6 + your spellcasting modifier bludgeoning.",
+  "combat": {
+   "target": "self",
+   "attack": "ranged",
+   "rays": 3,
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "bludgeoning"
+    }
+   ],
+   "add_mod": true,
+   "special": "magic_stone"
+  }
+ },
+ {
+  "id": "mold_earth",
+  "name": "Mold Earth",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Shape a 5-ft cube of loose earth within 30 ft: excavate it, make it difficult terrain, or draw shapes in it.",
+  "combat": null
+ },
+ {
+  "id": "primal_savagery",
+  "name": "Primal Savagery",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 5,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Your teeth or nails sharpen: melee spell attack for 1d10 acid; scales with level.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d10",
+     "type": "acid"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "shape_water",
+  "name": "Shape Water",
+  "level": 0,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Manipulate a 5-ft cube of water within 30 ft: move it, change its colour, freeze it, or shape it for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "thunderclap",
+  "name": "Thunderclap",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 0,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Every other creature within 5 ft of you makes a CON save or takes 1d6 thunder; scales with level.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "emanation",
+    "size": 5
+   },
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "thunder"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "toll_the_dead",
+  "name": "Toll the Dead",
+  "level": 0,
+  "school": "necromancy",
+  "classes": [
+   "cleric",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 60 ft makes a WIS save or takes 1d8 necrotic, or 1d12 if it is already wounded.",
+  "combat": {
+   "target": "enemy",
+   "save": "wis",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "necrotic"
+    }
+   ],
+   "cantrip_scaling": true,
+   "special": "toll_the_dead"
+  }
+ },
+ {
+  "id": "word_of_radiance",
+  "name": "Word of Radiance",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "cleric"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Chosen creatures within 5 ft of you make a CON save or take 1d6 radiant; scales with level.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "emanation",
+    "size": 5
+   },
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "radiant"
+    }
+   ],
+   "cantrip_scaling": true,
+   "enemies_only": true
+  }
+ },
+ {
+  "id": "booming_blade",
+  "name": "Booming Blade",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "SCAG",
+  "casting_time": "action",
+  "range": 5,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Melee weapon attack; on a hit the target is sheathed in energy and takes 1d8 thunder if it willingly moves before your next turn. Extra thunder on hit from 5th level.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "thunder"
+    }
+   ],
+   "cantrip_scaling": true,
+   "special": "booming_blade"
+  }
+ },
+ {
+  "id": "green_flame_blade",
+  "name": "Green-Flame Blade",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "SCAG",
+  "casting_time": "action",
+  "range": 5,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Melee weapon attack; on a hit fire leaps to a second creature within 5 ft for your spellcasting modifier in fire damage. Both parts grow from 5th level.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "fire"
+    }
+   ],
+   "add_mod": true,
+   "cantrip_scaling": true,
+   "special": "green_flame_blade"
+  }
+ },
+ {
+  "id": "lightning_lure",
+  "name": "Lightning Lure",
+  "level": 0,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "SCAG",
+  "casting_time": "action",
+  "range": 15,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 15 ft makes a STR save or is pulled 10 ft toward you and takes 1d8 lightning if it ends within 5 ft.",
+  "combat": {
+   "target": "enemy",
+   "save": "str",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "lightning"
+    }
+   ],
+   "cantrip_scaling": true,
+   "special": "lightning_lure"
+  }
+ },
+ {
+  "id": "sword_burst",
+  "name": "Sword Burst",
+  "level": 0,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "SCAG",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Spectral blades sweep around you: each creature within 5 ft makes a DEX save or takes 1d6 force.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "emanation",
+    "size": 5
+   },
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "force"
+    }
+   ],
+   "cantrip_scaling": true
+  }
+ },
+ {
+  "id": "mind_sliver",
+  "name": "Mind Sliver",
+  "level": 0,
+  "school": "enchantment",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "TCoE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "A creature within 60 ft makes an INT save or takes 1d6 psychic and subtracts 1d4 from its next saving throw.",
+  "combat": {
+   "target": "enemy",
+   "save": "int",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "psychic"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Mind Sliver",
+    "mods": {
+     "save_penalty_dice": "1d4"
+    },
+    "duration_rounds": 1,
+    "one_save": true
+   }
+  }
+ },
+ {
+  "id": "encode_thoughts",
+  "name": "Encode Thoughts",
+  "level": 0,
+  "school": "enchantment",
+  "classes": [
+   "wizard"
+  ],
+  "source": "AI",
+  "casting_time": "action",
+  "range": 0,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "Pull a memory or idea from your mind into a thought strand you can hold, share or store for 8 hours.",
+  "combat": null
+ },
+ {
+  "id": "sapping_sting",
+  "name": "Sapping Sting",
+  "level": 0,
+  "school": "necromancy",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 30 ft makes a CON save or takes 1d4 necrotic and falls prone.",
+  "combat": {
+   "target": "enemy",
+   "save": "con",
+   "damage": [
+    {
+     "dice": "1d4",
+     "type": "necrotic"
+    }
+   ],
+   "cantrip_scaling": true,
+   "effect": {
+    "name": "Sapped",
+    "condition": "prone",
+    "duration_rounds": 0
+   }
+  }
+ },
+ {
+  "id": "absorb_elements",
+  "name": "Absorb Elements",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "reaction",
+  "range": 0,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "When hit by acid, cold, fire, lightning or thunder, resist that damage until your next turn and add 1d6 of it to your next melee hit (+1d6 per slot).",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Absorb Elements",
+    "duration_rounds": 1
+   },
+   "upcast_dice": "1d6"
+  }
+ },
+ {
+  "id": "alarm",
+  "name": "Alarm",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "ranger",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 4800,
+  "summary": "Ward a door, window or 20-ft cube within 30 ft for 8 hours; you get a mental or audible alert when a creature enters.",
+  "combat": null
+ },
+ {
+  "id": "animal_friendship",
+  "name": "Animal Friendship",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 14400,
+  "summary": "A beast with INT 3 or less within 30 ft makes a WIS save or is charmed for 24 hours; one extra beast per slot.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Befriended",
+    "condition": "charmed",
+    "duration_rounds": 14400
+   },
+   "only_types": [
+    "beast"
+   ],
+   "max_int": 3
+  }
+ },
+ {
+  "id": "armor_of_agathys",
+  "name": "Armor of Agathys",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Gain 5 temp HP for 1 hour; while they last, melee attackers take 5 cold damage. Both rise by 5 per slot.",
+  "combat": {
+   "target": "self",
+   "temp_hp": "5",
+   "upcast_temp_hp": "5",
+   "damage": [
+    {
+     "dice": "5",
+     "type": "cold"
+    }
+   ],
+   "upcast_dice": "5",
+   "special": "armor_of_agathys"
+  }
+ },
+ {
+  "id": "arms_of_hadar",
+  "name": "Arms of Hadar",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Dark tendrils hit each creature within 10 ft: STR save or 2d6 necrotic and no reactions until its next turn; half on success. +1d6 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "emanation",
+    "size": 10
+   },
+   "save": "str",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d6",
+     "type": "necrotic"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Hadar's Grasp",
+    "mods": {
+     "no_reactions": true
+    },
+    "duration_rounds": 1
+   }
+  }
+ },
+ {
+  "id": "bane",
+  "name": "Bane",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Up to three creatures within 30 ft make a CHA save or subtract 1d4 from attacks and saves for 1 minute; +1 target per slot.",
+  "combat": {
+   "target": "enemy",
+   "max_targets": 3,
+   "targets_per_slot": 1,
+   "save": "cha",
+   "effect": {
+    "name": "Baned",
+    "mods": {
+     "attack_penalty_dice": "1d4",
+     "save_penalty_dice": "1d4"
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "bless",
+  "name": "Bless",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Up to three creatures within 30 ft add 1d4 to attack rolls and saving throws for 1 minute; +1 target per slot.",
+  "combat": {
+   "target": "ally",
+   "max_targets": 3,
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Blessed",
+    "mods": {
+     "attack_dice": "1d4",
+     "save_dice": "1d4"
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "burning_hands",
+  "name": "Burning Hands",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A 15-ft cone of flame: DEX save, 3d6 fire or half on a success. +1d6 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "cone",
+    "size": 15
+   },
+   "save": "dex",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d6",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d6"
+  }
+ },
+ {
+  "id": "charm_person",
+  "name": "Charm Person",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A humanoid within 30 ft makes a WIS save (advantage if you are fighting it) or is charmed by you for 1 hour; +1 target per slot.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Charmed",
+    "condition": "charmed",
+    "duration_rounds": 600
+   },
+   "only_types": [
+    "humanoid"
+   ]
+  }
+ },
+ {
+  "id": "chromatic_orb",
+  "name": "Chromatic Orb",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack with an orb of acid, cold, fire, lightning, poison or thunder for 3d8 of that type. +1d8 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "special": "chromatic_orb"
+  }
+ },
+ {
+  "id": "color_spray",
+  "name": "Color Spray",
+  "level": 1,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "A 15-ft cone blinds creatures starting with the lowest HP, up to a 6d10 HP pool, until your next turn. +2d10 pool per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "cone",
+    "size": 15
+   },
+   "upcast_dice": "2d10",
+   "effect": {
+    "name": "Dazzled",
+    "condition": "blinded",
+    "duration_rounds": 1
+   },
+   "special": "color_spray"
+  }
+ },
+ {
+  "id": "command",
+  "name": "Command",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Speak a one-word command; a creature within 60 ft makes a WIS save or obeys on its next turn (approach, drop, flee, grovel, halt). +1 target per slot.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "targets_per_slot": 1,
+   "special": "command",
+   "effect": {
+    "name": "Commanded",
+    "condition": "prone",
+    "duration_rounds": 1
+   }
+  }
+ },
+ {
+  "id": "comprehend_languages",
+  "name": "Comprehend Languages",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 600,
+  "summary": "For 1 hour you understand any spoken language you hear and any written language you touch.",
+  "combat": null
+ },
+ {
+  "id": "compelled_duel",
+  "name": "Compelled Duel",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 30,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 30 ft makes a WIS save or has disadvantage attacking anyone but you and can't willingly move more than 30 ft from you.",
+  "combat": {
+   "target": "enemy",
+   "save": "wis",
+   "effect": {
+    "name": "Compelled",
+    "mods": {
+     "dis_unless_src": true,
+     "leash": 30
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "create_or_destroy_water",
+  "name": "Create or Destroy Water",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "cleric",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Create or destroy up to 10 gallons of water within 30 ft, or clear fog in a 30-ft cube; +10 gallons per slot.",
+  "combat": null
+ },
+ {
+  "id": "cure_wounds",
+  "name": "Cure Wounds",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A touched creature regains 1d8 + your spellcasting modifier HP. +1d8 per slot.",
+  "combat": {
+   "target": "ally",
+   "heal": "1d8",
+   "upcast_heal": "1d8",
+   "add_mod": true
+  }
+ },
+ {
+  "id": "detect_evil_and_good",
+  "name": "Detect Evil and Good",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes sense aberrations, celestials, elementals, fey, fiends and undead within 30 ft, plus consecrated or desecrated places.",
+  "combat": null
+ },
+ {
+  "id": "detect_magic",
+  "name": "Detect Magic",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": true,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes sense magic within 30 ft and see its aura and school.",
+  "combat": null
+ },
+ {
+  "id": "detect_poison_and_disease",
+  "name": "Detect Poison and Disease",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": true,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes sense poisons, poisonous creatures and diseases within 30 ft.",
+  "combat": null
+ },
+ {
+  "id": "disguise_self",
+  "name": "Disguise Self",
+  "level": 1,
+  "school": "illusion",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Change your appearance, clothing and gear for 1 hour; Investigation against your spell DC sees through it.",
+  "combat": null
+ },
+ {
+  "id": "dissonant_whispers",
+  "name": "Dissonant Whispers",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 60 ft makes a WIS save or takes 3d6 psychic and must use its reaction to flee; half on success. +1d6 per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "wis",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d6",
+     "type": "psychic"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "flee": true
+  }
+ },
+ {
+  "id": "divine_favor",
+  "name": "Divine Favor",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "For 1 minute your weapon attacks deal an extra 1d4 radiant on a hit.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Divine Favor",
+    "mods": {
+     "extra_damage": {
+      "dice": "1d4",
+      "type": "radiant"
+     }
+    },
+    "duration_rounds": 10
+   },
+   "special": "divine_favor"
+  }
+ },
+ {
+  "id": "ensnaring_strike",
+  "name": "Ensnaring Strike",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next weapon hit makes the target STR save or be restrained by thorns, taking 1d6 piercing each turn; repeat STR check to escape. +1d6 per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "str",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "piercing"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Ensnared",
+    "condition": "restrained",
+    "save_ends": true,
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "entangle",
+  "name": "Entangle",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Grasping plants fill a 20-ft square within 90 ft as difficult terrain; creatures there make a STR save or are restrained for 1 minute.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 20
+   },
+   "save": "str",
+   "effect": {
+    "name": "Entangled",
+    "condition": "restrained",
+    "escape": [
+     "str"
+    ],
+    "duration_rounds": 10
+   },
+   "zone": {
+    "trigger": "none",
+    "difficult": true
+   }
+  }
+ },
+ {
+  "id": "expeditious_retreat",
+  "name": "Expeditious Retreat",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes you can take the Dash action as a bonus action each turn.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Expeditious Retreat",
+    "tag": "expeditious_retreat",
+    "duration_rounds": 100
+   }
+  }
+ },
+ {
+  "id": "faerie_fire",
+  "name": "Faerie Fire",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Objects and creatures in a 20-ft cube within 60 ft make a DEX save or glow; attacks against them have advantage and they can't be invisible.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 20
+   },
+   "save": "dex",
+   "effect": {
+    "name": "Outlined",
+    "mods": {
+     "grants_advantage": true
+    },
+    "duration_rounds": 10
+   },
+   "special": "faerie_fire"
+  }
+ },
+ {
+  "id": "false_life",
+  "name": "False Life",
+  "level": 1,
+  "school": "necromancy",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Gain 1d4 + 4 temporary HP for 1 hour; +5 per slot.",
+  "combat": {
+   "target": "self",
+   "temp_hp": "1d4+4",
+   "upcast_temp_hp": "5",
+   "special": "false_life"
+  }
+ },
+ {
+  "id": "feather_fall",
+  "name": "Feather Fall",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "reaction",
+  "range": 60,
+  "components": "V,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Up to five falling creatures within 60 ft descend slowly (60 ft per round) and take no falling damage.",
+  "combat": null
+ },
+ {
+  "id": "find_familiar",
+  "name": "Find Familiar",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "hour",
+  "range": 10,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Summon a spirit familiar in a small animal form that can scout, share senses and deliver your touch spells.",
+  "combat": null
+ },
+ {
+  "id": "fog_cloud",
+  "name": "Fog Cloud",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A 20-ft radius sphere of fog within 120 ft heavily obscures the area for up to 1 hour; radius +20 ft per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 20
+   },
+   "area_per_slot": 20,
+   "zone": {
+    "trigger": "none",
+    "obscure": "fog"
+   }
+  }
+ },
+ {
+  "id": "goodberry",
+  "name": "Goodberry",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Create ten berries that last 24 hours; eating one restores 1 HP and a day's nourishment.",
+  "combat": {
+   "target": "ally",
+   "heal": "1",
+   "repeat": {
+    "cost": "action",
+    "uses": 9,
+    "rounds": 14400,
+    "range": 5,
+    "label": "Feed a Goodberry",
+    "desc": "A creature eats a berry and regains 1 HP.",
+    "combat": {
+     "target": "ally",
+     "heal": "1"
+    }
+   }
+  }
+ },
+ {
+  "id": "grease",
+  "name": "Grease",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Slick grease covers a 10-ft square within 60 ft for 1 minute: difficult terrain, and creatures there or entering make a DEX save or fall prone.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 10
+   },
+   "save": "dex",
+   "effect": {
+    "name": "Greased",
+    "condition": "prone",
+    "duration_rounds": 0
+   },
+   "zone": {
+    "trigger": "start_turn",
+    "save": "dex",
+    "effect": {
+     "name": "Greased",
+     "condition": "prone",
+     "duration_rounds": 0
+    },
+    "difficult": true
+   }
+  }
+ },
+ {
+  "id": "guiding_bolt",
+  "name": "Guiding Bolt",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Ranged spell attack for 4d6 radiant; the next attack against the target before your next turn has advantage. +1d6 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "4d6",
+     "type": "radiant"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Illuminated",
+    "mods": {
+     "grants_advantage": true
+    },
+    "duration_rounds": 1,
+    "one_attack": true
+   }
+  }
+ },
+ {
+  "id": "hail_of_thorns",
+  "name": "Hail of Thorns",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next ranged weapon hit bursts into thorns: the target and creatures within 5 ft make a DEX save or take 1d10 piercing, half on success. +1d10 per slot.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Hail of Thorns",
+    "one_hit": true,
+    "ranged_only": true,
+    "on_hit": {
+     "burst": {
+      "radius": 5,
+      "save": "dex",
+      "half_on_save": true,
+      "damage": [
+       {
+        "dice": "1d10",
+        "type": "piercing"
+       }
+      ],
+      "upcast": "1d10"
+     }
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "healing_word",
+  "name": "Healing Word",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "bard",
+   "cleric",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature you can see within 60 ft regains 1d4 + your spellcasting modifier HP. +1d4 per slot.",
+  "combat": {
+   "target": "ally",
+   "heal": "1d4",
+   "upcast_heal": "1d4",
+   "add_mod": true
+  }
+ },
+ {
+  "id": "hellish_rebuke",
+  "name": "Hellish Rebuke",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "reaction",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "When a creature damages you, it makes a DEX save or takes 2d10 fire, half on success. +1d10 per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "dex",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d10",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d10",
+   "special": "hellish_rebuke"
+  }
+ },
+ {
+  "id": "heroism",
+  "name": "Heroism",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A touched creature is immune to fear and gains temp HP equal to your spellcasting modifier each turn for 1 minute; +1 target per slot.",
+  "combat": {
+   "target": "ally",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Heroism",
+    "duration_rounds": 10
+   },
+   "special": "heroism"
+  }
+ },
+ {
+  "id": "hex",
+  "name": "Hex",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Curse a creature within 90 ft: your hits deal it an extra 1d6 necrotic and it has disadvantage on checks with one ability. Lasts longer with higher slots.",
+  "combat": {
+   "target": "enemy",
+   "effect": {
+    "name": "Hexed",
+    "mods": {
+     "vulnerable_to_caster": {
+      "dice": "1d6",
+      "type": "necrotic"
+     }
+    },
+    "duration_rounds": 600
+   },
+   "special": "hex"
+  }
+ },
+ {
+  "id": "hunters_mark",
+  "name": "Hunter's Mark",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 90,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Mark a creature within 90 ft: your weapon hits deal it an extra 1d6 and you have advantage tracking it. Lasts longer with higher slots.",
+  "combat": {
+   "target": "enemy",
+   "effect": {
+    "name": "Hunter's Mark",
+    "mods": {
+     "vulnerable_to_caster": {
+      "dice": "1d6",
+      "type": "piercing"
+     }
+    },
+    "duration_rounds": 600
+   },
+   "special": "hunters_mark"
+  }
+ },
+ {
+  "id": "identify",
+  "name": "Identify",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "artificer",
+   "bard",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Learn a touched magic item's properties and how to use it, or the spells affecting a creature or object.",
+  "combat": null
+ },
+ {
+  "id": "illusory_script",
+  "name": "Illusory Script",
+  "level": 1,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 144000,
+  "summary": "Write a message on parchment that only chosen readers can understand for up to 10 days; others see gibberish or a decoy.",
+  "combat": null
+ },
+ {
+  "id": "inflict_wounds",
+  "name": "Inflict Wounds",
+  "level": 1,
+  "school": "necromancy",
+  "classes": [
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Melee spell attack for 3d10 necrotic. +1d10 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "3d10",
+     "type": "necrotic"
+    }
+   ],
+   "upcast_dice": "1d10"
+  }
+ },
+ {
+  "id": "jump",
+  "name": "Jump",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A touched creature's jump distance triples for 1 minute.",
+  "combat": null
+ },
+ {
+  "id": "longstrider",
+  "name": "Longstrider",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid",
+   "ranger",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature's speed increases by 10 ft for 1 hour; +1 target per slot.",
+  "combat": {
+   "target": "ally",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Longstrider",
+    "mods": {
+     "speed": 10
+    },
+    "duration_rounds": 600
+   }
+  }
+ },
+ {
+  "id": "mage_armor",
+  "name": "Mage Armor",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "A touched unarmoured willing creature's AC becomes 13 + its DEX modifier for 8 hours.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Mage Armor",
+    "duration_rounds": 4800
+   },
+   "special": "mage_armor"
+  }
+ },
+ {
+  "id": "magic_missile",
+  "name": "Magic Missile",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Three darts automatically hit creatures within 120 ft for 1d4 + 1 force each. +1 dart per slot.",
+  "combat": {
+   "target": "enemy",
+   "darts": 3,
+   "darts_per_slot": 1,
+   "damage": [
+    {
+     "dice": "1d4+1",
+     "type": "force"
+    }
+   ],
+   "special": "magic_missile"
+  }
+ },
+ {
+  "id": "protection_from_evil_and_good",
+  "name": "Protection from Evil and Good",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "cleric",
+   "warlock",
+   "paladin",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes aberrations, celestials, elementals, fey, fiends and undead have disadvantage attacking a touched creature, which can't be charmed, frightened or possessed by them.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Protected",
+    "mods": {
+     "grants_disadvantage_vs": [
+      "aberration",
+      "celestial",
+      "elemental",
+      "fey",
+      "fiend",
+      "undead"
+     ],
+     "cond_immune_vs": {
+      "types": [
+       "aberration",
+       "celestial",
+       "elemental",
+       "fey",
+       "fiend",
+       "undead"
+      ],
+      "conds": [
+       "charmed",
+       "frightened"
+      ]
+     }
+    },
+    "duration_rounds": 100
+   }
+  }
+ },
+ {
+  "id": "purify_food_and_drink",
+  "name": "Purify Food and Drink",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "cleric",
+   "druid",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 10,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Make all nonmagical food and drink in a 5-ft sphere within 10 ft free of poison and disease.",
+  "combat": null
+ },
+ {
+  "id": "ray_of_sickness",
+  "name": "Ray of Sickness",
+  "level": 1,
+  "school": "necromancy",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Ranged spell attack for 2d8 poison; the target must also make a CON save or be poisoned until your next turn. +1d8 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "2d8",
+     "type": "poison"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "effect": {
+    "name": "Sickened",
+    "condition": "poisoned",
+    "duration_rounds": 1
+   },
+   "effect_save": "con"
+  }
+ },
+ {
+  "id": "sanctuary",
+  "name": "Sanctuary",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "For 1 minute anyone targeting the warded creature with an attack or harmful spell must first pass a WIS save or pick another target; ends if it attacks.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Sanctuary",
+    "tag": "sanctuary",
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "searing_smite",
+  "name": "Searing Smite",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next melee weapon hit deals an extra 1d6 fire and sets the target ablaze (1d6 fire each turn until a CON save). +1d6 per slot.",
+  "combat": {
+   "target": "self",
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Searing Smite",
+    "melee_only": true,
+    "mods": {
+     "extra_damage": {
+      "dice": "1d6",
+      "type": "fire"
+     }
+    },
+    "on_hit": {
+     "tick_damage": {
+      "dice": "1d6",
+      "type": "fire",
+      "when": "start",
+      "save": "con"
+     }
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "shield",
+  "name": "Shield",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "reaction",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "When hit or targeted by magic missile, gain +5 AC until your next turn and take no damage from magic missile.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Shield",
+    "mods": {
+     "ac": 5
+    },
+    "duration_rounds": 1
+   },
+   "special": "shield"
+  }
+ },
+ {
+  "id": "shield_of_faith",
+  "name": "Shield of Faith",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "A creature within 60 ft gains +2 AC for up to 10 minutes.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Shield of Faith",
+    "mods": {
+     "ac": 2
+    },
+    "duration_rounds": 100
+   }
+  }
+ },
+ {
+  "id": "silent_image",
+  "name": "Silent Image",
+  "level": 1,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Create a soundless visual illusion up to a 15-ft cube within 60 ft that you can move; Investigation reveals it.",
+  "combat": null
+ },
+ {
+  "id": "sleep",
+  "name": "Sleep",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Creatures in a 20-ft sphere within 90 ft fall asleep starting with the lowest HP, up to a 5d8 HP pool. +2d8 pool per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 20
+   },
+   "upcast_dice": "2d8",
+   "effect": {
+    "name": "Asleep",
+    "condition": "unconscious",
+    "duration_rounds": 10
+   },
+   "special": "sleep"
+  }
+ },
+ {
+  "id": "speak_with_animals",
+  "name": "Speak with Animals",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 100,
+  "summary": "For 10 minutes you can understand and verbally communicate with beasts.",
+  "combat": null
+ },
+ {
+  "id": "tashas_hideous_laughter",
+  "name": "Tasha's Hideous Laughter",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 30 ft makes a WIS save or falls prone, laughing and incapacitated; it repeats the save each turn and when damaged.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "effect": {
+    "name": "Hideous Laughter",
+    "condition": "incapacitated",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "extra_conditions": [
+     "prone"
+    ],
+    "save_on_damage": true,
+    "save_on_damage_adv": true
+   }
+  }
+ },
+ {
+  "id": "tensers_floating_disk",
+  "name": "Tenser's Floating Disk",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 600,
+  "summary": "A 3-ft floating disk that carries up to 500 lb follows you for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "thunderous_smite",
+  "name": "Thunderous Smite",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next melee weapon hit deals an extra 2d6 thunder and the target makes a STR save or is pushed 10 ft and knocked prone.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Thunderous Smite",
+    "melee_only": true,
+    "mods": {
+     "extra_damage": {
+      "dice": "2d6",
+      "type": "thunder"
+     }
+    },
+    "on_hit": {
+     "save": "str",
+     "push": 10,
+     "condition": "prone"
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "thunderwave",
+  "name": "Thunderwave",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "bard",
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A 15-ft cube of thunder from you: CON save or 2d8 thunder and pushed 10 ft; half and no push on success. +1d8 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "cube",
+    "size": 15
+   },
+   "save": "con",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d8",
+     "type": "thunder"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "special": "thunderwave"
+  }
+ },
+ {
+  "id": "unseen_servant",
+  "name": "Unseen Servant",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "bard",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 600,
+  "summary": "An invisible mindless force performs simple chores for you for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "witch_bolt",
+  "name": "Witch Bolt",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Ranged spell attack for 1d12 lightning; on later turns you can use your action to deal 1d12 automatically while it stays in range. +1d12 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d12",
+     "type": "lightning"
+    }
+   ],
+   "upcast_dice": "1d12",
+   "sustain": {
+    "cost": "action",
+    "range": 30,
+    "on_hit": true,
+    "ends_on_other_action": true,
+    "damage": [
+     {
+      "dice": "1d12",
+      "type": "lightning"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "wrathful_smite",
+  "name": "Wrathful Smite",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next melee weapon hit deals an extra 1d6 psychic and the target makes a WIS save or is frightened of you.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Wrathful Smite",
+    "melee_only": true,
+    "mods": {
+     "extra_damage": {
+      "dice": "1d6",
+      "type": "psychic"
+     }
+    },
+    "on_hit": {
+     "save": "wis",
+     "condition": "frightened",
+     "escape": [
+      "wis"
+     ]
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "beast_bond",
+  "name": "Beast Bond",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Form a telepathic link with a friendly beast; it has advantage on attacks against creatures you can see within 5 ft of it.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Beast Bond",
+    "mods": {
+     "advantage_attack": true
+    },
+    "duration_rounds": 100
+   }
+  }
+ },
+ {
+  "id": "catapult",
+  "name": "Catapult",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Fling a 1-5 lb object up to 90 ft; a creature in its path makes a DEX save or takes 3d8 bludgeoning. +1d8 per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "bludgeoning"
+    }
+   ],
+   "upcast_dice": "1d8"
+  }
+ },
+ {
+  "id": "cause_fear",
+  "name": "Cause Fear",
+  "level": 1,
+  "school": "necromancy",
+  "classes": [
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 60 ft makes a WIS save or is frightened of you, repeating the save each turn; +1 target per slot. Constructs and undead immune.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Afraid",
+    "condition": "frightened",
+    "save_ends": true,
+    "duration_rounds": 10
+   },
+   "immune_types": [
+    "construct",
+    "undead"
+   ]
+  }
+ },
+ {
+  "id": "ceremony",
+  "name": "Ceremony",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "XGtE",
+  "casting_time": "hour",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Perform a religious rite such as atonement, blessing water, coming of age, dedication, funeral, wedding or investiture.",
+  "combat": null
+ },
+ {
+  "id": "chaos_bolt",
+  "name": "Chaos Bolt",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack for 2d8 + 1d6 of a random type; doubles on the d8s let it leap to another target. +1d6 per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "2d8",
+     "type": "fire"
+    },
+    {
+     "dice": "1d6",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "special": "chaos_bolt"
+  }
+ },
+ {
+  "id": "earth_tremor",
+  "name": "Earth Tremor",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "bard",
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Creatures within 10 ft make a DEX save or take 1d6 bludgeoning and fall prone; loose ground becomes difficult terrain. +1d6 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "emanation",
+    "size": 10
+   },
+   "save": "dex",
+   "damage": [
+    {
+     "dice": "1d6",
+     "type": "bludgeoning"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Knocked Down",
+    "condition": "prone",
+    "duration_rounds": 0
+   }
+  }
+ },
+ {
+  "id": "ice_knife",
+  "name": "Ice Knife",
+  "level": 1,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack for 1d10 piercing; the shard then bursts and everything within 5 ft makes a DEX save or takes 2d6 cold. +1d6 cold per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "1d10",
+     "type": "piercing"
+    }
+   ],
+   "burst": {
+    "radius": 5,
+    "save": "dex",
+    "damage": [
+     {
+      "dice": "2d6",
+      "type": "cold"
+     }
+    ],
+    "upcast": "1d6",
+    "spare_caster": false
+   }
+  }
+ },
+ {
+  "id": "snare",
+  "name": "Snare",
+  "level": 1,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "druid",
+   "ranger",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "Set a hidden magical trap in a 5-ft circle for 8 hours; a creature that enters makes a DEX save or is hoisted and restrained.",
+  "combat": null
+ },
+ {
+  "id": "zephyr_strike",
+  "name": "Zephyr Strike",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "ranger"
+  ],
+  "source": "XGtE",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your movement provokes no opportunity attacks for 1 minute; once, gain advantage on a weapon attack that deals an extra 1d8 force and +30 ft speed.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Zephyr Strike",
+    "mods": {
+     "no_provoke": true
+    },
+    "duration_rounds": 10
+   },
+   "self_effect": {
+    "name": "Zephyr Strike (charge)",
+    "one_hit": true,
+    "spent_on_miss": true,
+    "keep_conc": true,
+    "mods": {
+     "extra_damage": {
+      "dice": "1d8",
+      "type": "force"
+     },
+     "advantage_attack": true
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "tashas_caustic_brew",
+  "name": "Tasha's Caustic Brew",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "TCoE",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 30-ft line of acid: DEX save or covered, taking 2d4 acid at the start of each turn until scraped off. +2d4 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "line",
+    "size": 30
+   },
+   "save": "dex",
+   "effect": {
+    "name": "Caustic Acid",
+    "escape": [
+     "str"
+    ],
+    "escape_auto": true,
+    "tick_damage": {
+     "dice": "2d4",
+     "type": "acid",
+     "when": "start",
+     "upcast": "2d4"
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "gift_of_alacrity",
+  "name": "Gift of Alacrity",
+  "level": 1,
+  "school": "divination",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "A touched willing creature adds 1d8 to its initiative rolls for 8 hours.",
+  "combat": null
+ },
+ {
+  "id": "magnify_gravity",
+  "name": "Magnify Gravity",
+  "level": 1,
+  "school": "transmutation",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "Gravity surges in a 10-ft sphere within 60 ft: CON save or 2d8 force and speed halved; half damage on success. +1d8 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 10
+   },
+   "save": "con",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d8",
+     "type": "force"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "effect": {
+    "name": "Heavy",
+    "mods": {
+     "speed_mult": 0.5
+    },
+    "duration_rounds": 1
+   }
+  }
+ },
+ {
+  "id": "distort_value",
+  "name": "Distort Value",
+  "level": 1,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "warlock",
+   "wizard"
+  ],
+  "source": "AI",
+  "casting_time": "minute",
+  "range": 5,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "Make a touched object look worth double or half its true value for 8 hours.",
+  "combat": null
+ },
+ {
+  "id": "jims_magic_missile",
+  "name": "Jim's Magic Missile",
+  "level": 1,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "AI",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Three darts each make a ranged spell attack for 2d4 force (a miss still deals 1); +1 dart per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "rays": 3,
+   "rays_per_slot": 1,
+   "damage": [
+    {
+     "dice": "2d4",
+     "type": "force"
+    }
+   ]
+  }
+ },
+ {
+  "id": "silvery_barbs",
+  "name": "Silvery Barbs",
+  "level": 1,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "SCC",
+  "casting_time": "reaction",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "When a creature within 60 ft succeeds on an attack, check or save, force a reroll keeping the lower, then grant a creature advantage on its next roll.",
+  "combat": {
+   "target": "creature",
+   "effect": {
+    "name": "Silvery Barbs",
+    "one_roll": true,
+    "mods": {
+     "advantage_attack": true
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "aid",
+  "name": "Aid",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "Up to three creatures within 30 ft raise their HP maximum and current HP by 5 for 8 hours; +5 per slot.",
+  "combat": {
+   "target": "ally",
+   "max_targets": 3,
+   "heal": "5",
+   "upcast_heal": "5",
+   "effect": {
+    "name": "Aid",
+    "duration_rounds": 4800
+   },
+   "special": "aid"
+  }
+ },
+ {
+  "id": "alter_self",
+  "name": "Alter Self",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "For 1 hour change your form: breathe water and swim, alter your appearance, or grow magical natural weapons dealing 1d6.",
+  "combat": null
+ },
+ {
+  "id": "animal_messenger",
+  "name": "Animal Messenger",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 14400,
+  "summary": "A Tiny beast carries a 25-word message to a place and recipient you describe over 24 hours.",
+  "combat": null
+ },
+ {
+  "id": "arcane_lock",
+  "name": "Arcane Lock",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 144000,
+  "summary": "Magically lock a door, window or container until dispelled; chosen creatures can open it, and forcing it gets +10 DC.",
+  "combat": null
+ },
+ {
+  "id": "augury",
+  "name": "Augury",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "cleric",
+   "druid",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Receive an omen (weal, woe, both or nothing) about a course of action within the next 30 minutes.",
+  "combat": null
+ },
+ {
+  "id": "barkskin",
+  "name": "Barkskin",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature's AC can't be lower than 16 for up to 1 hour.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Barkskin",
+    "duration_rounds": 600,
+    "mods": {
+     "min_ac": 16
+    }
+   }
+  }
+ },
+ {
+  "id": "blindness_deafness",
+  "name": "Blindness/Deafness",
+  "level": 2,
+  "school": "necromancy",
+  "classes": [
+   "bard",
+   "cleric",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 30 ft makes a CON save or is blinded or deafened for 1 minute, repeating the save each turn; +1 target per slot.",
+  "combat": {
+   "target": "creature",
+   "save": "con",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Blinded",
+    "condition": "blinded",
+    "save_ends": true,
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "blur",
+  "name": "Blur",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your body blurs: attacks against you have disadvantage for 1 minute unless the attacker doesn't rely on sight.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Blur",
+    "mods": {
+     "grants_disadvantage": true
+    },
+    "duration_rounds": 10
+   },
+   "special": "blur"
+  }
+ },
+ {
+  "id": "branding_smite",
+  "name": "Branding Smite",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Your next weapon hit deals an extra 2d6 radiant and the target sheds light and can't be invisible for 1 minute. +1d6 per slot.",
+  "combat": {
+   "target": "self",
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Branding Smite",
+    "mods": {
+     "extra_damage": {
+      "dice": "2d6",
+      "type": "radiant"
+     }
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "calm_emotions",
+  "name": "Calm Emotions",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Humanoids in a 20-ft sphere within 60 ft make a CHA save or have charm and fear suppressed or hostility toward chosen creatures removed.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 20
+   },
+   "save": "cha",
+   "effect": {
+    "name": "Calmed",
+    "duration_rounds": 10
+   },
+   "special": "calm_emotions"
+  }
+ },
+ {
+  "id": "cloud_of_daggers",
+  "name": "Cloud of Daggers",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Spinning daggers fill a 5-ft cube within 60 ft; a creature entering it or starting its turn there takes 4d4 slashing. +2d4 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 5
+   },
+   "upcast_dice": "2d4",
+   "zone": {
+    "trigger": "start_turn",
+    "damage": [
+     {
+      "dice": "4d4",
+      "type": "slashing"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "continual_flame",
+  "name": "Continual Flame",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "artificer",
+   "cleric",
+   "druid",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 144000,
+  "summary": "A heatless torch-bright flame burns on a touched object until dispelled.",
+  "combat": null
+ },
+ {
+  "id": "cordon_of_arrows",
+  "name": "Cordon of Arrows",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "Enchant four pieces of ammunition planted in the ground; for 8 hours each fires at a creature entering within 30 ft (DEX save or 1d6 piercing). +2 pieces per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 30
+   },
+   "zone": {
+    "trigger": "end_turn",
+    "save": "dex",
+    "damage": [
+     {
+      "dice": "1d6",
+      "type": "piercing"
+     }
+    ],
+    "enemies_only": true,
+    "uses": 4,
+    "uses_per_slot": 2
+   }
+  }
+ },
+ {
+  "id": "crown_of_madness",
+  "name": "Crown of Madness",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A humanoid within 120 ft makes a WIS save or is charmed and must attack a creature you choose; repeats the save each turn.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "effect": {
+    "name": "Maddened",
+    "condition": "charmed",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "tag": "crown_of_madness"
+   },
+   "only_types": [
+    "humanoid"
+   ]
+  }
+ },
+ {
+  "id": "darkness",
+  "name": "Darkness",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Magical darkness fills a 15-ft radius sphere within 60 ft for 10 minutes; darkvision can't see through it.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 15
+   },
+   "zone": {
+    "trigger": "none",
+    "obscure": "darkness"
+   }
+  }
+ },
+ {
+  "id": "darkvision",
+  "name": "Darkvision",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "A touched willing creature gains 60-ft darkvision for 8 hours.",
+  "combat": null
+ },
+ {
+  "id": "detect_thoughts",
+  "name": "Detect Thoughts",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Read the surface thoughts of creatures within 30 ft, and probe deeper with a WIS save contest.",
+  "combat": null
+ },
+ {
+  "id": "enhance_ability",
+  "name": "Enhance Ability",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature gets advantage on checks with one ability for 1 hour (Bear's Endurance also grants 2d6 temp HP); +1 target per slot.",
+  "combat": {
+   "target": "ally",
+   "targets_per_slot": 1,
+   "temp_hp": "2d6",
+   "effect": {
+    "name": "Enhanced",
+    "duration_rounds": 600
+   }
+  }
+ },
+ {
+  "id": "enlarge_reduce",
+  "name": "Enlarge/Reduce",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature or object within 30 ft grows (+1d4 weapon damage, advantage on STR) or shrinks (-1d4, disadvantage) for 1 minute; unwilling targets get a CON save.",
+  "combat": {
+   "target": "creature",
+   "special": "enlarge_reduce"
+  }
+ },
+ {
+  "id": "enthrall",
+  "name": "Enthrall",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "warlock"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Creatures within 60 ft that can hear you make a WIS save or have disadvantage on Perception checks to notice anyone else for 1 minute.",
+  "combat": null
+ },
+ {
+  "id": "find_steed",
+  "name": "Find Steed",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 30,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Summon a loyal spirit steed (warhorse, pony, camel, elk or mastiff) that shares your telepathic bond.",
+  "combat": null
+ },
+ {
+  "id": "find_traps",
+  "name": "Find Traps",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "cleric",
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Sense the presence, but not the location, of any trap within 120 ft that you have line of sight to.",
+  "combat": null
+ },
+ {
+  "id": "flame_blade",
+  "name": "Flame Blade",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "druid",
+   "sorcerer"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Conjure a fiery blade for 10 minutes; melee spell attack for 3d6 fire. +1d6 per two slot levels.",
+  "combat": {
+   "target": "self",
+   "repeat": {
+    "cost": "action",
+    "same_turn": true,
+    "label": "Flame Blade: slash",
+    "desc": "Melee spell attack with the blade, 3d6 fire.",
+    "combat": {
+     "target": "enemy",
+     "attack": "melee",
+     "damage": [
+      {
+       "dice": "3d6",
+       "type": "fire"
+      }
+     ],
+     "upcast_dice": "1d6"
+    }
+   }
+  }
+ },
+ {
+  "id": "flaming_sphere",
+  "name": "Flaming Sphere",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 5-ft sphere of fire within 60 ft; creatures ending a turn next to it or rammed by it make a DEX save, 2d6 fire or half. +1d6 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 5
+   },
+   "save": "dex",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d6",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d6",
+   "zone": {
+    "trigger": "end_turn",
+    "save": "dex",
+    "half_on_save": true,
+    "damage": [
+     {
+      "dice": "2d6",
+      "type": "fire"
+     }
+    ]
+   },
+   "repeat": {
+    "cost": "bonus",
+    "move": 30,
+    "ram": true,
+    "label": "Move Flaming Sphere",
+    "desc": "Move the sphere up to 30 ft; ram a creature to burn it.",
+    "combat": {
+     "target": "point",
+     "move_zone": true
+    }
+   }
+  }
+ },
+ {
+  "id": "gentle_repose",
+  "name": "Gentle Repose",
+  "level": 2,
+  "school": "necromancy",
+  "classes": [
+   "cleric",
+   "paladin",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 14400,
+  "summary": "Protect a touched corpse from decay and undeath for 10 days; that time doesn't count against raising it.",
+  "combat": null
+ },
+ {
+  "id": "gust_of_wind",
+  "name": "Gust of Wind",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "druid",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 60-ft line of strong wind: creatures starting there make a STR save or are pushed 15 ft; moving into it costs double.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "line",
+    "size": 60
+   },
+   "save": "str",
+   "zone": {
+    "trigger": "start_turn",
+    "save": "str",
+    "push": 15,
+    "difficult": true
+   },
+   "push": 15
+  }
+ },
+ {
+  "id": "heat_metal",
+  "name": "Heat Metal",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Heat a metal object within 60 ft: anyone touching it takes 2d8 fire (repeat as a bonus action) and has disadvantage if it keeps holding it. +1d8 per slot.",
+  "combat": {
+   "target": "enemy",
+   "damage": [
+    {
+     "dice": "2d8",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "effect": {
+    "name": "Searing Metal",
+    "mods": {
+     "disadvantage_attack": true
+    },
+    "duration_rounds": 1
+   },
+   "sustain": {
+    "cost": "bonus",
+    "range": 60,
+    "upcast": "1d8",
+    "reapply_effect": true,
+    "damage": [
+     {
+      "dice": "2d8",
+      "type": "fire"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "hold_person",
+  "name": "Hold Person",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "cleric",
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A humanoid within 60 ft makes a WIS save or is paralyzed, repeating the save each turn; +1 target per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "wis",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Held",
+    "condition": "paralyzed",
+    "save_ends": true,
+    "duration_rounds": 10
+   },
+   "special": "hold_person"
+  }
+ },
+ {
+  "id": "invisibility",
+  "name": "Invisibility",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature becomes invisible for up to 1 hour or until it attacks or casts a spell; +1 target per slot.",
+  "combat": {
+   "target": "ally",
+   "targets_per_slot": 1,
+   "effect": {
+    "name": "Invisible",
+    "condition": "invisible",
+    "duration_rounds": 600
+   },
+   "special": "invisibility"
+  }
+ },
+ {
+  "id": "knock",
+  "name": "Knock",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Unlock a stuck, barred or locked object within 60 ft with a loud knock; suppresses Arcane Lock for 10 minutes.",
+  "combat": null
+ },
+ {
+  "id": "lesser_restoration",
+  "name": "Lesser Restoration",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "bard",
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "End one disease or the blinded, deafened, paralyzed or poisoned condition on a touched creature.",
+  "combat": {
+   "target": "ally",
+   "special": "lesser_restoration"
+  }
+ },
+ {
+  "id": "levitate",
+  "name": "Levitate",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "A creature or object within 60 ft rises up to 20 ft and hangs there for up to 10 minutes; unwilling creatures get a CON save.",
+  "combat": {
+   "target": "creature",
+   "save": "con",
+   "effect": {
+    "name": "Levitated",
+    "mods": {
+     "speed_mult": 0
+    },
+    "duration_rounds": 100
+   },
+   "save_only_hostile": true
+  }
+ },
+ {
+  "id": "locate_animals_or_plants",
+  "name": "Locate Animals or Plants",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 0,
+  "summary": "Learn the direction and distance to the nearest named kind of beast or plant within 5 miles.",
+  "combat": null
+ },
+ {
+  "id": "locate_object",
+  "name": "Locate Object",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Sense the direction of a familiar or described object within 1,000 ft for 10 minutes; blocked by lead.",
+  "combat": null
+ },
+ {
+  "id": "magic_mouth",
+  "name": "Magic Mouth",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "artificer",
+   "bard",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": true,
+  "duration_rounds": 144000,
+  "summary": "Implant a message of up to 25 words in an object that plays when a trigger you set occurs.",
+  "combat": null
+ },
+ {
+  "id": "magic_weapon",
+  "name": "Magic Weapon",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "paladin",
+   "ranger",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 5,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched nonmagical weapon becomes a +1 magic weapon for 1 hour (+2 with a 4th-level slot, +3 with 6th).",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Magic Weapon",
+    "mods": {
+     "attack_dice": "1",
+     "extra_damage": {
+      "dice": "1",
+      "type": "force"
+     }
+    },
+    "duration_rounds": 600,
+    "slot_tiers": [
+     {
+      "slot": 4,
+      "mods": {
+       "attack_dice": "2",
+       "extra_damage": {
+        "dice": "2",
+        "type": "force"
+       }
+      }
+     },
+     {
+      "slot": 6,
+      "mods": {
+       "attack_dice": "3",
+       "extra_damage": {
+        "dice": "3",
+        "type": "force"
+       }
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "melfs_acid_arrow",
+  "name": "Melf's Acid Arrow",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Ranged spell attack for 4d4 acid plus 2d4 more at the end of its next turn; a miss deals half the initial damage. +1d4 per slot to each part.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "damage": [
+    {
+     "dice": "4d4",
+     "type": "acid"
+    }
+   ],
+   "upcast_dice": "1d4",
+   "half_on_miss": true,
+   "effect": {
+    "name": "Acid Burn",
+    "duration_rounds": 2,
+    "tick_damage": {
+     "dice": "2d4",
+     "type": "acid",
+     "when": "end",
+     "once": true,
+     "upcast": "1d4"
+    }
+   }
+  }
+ },
+ {
+  "id": "mirror_image",
+  "name": "Mirror Image",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Three illusory duplicates appear for 1 minute; attacks against you may hit a duplicate (AC 10 + DEX) instead, destroying it.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Mirror Image",
+    "duration_rounds": 10
+   },
+   "special": "mirror_image"
+  }
+ },
+ {
+  "id": "misty_step",
+  "name": "Misty Step",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 30,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Teleport up to 30 ft to an unoccupied space you can see.",
+  "combat": {
+   "target": "self",
+   "special": "misty_step"
+  }
+ },
+ {
+  "id": "moonbeam",
+  "name": "Moonbeam",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "druid"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 5-ft radius beam of moonlight within 120 ft: creatures entering or starting there make a CON save, 2d10 radiant or half. Move it 60 ft as an action. +1d10 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 5
+   },
+   "upcast_dice": "1d10",
+   "zone": {
+    "trigger": "start_turn",
+    "save": "con",
+    "half_on_save": true,
+    "damage": [
+     {
+      "dice": "2d10",
+      "type": "radiant"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "nystuls_magic_aura",
+  "name": "Nystul's Magic Aura",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 14400,
+  "summary": "For 24 hours make a touched object or creature read falsely to divination magic.",
+  "combat": null
+ },
+ {
+  "id": "pass_without_trace",
+  "name": "Pass without Trace",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "For 1 hour you and allies within 30 ft gain +10 to Stealth checks and leave no tracks.",
+  "combat": null
+ },
+ {
+  "id": "phantasmal_force",
+  "name": "Phantasmal Force",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 60 ft makes an INT save or perceives an illusion you craft; it can take 1d6 psychic each turn from the phantasm.",
+  "combat": {
+   "target": "creature",
+   "save": "int",
+   "effect": {
+    "name": "Phantasm",
+    "escape": [
+     "int"
+    ],
+    "tick_damage": {
+     "dice": "1d6",
+     "type": "psychic",
+     "when": "start"
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "prayer_of_healing",
+  "name": "Prayer of Healing",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "minute",
+  "range": 30,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Up to six creatures within 30 ft each regain 2d8 + your spellcasting modifier HP. +1d8 per slot.",
+  "combat": {
+   "target": "ally",
+   "max_targets": 6,
+   "heal": "2d8",
+   "upcast_heal": "1d8",
+   "add_mod": true
+  }
+ },
+ {
+  "id": "protection_from_poison",
+  "name": "Protection from Poison",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "artificer",
+   "cleric",
+   "druid",
+   "paladin",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Neutralise one poison on a touched creature; for 1 hour it has advantage on saves against poison and resists poison damage.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Poison Ward",
+    "mods": {
+     "resist": [
+      "poison"
+     ]
+    },
+    "duration_rounds": 600
+   }
+  }
+ },
+ {
+  "id": "ray_of_enfeeblement",
+  "name": "Ray of Enfeeblement",
+  "level": 2,
+  "school": "necromancy",
+  "classes": [
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Ranged spell attack; on a hit the target deals only half damage with STR-based weapon attacks for 1 minute (CON save at end of each turn).",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "effect": {
+    "name": "Enfeebled",
+    "save_ends": true,
+    "duration_rounds": 10,
+    "mods": {
+     "half_str_damage": true
+    }
+   }
+  }
+ },
+ {
+  "id": "rope_trick",
+  "name": "Rope Trick",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A rope rises from your space to an invisible extradimensional space that stays open for 1 hour. Allies within 5 ft climb in (Climb Rope: 10 ft of movement) and drop back out freely; it holds eight Medium or smaller creatures. Attacks and spells can't cross the entrance.",
+  "combat": {
+   "target": "self",
+   "special": "rope_trick"
+  }
+ },
+ {
+  "id": "scorching_ray",
+  "name": "Scorching Ray",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Three rays each make a ranged spell attack for 2d6 fire. +1 ray per slot.",
+  "combat": {
+   "target": "enemy",
+   "attack": "ranged",
+   "rays": 3,
+   "rays_per_slot": 1,
+   "damage": [
+    {
+     "dice": "2d6",
+     "type": "fire"
+    }
+   ]
+  }
+ },
+ {
+  "id": "see_invisibility",
+  "name": "See Invisibility",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "For 1 hour you see invisible creatures and objects and into the Ethereal Plane.",
+  "combat": null
+ },
+ {
+  "id": "shatter",
+  "name": "Shatter",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A 10-ft radius burst of sound within 60 ft: CON save, 3d8 thunder or half (inorganic creatures have disadvantage). +1d8 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 10
+   },
+   "save": "con",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "thunder"
+    }
+   ],
+   "upcast_dice": "1d8"
+  }
+ },
+ {
+  "id": "silence",
+  "name": "Silence",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "cleric",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 120,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": true,
+  "duration_rounds": 100,
+  "summary": "No sound can exist in a 20-ft sphere within 120 ft for 10 minutes; those inside are deafened, immune to thunder and can't cast verbal spells.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 20
+   },
+   "zone": {
+    "trigger": "none",
+    "silence": true
+   }
+  }
+ },
+ {
+  "id": "spider_climb",
+  "name": "Spider Climb",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature can climb walls and ceilings hands-free and gains a climb speed equal to its speed for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "spike_growth",
+  "name": "Spike Growth",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 150,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Hidden thorns cover a 20-ft radius within 150 ft: difficult terrain, and creatures take 2d4 piercing for every 5 ft they move through it.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 20
+   },
+   "zone": {
+    "trigger": "move",
+    "damage": [
+     {
+      "dice": "2d4",
+      "type": "piercing"
+     }
+    ],
+    "difficult": true
+   }
+  }
+ },
+ {
+  "id": "spiritual_weapon",
+  "name": "Spiritual Weapon",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "cleric"
+  ],
+  "source": "PHB",
+  "casting_time": "bonus",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A floating spectral weapon within 60 ft makes a melee spell attack for 1d8 + your modifier force; move it and attack again as a bonus action. +1d8 per two slot levels.",
+  "combat": {
+   "target": "point",
+   "attack": "melee",
+   "damage": [
+    {
+     "dice": "1d8",
+     "type": "force"
+    }
+   ],
+   "add_mod": true,
+   "upcast_dice": "1d8",
+   "special": "spiritual_weapon"
+  }
+ },
+ {
+  "id": "suggestion",
+  "name": "Suggestion",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 4800,
+  "summary": "A creature within 30 ft makes a WIS save or follows a reasonable-sounding course of action you suggest for up to 8 hours.",
+  "combat": {
+   "target": "creature",
+   "save": "wis",
+   "effect": {
+    "name": "Suggestion",
+    "condition": "charmed",
+    "duration_rounds": 4800
+   }
+  }
+ },
+ {
+  "id": "warding_bond",
+  "name": "Warding Bond",
+  "level": 2,
+  "school": "abjuration",
+  "classes": [
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A touched creature gets +1 AC and saves and resists all damage for 1 hour, but you take the same damage it does.",
+  "combat": {
+   "target": "ally",
+   "effect": {
+    "name": "Warding Bond",
+    "mods": {
+     "ac": 1,
+     "save_dice": "1",
+     "resist": [
+      "acid",
+      "bludgeoning",
+      "cold",
+      "fire",
+      "force",
+      "lightning",
+      "necrotic",
+      "piercing",
+      "poison",
+      "psychic",
+      "radiant",
+      "slashing",
+      "thunder"
+     ]
+    },
+    "duration_rounds": 600,
+    "tag": "warding_bond"
+   }
+  }
+ },
+ {
+  "id": "web",
+  "name": "Web",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Sticky webs fill a 20-ft cube within 60 ft: difficult terrain, and creatures entering or starting there make a DEX save or are restrained.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 20
+   },
+   "save": "dex",
+   "effect": {
+    "name": "Webbed",
+    "condition": "restrained",
+    "escape": [
+     "str"
+    ],
+    "duration_rounds": 600
+   },
+   "zone": {
+    "trigger": "start_turn",
+    "save": "dex",
+    "effect": {
+     "name": "Webbed",
+     "condition": "restrained",
+     "escape": [
+      "str"
+     ],
+     "duration_rounds": 600
+    },
+    "difficult": true
+   }
+  }
+ },
+ {
+  "id": "zone_of_truth",
+  "name": "Zone of Truth",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "cleric",
+   "paladin"
+  ],
+  "source": "PHB",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "Creatures in a 15-ft sphere within 60 ft make a CHA save or can't deliberately lie for 10 minutes.",
+  "combat": null
+ },
+ {
+  "id": "aganazzars_scorcher",
+  "name": "Aganazzar's Scorcher",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A 30-ft line of roaring flame: DEX save, 3d8 fire or half. +1d8 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "line",
+    "size": 30
+   },
+   "save": "dex",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "fire"
+    }
+   ],
+   "upcast_dice": "1d8"
+  }
+ },
+ {
+  "id": "dragons_breath",
+  "name": "Dragon's Breath",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "bonus",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A touched creature can use its action to exhale a 15-ft cone of acid, cold, fire, lightning or poison: DEX save, 3d6 or half. +1d6 per slot.",
+  "combat": {
+   "target": "ally",
+   "upcast_dice": "1d6",
+   "effect": {
+    "name": "Dragon's Breath",
+    "tag": "dragons_breath",
+    "breath": {
+     "dice": "3d6",
+     "save": "dex",
+     "shape": "cone",
+     "size": 15
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "dust_devil",
+  "name": "Dust Devil",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 5-ft whirlwind within 60 ft; creatures ending a turn next to it make a STR save or take 1d8 bludgeoning and are pushed 10 ft, half on success. +1d8 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 15
+   },
+   "upcast_dice": "1d8",
+   "zone": {
+    "trigger": "end_turn",
+    "enter": false,
+    "not_caster": true,
+    "save": "str",
+    "half_on_save": true,
+    "damage": [
+     {
+      "dice": "1d8",
+      "type": "bludgeoning"
+     }
+    ],
+    "push_center": 10,
+    "max_size": "large"
+   },
+   "repeat": {
+    "cost": "bonus",
+    "move": 30,
+    "label": "Move Dust Devil",
+    "desc": "Move the dust devil up to 30 ft.",
+    "combat": {
+     "target": "point",
+     "move_zone": true
+    }
+   }
+  }
+ },
+ {
+  "id": "earthbind",
+  "name": "Earthbind",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 300,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A creature within 300 ft makes a STR save or its flying speed drops to 0 and it descends 60 ft per round for 1 minute.",
+  "combat": {
+   "target": "enemy",
+   "save": "str",
+   "effect": {
+    "name": "Earthbound",
+    "duration_rounds": 10,
+    "mods": {
+     "no_fly": true
+    }
+   }
+  }
+ },
+ {
+  "id": "healing_spirit",
+  "name": "Healing Spirit",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "XGtE",
+  "casting_time": "bonus",
+  "range": 60,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A spirit fills a 5-ft cube within 60 ft; a creature entering or starting its turn there can regain 1d6 HP (limited uses). +1d6 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 5
+   },
+   "upcast_heal": "1d6",
+   "zone": {
+    "trigger": "start_turn",
+    "heal": "1d6",
+    "uses_mod": true
+   },
+   "repeat": {
+    "cost": "bonus",
+    "label": "Move Healing Spirit",
+    "move": 30,
+    "desc": "Move the spirit up to 30 ft.",
+    "combat": {
+     "target": "point",
+     "move_zone": true
+    }
+   }
+  }
+ },
+ {
+  "id": "maximilians_earthen_grasp",
+  "name": "Maximilian's Earthen Grasp",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 30,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "An earthen hand rises within 30 ft; a creature within 5 ft of it makes a STR save or takes 2d6 bludgeoning and is restrained.",
+  "combat": {
+   "target": "enemy",
+   "save": "str",
+   "damage": [
+    {
+     "dice": "2d6",
+     "type": "bludgeoning"
+    }
+   ],
+   "effect": {
+    "name": "Grasped",
+    "condition": "restrained",
+    "escape": [
+     "str"
+    ],
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "mind_spike",
+  "name": "Mind Spike",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A creature within 60 ft makes a WIS save or takes 3d8 psychic (half on success) and you always know its location for 1 hour. +1d8 per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "wis",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "psychic"
+    }
+   ],
+   "upcast_dice": "1d8"
+  }
+ },
+ {
+  "id": "pyrotechnics",
+  "name": "Pyrotechnics",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Turn a fire within 60 ft into fireworks (CON save or blinded until your next turn for creatures within 10 ft) or a 20-ft cloud of thick smoke.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 10
+   },
+   "save": "con",
+   "effect": {
+    "name": "Dazzled",
+    "condition": "blinded",
+    "duration_rounds": 1
+   }
+  }
+ },
+ {
+  "id": "shadow_blade",
+  "name": "Shadow Blade",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Conjure a shadow sword (finesse, light, thrown 20/60) dealing 2d8 psychic for 1 minute; advantage in dim light. Extra 1d8 at slots 3, 5 and 7.",
+  "combat": {
+   "target": "self",
+   "repeat": {
+    "cost": "attack",
+    "same_turn": true,
+    "label": "Shadow Blade: strike",
+    "desc": "Weapon attack with the shadow sword (finesse), 2d8 psychic.",
+    "combat": {
+     "target": "enemy",
+     "weapon_attack": true,
+     "damage": [
+      {
+       "dice": "2d8",
+       "type": "psychic"
+      }
+     ],
+     "upcast_dice": "1d8"
+    }
+   }
+  }
+ },
+ {
+  "id": "skywrite",
+  "name": "Skywrite",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "druid",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 1000,
+  "components": "V,S",
+  "concentration": true,
+  "ritual": true,
+  "duration_rounds": 600,
+  "summary": "Write up to ten words in the sky with clouds for up to 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "snillocs_snowball_swarm",
+  "name": "Snilloc's Snowball Swarm",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Snowballs burst in a 5-ft radius within 90 ft: DEX save, 3d6 cold or half. +1d6 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 5
+   },
+   "save": "dex",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d6",
+     "type": "cold"
+    }
+   ],
+   "upcast_dice": "1d6"
+  }
+ },
+ {
+  "id": "warding_wind",
+  "name": "Warding Wind",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "bard",
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "XGtE",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 100,
+  "summary": "A 10-ft wind around you deafens creatures inside, disperses gas, makes the area difficult terrain for others and gives ranged attacks through it disadvantage.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Warding Wind",
+    "mods": {
+     "grants_disadvantage_ranged": true
+    },
+    "duration_rounds": 100
+   },
+   "aura": {
+    "radius": 10,
+    "enemies_only": false,
+    "trigger": "start_turn",
+    "difficult": true
+   }
+  }
+ },
+ {
+  "id": "summon_beast",
+  "name": "Summon Beast",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "druid",
+   "ranger"
+  ],
+  "source": "TCoE",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Summon a bestial spirit (air, land or water) that fights for you for 1 hour; its stats scale with slot level.",
+  "combat": {
+   "target": "point",
+   "special": "summon_beast"
+  }
+ },
+ {
+  "id": "tashas_mind_whip",
+  "name": "Tasha's Mind Whip",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "TCoE",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 1,
+  "summary": "A creature within 90 ft makes an INT save or takes 3d6 psychic, can't react and gets only a move, action or bonus action next turn; half on success. +1 target per slot.",
+  "combat": {
+   "target": "enemy",
+   "save": "int",
+   "half_on_save": true,
+   "targets_per_slot": 1,
+   "damage": [
+    {
+     "dice": "3d6",
+     "type": "psychic"
+    }
+   ],
+   "effect": {
+    "name": "Mind Whipped",
+    "mods": {
+     "no_reactions": true
+    },
+    "duration_rounds": 1,
+    "tag": "mind_whip",
+    "until_target_turn_end": true
+   }
+  }
+ },
+ {
+  "id": "fortunes_favor",
+  "name": "Fortune's Favor",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "minute",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "A creature within 60 ft can roll a d20 once in the next hour and use it in place of one attack, check or save roll; +1 target per slot.",
+  "combat": null
+ },
+ {
+  "id": "immovable_object",
+  "name": "Immovable Object",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "action",
+  "range": 5,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Fix a touched object of 10 lb or less in place for 1 hour; it holds up to 4,000 lb and can be set to move for chosen creatures.",
+  "combat": null
+ },
+ {
+  "id": "wristpocket",
+  "name": "Wristpocket",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "wizard"
+  ],
+  "source": "EGtW",
+  "casting_time": "action",
+  "range": 0,
+  "components": "S",
+  "concentration": true,
+  "ritual": true,
+  "duration_rounds": 600,
+  "summary": "Flick a held object of 5 lb or less into an extradimensional pocket and recall it at will for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "nathairs_mischief",
+  "name": "Nathair's Mischief",
+  "level": 2,
+  "school": "illusion",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "FTD",
+  "casting_time": "action",
+  "range": 60,
+  "components": "S,M",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 20-ft cube of fey magic within 60 ft rolls a random effect each turn: charmed, blinded, sneezing incapacitation, or difficult terrain (WIS save resists).",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "cube",
+    "size": 20
+   },
+   "save": "wis",
+   "effect": {
+    "name": "Mischief",
+    "condition": "incapacitated",
+    "duration_rounds": 1
+   },
+   "zone": {
+    "trigger": "start_turn",
+    "save": "wis",
+    "effect": {
+     "name": "Mischief",
+     "condition": "incapacitated",
+     "duration_rounds": 1
+    }
+   }
+  }
+ },
+ {
+  "id": "rimes_binding_ice",
+  "name": "Rime's Binding Ice",
+  "level": 2,
+  "school": "evocation",
+  "classes": [
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "FTD",
+  "casting_time": "action",
+  "range": 0,
+  "components": "S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "A 30-ft cone of frost: CON save or 3d8 cold and speed 0 for 1 minute (ice can be chipped free); half damage only on success. +1d8 per slot.",
+  "combat": {
+   "target": "self_area",
+   "area": {
+    "shape": "cone",
+    "size": 30
+   },
+   "save": "con",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "3d8",
+     "type": "cold"
+    }
+   ],
+   "upcast_dice": "1d8",
+   "effect": {
+    "name": "Frozen in Place",
+    "mods": {
+     "speed_mult": 0
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "gift_of_gab",
+  "name": "Gift of Gab",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "wizard"
+  ],
+  "source": "AI",
+  "casting_time": "reaction",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Edit a creature's memory of the last 6 seconds of your speech so it recalls whatever words you choose.",
+  "combat": null
+ },
+ {
+  "id": "jims_glowing_coin",
+  "name": "Jim's Glowing Coin",
+  "level": 2,
+  "school": "enchantment",
+  "classes": [
+   "bard",
+   "sorcerer",
+   "warlock",
+   "wizard"
+  ],
+  "source": "AI",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "Throw an enchanted coin within 60 ft; creatures that see it make a WIS save or are distracted, with disadvantage on Perception and initiative for 1 minute.",
+  "combat": null
+ },
+ {
+  "id": "borrowed_knowledge",
+  "name": "Borrowed Knowledge",
+  "level": 2,
+  "school": "divination",
+  "classes": [
+   "bard",
+   "cleric",
+   "wizard"
+  ],
+  "source": "SCC",
+  "casting_time": "action",
+  "range": 0,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 600,
+  "summary": "Gain proficiency in one skill of your choice for 1 hour.",
+  "combat": null
+ },
+ {
+  "id": "kinetic_jaunt",
+  "name": "Kinetic Jaunt",
+  "level": 2,
+  "school": "transmutation",
+  "classes": [
+   "artificer",
+   "bard",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "SCC",
+  "casting_time": "bonus",
+  "range": 0,
+  "components": "S",
+  "concentration": true,
+  "ritual": false,
+  "duration_rounds": 10,
+  "summary": "For 1 minute your speed rises by 10 ft, you provoke no opportunity attacks and can move through other creatures' spaces.",
+  "combat": {
+   "target": "self",
+   "effect": {
+    "name": "Kinetic Jaunt",
+    "mods": {
+     "speed": 10,
+     "no_provoke": true,
+     "pass_creatures": true
+    },
+    "duration_rounds": 10
+   }
+  }
+ },
+ {
+  "id": "vortex_warp",
+  "name": "Vortex Warp",
+  "level": 2,
+  "school": "conjuration",
+  "classes": [
+   "artificer",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "SCC",
+  "casting_time": "action",
+  "range": 90,
+  "components": "V,S",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "A creature within 90 ft makes a CON save or is teleported to a spot within range you can see (willing creatures may fail). Range +30 ft per slot.",
+  "combat": {
+   "target": "creature",
+   "save": "con",
+   "special": "vortex_warp"
+  }
+ },
+ {
+  "id": "wither_and_bloom",
+  "name": "Wither and Bloom",
+  "level": 2,
+  "school": "necromancy",
+  "classes": [
+   "druid",
+   "sorcerer",
+   "wizard"
+  ],
+  "source": "SCC",
+  "casting_time": "action",
+  "range": 60,
+  "components": "V,S,M",
+  "concentration": false,
+  "ritual": false,
+  "duration_rounds": 0,
+  "summary": "Chosen creatures in a 10-ft sphere within 60 ft make a CON save, 2d6 necrotic or half; one creature inside can spend a Hit Die to heal. +1d6 per slot.",
+  "combat": {
+   "target": "point",
+   "area": {
+    "shape": "sphere",
+    "size": 10
+   },
+   "save": "con",
+   "half_on_save": true,
+   "damage": [
+    {
+     "dice": "2d6",
+     "type": "necrotic"
+    }
+   ],
+   "upcast_dice": "1d6"
+  }
+ }
+]
