@@ -26,6 +26,13 @@ var ai: CombatAI
 var players := {}         # peer_id -> {"name", "cids": []}
 var auto_monsters := true
 var _ai_busy := false
+var _in_handle := false
+var _fix_snap: Dictionary = {}     # the state before the request being resolved (see _fix_begin)
+var _fix_rng: Dictionary = {}      # and the dice that go with it
+var _fix_gseed := 0
+var _fix_answers: Array = []
+var _fix_redo: Callable
+var _fix_replaying := false
 var _pending_character: Dictionary = {}
 var last_end_reason := ""  # why the last game ended (shown on the main menu)
 ## Character sheets of the PCs in the game (cid -> character dictionary without its history), kept in
@@ -242,6 +249,47 @@ func _rpc_portrait(key: String, bytes: PackedByteArray) -> void:
 	CharacterStore.register_portrait(key, bytes)
 	portrait_arrived.emit(key)
 
+## Change a PC's portrait (and token colour) mid-game. The image is already saved on this machine under
+## `key`; its bytes travel with the request so the DM can share it with everyone.
+func set_portrait(cid: String, key: String, template := "", color := "") -> void:
+	var bytes := CharacterStore.get_portrait_bytes(key)
+	if is_server():
+		_apply_portrait(1, cid, key, bytes, template, color)
+	else:
+		_rpc_set_portrait.rpc_id(1, cid, key, bytes, template, color)
+
+const PORTRAIT_MAX_BYTES := 2 * 1024 * 1024
+
+@rpc("any_peer", "reliable")
+func _rpc_set_portrait(cid: String, key: String, bytes: PackedByteArray, template: String, color: String) -> void:
+	if is_server():
+		_apply_portrait(multiplayer.get_remote_sender_id(), cid, key, bytes, template, color)
+
+func _apply_portrait(peer: int, cid: String, key: String, bytes: PackedByteArray, template: String, color: String) -> void:
+	var c = engine.C(cid)
+	if c.is_empty() or c.kind != "pc" or not can_control(peer, c):
+		return
+	if not CharacterStore.valid_portrait_key(key) or bytes.is_empty() or bytes.size() > PORTRAIT_MAX_BYTES \
+			or Image.new().load_png_from_buffer(bytes) != OK:
+		_tell(peer, "That portrait couldn't be used (it must be a PNG under 2 MB).")
+		return
+	CharacterStore.register_portrait(key, bytes)
+	portrait_arrived.emit(key)
+	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		_rpc_portrait.rpc(key, bytes)
+	c.portrait = key
+	if Color.html_is_valid(color):
+		c.color = "#" + Color(color).to_html(false)
+	if sheets.has(cid):
+		var sheet: Dictionary = sheets[cid]
+		sheet.portrait = key
+		sheet.portrait_template = template if PortraitTemplates.has(template) else ""
+		sheet.color = c.color
+		_store_for_owner(c, sheet, "", {})
+	engine.log_line("%s has a new portrait." % c.name)
+	_broadcast([])
+	_broadcast_sheets()
+
 @rpc("authority", "reliable")
 func _rpc_bg(key: String, bytes: PackedByteArray) -> void:
 	CharacterStore.register_bg(key, bytes)
@@ -310,6 +358,9 @@ func _valid_dice(expr: String) -> bool:
 func _broadcast(events: Array) -> void:
 	if not is_server():
 		return
+	if not engine.fix_wait.is_empty():
+		_fix_ask_player()
+		events = []
 	# Movement left is derived from speed; refresh the cached number before clients see it
 	# (a DM-applied condition or a reaction may have changed the mover's speed).
 	if state.in_combat:
@@ -369,7 +420,7 @@ func add_monster(mid: String, at: Vector2i) -> String:
 
 func _join_initiative(c: Dictionary) -> void:
 	c.turn = engine.new_turn(c)
-	c.init = Dice.d20() + int(c.init_bonus)
+	c.init = int(Dice.roll_d20(0, c.get("tags", {}).has("halfling_lucky")).roll) + int(c.init_bonus)
 	var idx: int = state.order.size()
 	for i in state.order.size():
 		if int(engine.C(state.order[i]).get("init", 0)) < c.init:
@@ -387,6 +438,76 @@ func _spawn_cell() -> Vector2i:
 	return engine._free_cell_near(Vector2i(2, 2))
 
 func _handle(peer: int, req: Dictionary) -> void:
+	if str(req.get("type", "")) == "fix_choice":
+		_answer_fix(peer, req)
+		return
+	if not state.get("pending_fix", {}).is_empty():
+		return  # a player is deciding whether to use an ability: the game waits for the answer
+	_fix_begin(func(): _handle(peer, req))
+	_in_handle = true
+	_handle_op(peer, req)
+	_in_handle = false
+	engine.fix_ask = false
+
+# ================================================================ roll-fixing choices
+# Lucky, Indomitable and friends are the player's call (see EngineBase.FIX_NAMES). The engine resolves a
+# whole request in one go, so it can't stop in the middle of a roll to ask. Instead the server keeps a
+# snapshot of the state and the dice before each request. When a player's character is about to use one of
+# these abilities and has no answer yet, the engine notes the question and carries on; `_broadcast` then
+# throws that run away, restores the snapshot and shows the question. The answer is added to the ones
+# already given and the request is run again from the same snapshot with the same dice, so every roll comes
+# out the same until the question is reached, where the answer now decides what happens.
+
+func _fix_begin(redo: Callable) -> void:
+	engine.fix_ask = false
+	engine.fix_wait = {}
+	engine.fix_n = 0
+	if _fix_replaying:
+		_fix_replaying = false
+		engine.fix_answers = _fix_answers
+		engine.fix_ask = true
+		return
+	engine.fix_answers = []
+	_fix_answers = []
+	_fix_snap = {}
+	_fix_redo = redo
+	if not is_server() or not engine.fix_any_manual():
+		return
+	_fix_snap = state.duplicate(true)
+	_fix_rng = {"seed": Dice.rng.seed, "state": Dice.rng.state}
+	_fix_gseed = randi()
+	seed(_fix_gseed)  # the few spots that use the global random numbers replay the same way
+	engine.fix_ask = true
+
+## The run just finished stopped at a question: undo it and ask.
+func _fix_ask_player() -> void:
+	var w: Dictionary = engine.fix_wait
+	engine.fix_wait = {}
+	engine.fix_ask = false
+	var snap: Dictionary = _fix_snap.duplicate(true)
+	state.clear()
+	for k in snap:
+		state[k] = snap[k]
+	Dice.rng.seed = int(_fix_rng.seed)
+	Dice.rng.state = int(_fix_rng.state)
+	seed(_fix_gseed)
+	_fix_answers = w.answers
+	engine.events = []
+	state.pending_fix = {"id": engine.new_id("fix"), "cid": w.cid, "key": w.key, "title": w.title, "detail": w.detail}
+
+func _answer_fix(peer: int, req: Dictionary) -> void:
+	var p: Dictionary = state.get("pending_fix", {})
+	if p.is_empty() or str(req.get("id", "")) != str(p.id) or not _fix_redo.is_valid():
+		return
+	if not can_control(peer, engine.C(str(p.cid))):
+		return
+	state.erase("pending_fix")
+	_fix_answers = _fix_answers.duplicate()
+	_fix_answers.append(bool(req.get("use", false)))
+	_fix_replaying = true
+	_fix_redo.call()
+
+func _handle_op(peer: int, req: Dictionary) -> void:
 	engine.events = []
 	var dm = peer == 1
 	var typ: String = req.get("type", "")
@@ -425,6 +546,17 @@ func _handle(peer: int, req: Dictionary) -> void:
 			_group_roll(who, req)
 		"set_sheet":
 			_set_sheet(peer, c, req.get("sheet", {}), str(req.get("label", "")))
+		"set_auto_fix":
+			# Switch one roll-fixing ability (Lucky...) between "ask me" and "use it automatically".
+			var fid := str(req.get("id", ""))
+			if can_control(peer, c) and c.kind == "pc" and EngineBase.FIX_NAMES.has(fid):
+				var af: Dictionary = c.toggles.get("auto_fix", {})
+				af[fid] = bool(req.get("on", false))
+				c.toggles["auto_fix"] = af
+				if sheets.has(c.id):
+					sheets[c.id].auto_fix = af.duplicate()
+					_store_for_owner(c, sheets[c.id], "", {})
+					_broadcast_sheets()
 		# ---------------- DM tools
 		"dm_advancement":
 			if dm and str(req.get("mode", "")) in ["xp", "milestone"]:
@@ -477,11 +609,21 @@ func _handle(peer: int, req: Dictionary) -> void:
 		"dm_cells":
 			if dm:
 				var solid: bool = int(req.value) in [EngineBase.WALL, EngineBase.PIT]
+				var painted := {}
 				for p in req.cells:
 					# Never wall a creature in: walls and pits skip occupied cells.
 					if solid and not engine.creature_at(p).is_empty():
 						continue
 					engine.set_cell(p, int(req.value))
+					painted[p] = true
+				# Furniture and other props on repainted cells go with the old terrain.
+				if not painted.is_empty() and not state.get("props", []).is_empty():
+					state.props = state.props.filter(func(pr):
+						for dx in int(pr.get("w", 1)):
+							for dy in int(pr.get("h", 1)):
+								if painted.has(Vector2i(int(pr.x) + dx, int(pr.y) + dy)):
+									return false
+						return true)
 		"dm_spawn":
 			if dm:
 				var sp: Array = state.spawns
@@ -569,6 +711,20 @@ func _handle(peer: int, req: Dictionary) -> void:
 		"dm_clear_map":
 			if dm:
 				state.cells.fill(EngineBase.FLOOR)
+				state.ground = PackedByteArray()
+				state.props = []
+				state.labels = []
+		"dm_label":
+			# Rename (or, with empty text, remove) a place name on the map.
+			if dm:
+				var labels: Array = state.get("labels", [])
+				var li := int(req.get("i", -1))
+				if li >= 0 and li < labels.size():
+					var txt := str(req.get("text", "")).strip_edges().left(60)
+					if txt == "":
+						labels.remove_at(li)
+					else:
+						labels[li].text = txt
 		"dm_theme":
 			if dm: state.theme = req.theme
 		"dm_fog":
@@ -779,6 +935,7 @@ func _group_roll(who: Array, req: Dictionary) -> void:
 				var b: int = int(t.save_bonus.get(ab, engine.ability_mod(t, ab))) + engine._aura_of_protection(t)
 				var adv: int = -1 if engine.exhaustion(t) >= 3 or (ab == "dex" and engine.has_cond(t, "restrained")) else 0
 				var r = Dice.roll_d20(adv, t.tags.has("halfling_lucky"))
+				engine.dice_event(t.id, ab.to_upper() + " save", EngineBase.d20_faces(r), b, int(r.roll) + b)
 				engine.log_line("  %s %s save: %d%s %s = [b]%d[/b]" % [engine.nm(t), ab.to_upper(), r.roll, " (dis)" if adv < 0 else "", Rules.fmt_mod(b), int(r.roll) + b])
 		else:
 			var b2: int = engine.ability_mod(t, ab)
@@ -789,6 +946,7 @@ func _group_roll(who: Array, req: Dictionary) -> void:
 			var r2 = Dice.roll_d20(-1 if dis else 0, t.tags.has("halfling_lucky"))
 			var tot: int = int(r2.roll) + b2
 			ok = dc <= 0 or tot >= dc
+			engine.dice_event(t.id, what.replace(" check", "") + ((" · DC %d" % dc) if dc > 0 else ""), EngineBase.d20_faces(r2), b2, tot, ("SUCCESS" if ok else "FAIL") if dc > 0 else "")
 			engine.log_line("  %s: %d%s %s = [b]%d[/b]%s" % [engine.nm(t), r2.roll, " (dis)" if dis else "", Rules.fmt_mod(b2), tot,
 				("  [color=%s]%s[/color]" % ["#7fdc7f" if ok else "#ff7f7f", "SUCCESS" if ok else "FAIL"]) if dc > 0 else ""])
 		if dmg_total > 0:
@@ -820,7 +978,7 @@ func _should_auto(c: Dictionary) -> bool:
 	return auto_monsters and int(c.owner) == 1 and c.team != "party"
 
 func _maybe_run_ai() -> void:
-	if not is_server() or _ai_busy or not state.in_combat:
+	if not is_server() or _ai_busy or not state.in_combat or not state.get("pending_fix", {}).is_empty():
 		return
 	var cur = engine.current()
 	if not _should_auto(cur):
@@ -832,9 +990,14 @@ func _maybe_run_ai() -> void:
 		_run_ai_now()
 
 func _run_ai_now(use_resources := true, allow_move := true) -> void:
+	if not state.get("pending_fix", {}).is_empty():
+		return
 	var cur = engine.current()
 	if cur.is_empty():
 		return
+	# Called from _handle (Auto Turn), the request has already begun; on its own (a monster's turn) it starts here.
+	if not _in_handle:
+		_fix_begin(func(): _run_ai_now(use_resources, allow_move))
 	engine.events = []
 	ai.use_resources = use_resources
 	ai.allow_move = allow_move
@@ -846,6 +1009,8 @@ func _run_ai_now(use_resources := true, allow_move := true) -> void:
 		engine.end_turn()
 	_check_victory()
 	_broadcast(engine.events)
+	if not _in_handle:
+		engine.fix_ask = false
 	_maybe_run_ai()
 
 ## Set (or clear, with "") the map's background image and push its bytes to every player.
@@ -874,6 +1039,16 @@ func _resize(w: int, h: int) -> void:
 	for y in mini(h, state.h):
 		for x in mini(w, state.w):
 			cells[y * w + x] = state.cells[y * state.w + x]
+	var old_ground: PackedByteArray = state.get("ground", PackedByteArray())
+	if old_ground.size() == state.w * state.h:
+		var ground := PackedByteArray()
+		ground.resize(w * h)
+		for y in mini(h, state.h):
+			for x in mini(w, state.w):
+				ground[y * w + x] = old_ground[y * state.w + x]
+		state.ground = ground
+	state.props = state.get("props", []).filter(func(p): return int(p.x) + int(p.get("w", 1)) <= w and int(p.y) + int(p.get("h", 1)) <= h)
+	state.labels = state.get("labels", []).filter(func(l): return float(l.x) < w and float(l.y) < h)
 	state.w = w
 	state.h = h
 	state.cells = cells
@@ -918,7 +1093,32 @@ func map_snapshot() -> Dictionary:
 	for m in mons:
 		if Data.custom_monsters.has(m.mid):
 			custom[m.mid] = Data.custom_monsters[m.mid]
-	return {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone"), "bg": state.get("bg", ""), "custom_monsters": custom, "fog": Fog.settings(state)}
+	var snap := {"name": state.name, "w": state.w, "h": state.h, "cells": Array(state.cells), "monsters": mons, "spawns": spawns, "theme": state.get("theme", "stone"), "bg": state.get("bg", ""), "custom_monsters": custom, "fog": Fog.settings(state)}
+	var ground: PackedByteArray = state.get("ground", PackedByteArray())
+	if ground.size() == state.w * state.h or not state.get("props", []).is_empty() or not state.get("labels", []).is_empty():
+		snap.ground = Array(ground) if ground.size() == state.w * state.h else []
+		snap.props = state.get("props", []).duplicate(true)
+		snap.labels = state.get("labels", []).duplicate(true)
+	return snap
+
+## Map dressing from a saved or generated map, checked: per-cell ground materials, props and labels.
+func _load_dressing(m: Dictionary, w: int, h: int) -> void:
+	var g = m.get("ground", [])
+	state.ground = PackedByteArray(g) if (g is Array or g is PackedByteArray) and g.size() == w * h else PackedByteArray()
+	var props: Array = []
+	for p in m.get("props", []):
+		if p is Dictionary and p.has("k") and p.has("x") and p.has("y"):
+			var q := {"k": str(p.k).left(24), "x": clampi(int(p.x), 0, w - 1), "y": clampi(int(p.y), 0, h - 1)}
+			if p.has("w"): q.w = clampi(int(p.w), 1, 8)
+			if p.has("h"): q.h = clampi(int(p.h), 1, 8)
+			props.append(q)
+	state.props = props.slice(0, 4000)
+	var labels: Array = []
+	for l in m.get("labels", []):
+		if l is Dictionary and l.has("text"):
+			labels.append({"text": str(l.text).left(60), "x": clampf(float(l.get("x", 0)), 0, w), "y": clampf(float(l.get("y", 0)), 0, h),
+				"kind": str(l.get("kind", "")).left(16), "style": str(l.get("style", "")).left(8)})
+	state.labels = labels.slice(0, 200)
 
 func _load_map(m: Dictionary) -> void:
 	if state.in_combat:
@@ -931,6 +1131,7 @@ func _load_map(m: Dictionary) -> void:
 	if state.cells.size() != w * h:
 		state.cells.resize(w * h)
 	state.theme = m.get("theme", "stone")
+	_load_dressing(m, w, h)
 	# A new place: nothing explored yet. A map saved with fog settings brings them along.
 	Fog.reset(state)
 	if m.get("fog", {}) is Dictionary and not m.get("fog", {}).is_empty():
@@ -1051,6 +1252,7 @@ func store_local(sheet: Dictionary, label: String, old_sheet: Dictionary = {}) -
 	# The portrait key is this machine's; keep the local one if the game's copy lost it.
 	if str(out.get("portrait", "")) == "" and not full.is_empty():
 		out.portrait = full.get("portrait", "")
+	CharacterStore.persist_portrait(str(out.get("portrait", "")))
 	out.history = hist
 	CharacterStore.save_character(out)
 

@@ -13,7 +13,12 @@ func _ready() -> void:
 	# Solo battle.
 	Session.start_offline("Tester", 26, 18)
 	var y := 4
-	for ch in CharacterStore.premades():
+	var no_questions := {}
+	for fid in EngineBase.FIX_NAMES:
+		no_questions[fid] = true  # this test drives the battle, it does not answer "use Lucky?"
+	for ch0 in CharacterStore.premades():
+		var ch: Dictionary = ch0.duplicate(true)
+		ch["auto_fix"] = no_questions
 		Session.add_character(ch, 1, Vector2i(3, y))
 		y += 2
 	for mid in ["goblin", "goblin", "orc", "mage"]:

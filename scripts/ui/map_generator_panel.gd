@@ -28,6 +28,9 @@ var rooms_row: Control
 var river_chk: CheckBox
 var seed_spin: SpinBox
 var name_edit: LineEdit
+var places_box: VBoxContainer     # Structures tab: named places of the current result
+var struct_blurb: Label
+var place_details := {}           # structure id -> RichTextLabel with its details (taverns)
 var regen_timer: Timer
 var _building := false
 
@@ -90,6 +93,7 @@ func _build() -> void:
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(tabs)
 	_tab(tabs, "Terrain", _build_terrain())
+	_tab(tabs, "Structures", _build_structures())
 	_tab(tabs, "Environment", _build_environment())
 	_tab(tabs, "Monsters", _build_monsters())
 	_tab(tabs, "Party", _build_party())
@@ -210,18 +214,152 @@ func _build_terrain() -> VBoxContainer:
 	_update_blurb()
 	return v
 
+## Type names shown in the Named places list.
+const PLACE_TYPES := {"town": "Town", "tavern": "Tavern", "temple": "Temple", "chapel": "Chapel", "smithy": "Smithy", "shop": "Shop",
+	"apothecary": "Apothecary", "guard": "Guard", "tower": "Tower", "crypt": "Crypt", "shrine": "Shrine", "fort": "Fort"}
+
+func _build_structures() -> VBoxContainer:
+	var v = UIKit.vbox(6)
+	var t: Dictionary = MapGenerator.TERRAINS[settings.terrain]
+	match str(t.layout):
+		"outdoor":
+			_section(v, "Structures in the %s" % str(t.name).to_lower())
+			var items: Array = []
+			for k in MapGenerator.STRUCTURES:
+				items.append([k, MapGenerator.STRUCTURES[k].name])
+			var row = UIKit.hbox()
+			row.add_child(UIKit.lbl("Build", 14))
+			row.add_child(UIKit.expand(UIKit.option(items, settings.get("structures", "none"), func(id):
+				settings.structures = id
+				_update_structure_blurb()
+				_changed())))
+			v.add_child(row)
+			struct_blurb = _note("")
+			v.add_child(struct_blurb)
+			_update_structure_blurb()
+			_slider(v, "How many", "structure_count", 1, 8, 1, func(x): return str(int(x)),
+				"Ruins, cabins or crypts; homes in a hamlet (3+ bring a tavern, 5+ a smithy); more tents in a camp")
+			_style_row(v, "Building style")
+			v.add_child(_note("Buildings use the terrain's materials: log cabins in a forest, stilt huts on plank decks in a swamp, stone in the mountains and the snow. The style sets the look of hamlets and inns and everyone's names."))
+		"town":
+			_section(v, "Town")
+			_style_row(v, "Town style")
+			v.add_child(_note("Human: timber houses on cobbled streets around a well or fountain. Dwarven: stone halls carved into the mountain around a statue. Elven: living-wood homes on winding dirt paths among the trees."))
+			_slider(v, "Taverns", "taverns", 0, 4, 1, func(x): return str(int(x)), "How many taverns the town has (as many as fit)")
+			v.add_child(_note("How built-up the town is, crates and carts, ponds and trees are on the Environment tab. Bigger maps fit a temple, a smithy, shops, an apothecary and a guard house."))
+		"interior":
+			_section(v, "Building")
+			var items: Array = []
+			for k in MapGenerator.INTERIORS:
+				items.append([k, MapGenerator.INTERIORS[k]])
+			var row = UIKit.hbox()
+			row.add_child(UIKit.lbl("Inside a", 14))
+			row.add_child(UIKit.expand(UIKit.option(items, settings.get("interior", "rooms"), func(id):
+				settings.interior = id
+				_update_env_visibility()
+				_changed())))
+			v.add_child(row)
+			_style_row(v, "Style")
+			v.add_child(_note("Every tavern gets its own name, owner, prices, house drink and dish, entertainment, a rumour and a layout: bar, hearth, kitchen, stage, booths, stairs and one odd feature. Big maps add guest rooms at the back."))
+		_:
+			v.add_child(_note("Structures are for outdoor terrains, Town streets and Indoors. Dungeons and caves are built from rooms and tunnels."))
+	_section(v, "Named places")
+	places_box = UIKit.vbox(6)
+	v.add_child(places_box)
+	return v
+
+func _style_row(v: VBoxContainer, label: String) -> void:
+	var items: Array = []
+	for k in MapGenerator.STYLES:
+		items.append([k, MapGenerator.STYLES[k]])
+	var row = UIKit.hbox()
+	row.add_child(UIKit.lbl(label, 14))
+	row.add_child(UIKit.expand(UIKit.option(items, settings.get("style", "human"), func(id): settings.style = id; _changed())))
+	v.add_child(row)
+
+func _update_structure_blurb() -> void:
+	if struct_blurb:
+		struct_blurb.text = MapGenerator.STRUCTURES.get(str(settings.get("structures", "none")), MapGenerator.STRUCTURES.none).blurb
+
+## The named places of the current map: rename them, reroll tavern names, read tavern details.
+func _fill_places() -> void:
+	if places_box == null:
+		return
+	UIKit.clear(places_box)
+	place_details = {}
+	var sts: Array = result.get("report", {}).get("structures", [])
+	if sts.is_empty():
+		places_box.add_child(_note("Nothing named on this map."))
+		return
+	places_box.add_child(_note("Type to rename: the name sticks for as long as the seed and settings build the same place. 🎲 picks a new tavern name."))
+	for st in sts:
+		var row = UIKit.hbox(4)
+		var tl = UIKit.lbl(PLACE_TYPES.get(str(st.type), str(st.type).capitalize()), 13, UIKit.MUTED)
+		tl.custom_minimum_size = Vector2(82, 0)
+		row.add_child(tl)
+		var e = UIKit.line(str(st.name), str(st.gen_name), func(txt): _rename(st, txt))
+		UIKit.expand(e)
+		row.add_child(e)
+		if st.type == "tavern":
+			row.add_child(UIKit.btn("🎲", func():
+				var rng := RandomNumberGenerator.new()
+				rng.randomize()
+				var nn: String = TavernGenerator.random_name(rng, str(st.info.get("style", settings.get("style", "human"))))
+				e.text = nn
+				_rename(st, nn), "A new random tavern name"))
+		places_box.add_child(row)
+		if st.type == "tavern":
+			var d = UIKit.rich(TavernGenerator.describe(st.info), true)
+			d.add_theme_font_size_override("normal_font_size", 12)
+			d.add_theme_font_size_override("bold_font_size", 13)
+			d.add_theme_font_size_override("italics_font_size", 12)
+			places_box.add_child(UIKit.margin(d, 4))
+			place_details[st.id] = d
+
+func _rename(st: Dictionary, txt: String) -> void:
+	var nn := txt.strip_edges()
+	var rn: Dictionary = settings.get("renames", {})
+	if nn == "" or nn == str(st.gen_name):
+		rn.erase(st.gen_name)
+		nn = str(st.gen_name)
+	else:
+		rn[st.gen_name] = nn
+	settings.renames = rn
+	st.name = nn
+	if st.info.has("name"):
+		st.info.name = nn
+	for l in result.get("labels", []):
+		if l.get("sid", "") == st.id:
+			l.text = nn
+	if st.type == "town" and str(settings.get("name", "")) == "":
+		result.name = nn
+	if place_details.has(st.id):
+		place_details[st.id].text = TavernGenerator.describe(st.info)
+	preview.queue_redraw()
+	_update_summary()
+	remembered = {"settings": settings.duplicate(true), "party_mode": party_mode, "custom_party": custom_party.duplicate(true)}
+
 func _build_environment() -> VBoxContainer:
 	var v = UIKit.vbox(6)
 	_section(v, "Terrain features")
-	env_sliders.obstacles = _slider(v, "Obstacles", "obstacles", 0, 1, 0.05, _pct, "Walls, tree clumps or boulders. In a dungeon: higher means smaller rooms.")
-	env_sliders.difficult = _slider(v, "Difficult terrain", "difficult", 0, 1, 0.05, _pct, "Rubble, undergrowth, mud, deep snow, tables (costs double movement)")
-	env_sliders.water = _slider(v, "Water", "water", 0, 1, 0.05, _pct, "Pools, bogs and lakes. Monsters that can't swim or fly are never placed in water.")
+	var town: bool = MapGenerator.TERRAINS[settings.terrain].layout == "town"
+	if town:
+		env_sliders.obstacles = _slider(v, "Buildings", "obstacles", 0, 1, 0.05, _pct, "How built-up the town is: more homes along the streets")
+		env_sliders.difficult = _slider(v, "Crates & carts", "difficult", 0, 1, 0.05, _pct, "Crates, barrels, carts and haystacks against the buildings (difficult terrain)")
+		env_sliders.water = _slider(v, "Ponds", "water", 0, 1, 0.05, _pct, "Ponds between the buildings")
+	else:
+		env_sliders.obstacles = _slider(v, "Obstacles", "obstacles", 0, 1, 0.05, _pct, "Walls, tree clumps or boulders. In a dungeon: higher means smaller rooms.")
+		env_sliders.difficult = _slider(v, "Difficult terrain", "difficult", 0, 1, 0.05, _pct, "Rubble, undergrowth, mud, deep snow, furniture (costs double movement)")
+		env_sliders.water = _slider(v, "Water", "water", 0, 1, 0.05, _pct, "Pools, bogs and lakes. Monsters that can't swim or fly are never placed in water.")
 	env_sliders.pits = _slider(v, "Pits & chasms", "pits", 0, 1, 0.05, _pct, "Impassable drops")
-	env_sliders.cover = _slider(v, "Cover", "cover", 0, 1, 0.05, _pct, "Lone pillars, rocks or headstones to hide behind")
+	if town:
+		env_sliders.cover = _slider(v, "Trees", "cover", 0, 1, 0.05, _pct, "Trees between the buildings (rock columns in a dwarven hold)")
+	else:
+		env_sliders.cover = _slider(v, "Cover", "cover", 0, 1, 0.05, _pct, "Lone pillars, rocks or headstones to hide behind")
 	rooms_row = UIKit.vbox(0)
 	env_sliders.rooms = _slider(rooms_row, "Rooms", "rooms", 2, 16, 1, func(x): return str(int(x)), "How many rooms (dungeons and buildings)")
 	v.add_child(rooms_row)
-	river_chk = UIKit.check("River crossing between the party and the enemy (with fords)", bool(settings.river), func(p): settings.river = p; _changed())
+	river_chk = UIKit.check("River crossing between the party and the enemy (bridges in town, fords in the wild)", bool(settings.river), func(p): settings.river = p; _changed())
 	v.add_child(river_chk)
 	v.add_child(UIKit.btn("Reset to this terrain's defaults", func(): _set_terrain(settings.terrain)))
 	v.add_child(_note("Anything the party couldn't walk to is filled in, so every start point can reach every monster on foot."))
@@ -379,7 +517,7 @@ func _set_terrain(id: String) -> void:
 	var keep := settings.duplicate(true)
 	settings = MapGenerator.defaults_for(id)
 	for k in keep:
-		if not k in ["obstacles", "difficult", "water", "pits", "cover", "rooms", "river", "terrain"]:
+		if not k in ["obstacles", "difficult", "water", "pits", "cover", "rooms", "river", "terrain", "structures"]:
 			settings[k] = keep[k]
 	_rebuild()
 
@@ -412,9 +550,9 @@ func _update_blurb() -> void:
 func _update_env_visibility() -> void:
 	var layout: String = MapGenerator.TERRAINS[settings.terrain].layout
 	if rooms_row:
-		rooms_row.visible = layout in ["rooms", "interior"]
+		rooms_row.visible = layout == "rooms" or (layout == "interior" and str(settings.get("interior", "rooms")) == "rooms")
 	if river_chk:
-		river_chk.visible = layout == "outdoor"
+		river_chk.visible = layout in ["outdoor", "town"]
 
 func _changed() -> void:
 	if _building or regen_timer == null:
@@ -433,6 +571,7 @@ func regenerate() -> void:
 	preview.set_map(result)
 	_update_summary()
 	_update_profile()
+	_fill_places()
 	remembered = {"settings": settings.duplicate(true), "party_mode": party_mode, "custom_party": custom_party.duplicate(true)}
 
 func _update_profile() -> void:
@@ -455,6 +594,20 @@ func _update_summary() -> void:
 	var enc: Dictionary = rep.get("encounter", {})
 	var lines: Array = []
 	lines.append("[b]%s[/b]  ·  %s, %d×%d squares, %d start points, seed %d" % [result.name, t.name, result.w, result.h, result.spawns.size(), int(settings.seed)])
+	var taverns: Array = []
+	var others := 0
+	for st in rep.get("structures", []):
+		if st.type == "tavern":
+			taverns.append(str(st.name))
+		elif st.type != "town":
+			others += 1
+	if not taverns.is_empty() or others > 0:
+		var bits: Array = []
+		if not taverns.is_empty():
+			bits.append("[color=#ffd27a]%s[/color]" % ", ".join(taverns))
+		if others > 0:
+			bits.append("%d other named place%s" % [others, "" if others == 1 else "s"])
+		lines.append("  " + "  ·  ".join(bits) + "  [color=#a59cb5](Structures tab)[/color]")
 	if not settings.include_monsters:
 		lines.append("[color=#a59cb5]No monsters: terrain only.[/color]")
 	elif enc.is_empty() or enc.picks.is_empty():
@@ -536,20 +689,39 @@ class MapPreview extends Control:
 		var off := (size - Vector2(w, h) * cs) * 0.5
 		var th: Dictionary = _theme(str(map.get("theme", "stone")))
 		var cells: Array = map.cells
+		var ground: Array = map.get("ground", [])
+		var has_g := ground.size() == w * h
+		var props: Array = map.get("props", [])
+		var cov: Dictionary = MapDecor.covered(props)
+		var detail := cs >= 20.0
 		for y in h:
 			for x in w:
 				var r := Rect2(off + Vector2(x, y) * cs, Vector2(cs, cs))
 				var col: Color = th.floor_a if (x + y) % 2 == 0 else th.floor_b
-				match int(cells[y * w + x]):
+				var v := int(cells[y * w + x])
+				var gc: int = int(ground[y * w + x]) if has_g else 0
+				if v == EngineBase.WALL and MapDecor.free_standing(cov, Vector2i(x, y)):
+					v = EngineBase.FLOOR
+				if gc > 0 and v in [EngineBase.FLOOR, EngineBase.DIFFICULT]:
+					MapDecor.draw_floor(self, r, gc, x, y, detail)
+					if v == EngineBase.DIFFICULT and not cov.has(Vector2i(x, y)) and cs >= 6:
+						draw_circle(r.get_center(), cs * 0.14, MapDecor.FLOORS.get(gc, col).darkened(0.4))
+					continue
+				if gc > 0 and v == EngineBase.WALL:
+					MapDecor.draw_wall(self, r, gc, x, y, detail)
+					continue
+				match v:
 					EngineBase.WALL: col = th.wall
 					EngineBase.DIFFICULT: col = col.darkened(0.25)
 					EngineBase.WATER: col = Color(0.16, 0.36, 0.55)
 					EngineBase.PIT: col = Color(0.02, 0.016, 0.03)
 				draw_rect(r, col)
-				if int(cells[y * w + x]) == EngineBase.PIT:
+				if v == EngineBase.PIT:
 					draw_rect(r.grow(-maxf(1.0, cs * 0.1)), Color("#7a5a8c"), false, maxf(1.0, cs * 0.08))
-				elif int(cells[y * w + x]) == EngineBase.DIFFICULT and cs >= 6:
+				elif v == EngineBase.DIFFICULT and cs >= 6 and not cov.has(Vector2i(x, y)):
 					draw_circle(r.get_center(), cs * 0.14, col.darkened(0.4))
+		if not props.is_empty():
+			MapDecor.draw_props(self, props, off, cs)
 		if cs >= 8:
 			for x in w + 1:
 				draw_line(off + Vector2(x * cs, 0), off + Vector2(x * cs, h * cs), th.grid, 1)
@@ -570,6 +742,7 @@ class MapPreview extends Control:
 			else:
 				draw_circle(cen, rad, col2)
 				draw_arc(cen, rad, 0, TAU, 24, Color(1, 0.35, 0.3), maxf(1.0, cs * 0.08))
+		MapDecor.draw_labels(self, map.get("labels", []), off, cs)
 
 	static func _theme(id: String) -> Dictionary:
 		var themes: Dictionary = preload("res://scripts/ui/map_view.gd").THEMES

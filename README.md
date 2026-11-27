@@ -76,6 +76,8 @@ The engine enforces the movement rules:
 
 **Sound.** Attacks, spells (by damage type), hits, misses, healing, deaths, footsteps and your turn all have sound effects, synthesized in code by the `Sfx` autoload. Use the 🔊 button in the top bar to mute and the slider to set the volume. Both are saved between sessions.
 
+**Dice.** Rolls can tumble across a dice tray in the bottom-left corner of the map: attacks, saves, checks, contests, initiative, death saves and damage, each with the right die shape. A die dropped for advantage or disadvantage is struck through, and natural 20s and 1s glow. The 🎲 button in the top bar picks what *you* see: **Off**, **Mine** (rolls by or against your creatures) or **All**. Each player has their own setting, saved on their own computer. Rolls by creatures hidden in the fog stay hidden.
+
 **Camera.** WASD or arrow keys, or right/middle-drag, to pan. Mouse wheel zooms. Right-click or Esc cancels targeting.
 
 **Toggles.**
@@ -83,12 +85,21 @@ The engine enforces the movement rules:
 - Reckless Attack, Great Weapon Master, Sharpshooter.
 - Metamagic.
 
+**Ask-first abilities.** In 5e you decide whether to use these after you see the roll, so the game asks you, even on a monster's turn:
+- Lucky (on your own failed attack or save, or when an attack hits you), Indomitable, Favored by the Gods.
+- Bardic Inspiration and Emboldening Bond, when an ally has given you one.
+- Flash of Genius (the artificer is asked when an ally within 30 ft fails a save), Guided Strike, Precision Attack.
+
+A box appears with the roll ("Use Lucky?"), and the game waits until you answer. The DM sees the same box and can answer for a player who is away. To stop being asked about an ability, open the **🎲** menu next to Auto Turn and tick it: from then on it is used automatically, only when it would turn the roll around. The setting is saved with the character. The DM picks a character to change by selecting it first. Monsters, and characters played by the AI, always use these abilities automatically.
+
+How it works: the server saves the game and the dice before each action. When a question comes up, it undoes the action, asks, and then runs the action again with the same dice, so every roll before the question comes out the same.
+
 **Automatic reactions:**
 - Shield, Counterspell, Absorb Elements, Hellish Rebuke.
 - Uncanny Dodge, Deflect Missiles.
-- Cutting Words, Chronal Shift, Flash of Genius, Warding Flare.
+- Cutting Words, Chronal Shift, Warding Flare.
 - Protection and Interception fighting styles.
-- Riposte, Lucky, Bardic Inspiration, Emboldening Bond, Indomitable.
+- Riposte.
 - Legendary Resistance (monsters).
 
 ### DM toolbox (left panel)

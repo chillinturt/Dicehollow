@@ -25,7 +25,7 @@ static func new_character() -> Dictionary:
 		"choices": {},
 		"spells": {},
 		"equipment": {"armor": "", "shield": false, "weapons": [], "weapon_bonus": 0, "armor_bonus": 0},
-		"portrait": "", "color": "#7a5cff", "notes": "",
+		"portrait": "", "portrait_template": "", "color": "#7a5cff", "notes": "",
 		"xp": 0, "level_cap": 0, "level_log": [], "level_plan": [], "hp_rolls": {}, "history": [],
 	}
 

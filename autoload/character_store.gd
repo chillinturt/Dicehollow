@@ -69,9 +69,19 @@ func import_portrait(path: String) -> String:
 	var y = (img.get_height() - side) / 4  # bias towards the top (faces)
 	img = img.get_region(Rect2i(x, y, side, side))
 	img.resize(PORTRAIT_SIZE, PORTRAIT_SIZE, Image.INTERPOLATE_LANCZOS)
+	return save_portrait_image(img)
+
+## Save a ready-made portrait image under a key (a fresh one if empty). Returns the key or "".
+func save_portrait_image(img: Image, key := "") -> String:
+	if img == null or img.is_empty():
+		return ""
 	img.convert(Image.FORMAT_RGBA8)
-	var key = new_id()
-	img.save_png(PORTRAIT_DIR + "/" + key + ".png")
+	if key == "":
+		key = new_id()
+	if img.save_png(PORTRAIT_DIR + "/" + key + ".png") != OK:
+		return ""
+	portrait_bytes.erase(key)
+	_tex_cache.erase(key)
 	return key
 
 func get_portrait_bytes(key: String) -> PackedByteArray:
@@ -85,6 +95,26 @@ func get_portrait_bytes(key: String) -> PackedByteArray:
 		portrait_bytes[key] = b
 		return b
 	return PackedByteArray()
+
+## Portrait keys become file names, so only short [A-Za-z0-9_] keys are accepted from the network.
+func valid_portrait_key(key: String) -> bool:
+	if key.is_empty() or key.length() > 48:
+		return false
+	for ch in key:
+		if not (ch == "_" or (ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9")):
+			return false
+	return true
+
+## Write a portrait known only in memory (received over the network) to disk, so a saved character keeps it.
+func persist_portrait(key: String) -> void:
+	if not valid_portrait_key(key) or not portrait_bytes.has(key):
+		return
+	var p = PORTRAIT_DIR + "/" + key + ".png"
+	if FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.WRITE)
+	if f:
+		f.store_buffer(portrait_bytes[key])
 
 func register_portrait(key: String, bytes: PackedByteArray) -> void:
 	if key == "" or bytes.is_empty():

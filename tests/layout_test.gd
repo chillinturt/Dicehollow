@@ -143,6 +143,14 @@ func _dialogs_from(owner: Node, ui_root: Control, tag: String) -> void:
 				await audit(ui_root, "%s/sheet/%s/%s" % [tag, c.name, w.tabs.get_tab_title(t)], owner)
 			w.close()
 			await _frames(1)
+		# Portrait picker (first PC is enough: the layout doesn't depend on the character).
+		for c in Session.state.combatants.values():
+			if c.kind == "pc":
+				var pw = owner._open_portrait_picker(c.id)
+				await audit(ui_root, "%s/portrait/%s" % [tag, c.name], owner)
+				pw.close()
+				await _frames(1)
+				break
 		# Level-up wizard for every PC, walking every step.
 		for c in Session.state.combatants.values():
 			if c.kind != "pc":

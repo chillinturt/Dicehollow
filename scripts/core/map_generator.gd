@@ -14,7 +14,21 @@ const DIFFICULT := EngineBase.DIFFICULT
 const WATER := EngineBase.WATER
 const PIT := EngineBase.PIT
 
+## Ground materials (map "ground" layer, one byte per cell; drawing only, movement comes from the cells).
+## Under open ground it is the floor; under a wall it is what the wall is built of.
+const G_NONE := 0      # the theme's own floor / wall
+const G_PLANK := 1     # floor: wooden planks   wall: timber frame
+const G_COBBLE := 2    # floor: cobblestones    wall: brick / masonry
+const G_DIRT := 3      # floor: dirt path       wall: log palisade
+const G_FLAG := 4      # floor: flagstones      wall: dressed stone blocks (dwarven)
+const G_GRASS := 5     # floor: grass           wall: hedge
+const G_RUG := 6       # floor: rug / carpet
+const G_STRAW := 7     # floor: straw / hay
+const G_LEAF := 8      # floor: woven leaf-wood (elven)  wall: living wood
+
 ## Each terrain: how it is laid out, its colour theme and the default environment sliders.
+## "habitat" is the monster habitat it draws from (defaults to the terrain's own id), "structures" its default
+## wilderness structures (outdoor terrains only, see STRUCTURES).
 const TERRAINS := {
 	"dungeon": {"name": "Dungeon", "layout": "rooms", "theme": "stone", "obstacles": 0.4, "difficult": 0.1, "water": 0.0, "pits": 0.05, "cover": 0.25, "rooms": 6, "river": false,
 		"blurb": "Rooms joined by 10-ft corridors."},
@@ -24,22 +38,46 @@ const TERRAINS := {
 		"blurb": "Tree clusters (walls) and undergrowth."},
 	"swamp": {"name": "Swamp", "layout": "outdoor", "theme": "swamp", "obstacles": 0.12, "difficult": 0.45, "water": 0.45, "pits": 0.0, "cover": 0.15, "rooms": 0, "river": false,
 		"blurb": "Bogs, pools and mud."},
-	"town": {"name": "Town interior", "layout": "interior", "theme": "tavern", "obstacles": 0.3, "difficult": 0.2, "water": 0.0, "pits": 0.0, "cover": 0.2, "rooms": 5, "river": false,
-		"blurb": "A building split into rooms; tables as difficult terrain."},
+	"town": {"name": "Town streets", "layout": "town", "theme": "village", "habitat": "town", "obstacles": 0.6, "difficult": 0.25, "water": 0.0, "pits": 0.0, "cover": 0.3, "rooms": 0, "river": false,
+		"blurb": "Streets and a square lined with homes, shops, a temple and taverns. Pick human, dwarven or elven below."},
+	"indoor": {"name": "Indoors", "layout": "interior", "theme": "tavern", "habitat": "town", "obstacles": 0.3, "difficult": 0.2, "water": 0.0, "pits": 0.0, "cover": 0.2, "rooms": 5, "river": false,
+		"blurb": "Inside one building: plain rooms, a tavern or a temple. Furniture is difficult terrain."},
 	"arctic": {"name": "Arctic", "layout": "outdoor", "theme": "snow", "obstacles": 0.12, "difficult": 0.4, "water": 0.12, "pits": 0.05, "cover": 0.2, "rooms": 0, "river": false,
 		"blurb": "Ice ridges, deep snow and open water."},
 	"graveyard": {"name": "Graveyard", "layout": "outdoor", "theme": "ruins", "obstacles": 0.2, "difficult": 0.2, "water": 0.0, "pits": 0.08, "cover": 0.6, "rooms": 0, "river": false,
-		"blurb": "Crypts, headstones and open graves."},
+		"structures": "crypts", "blurb": "Crypts, headstones and open graves."},
 	"mountain": {"name": "Mountain pass", "layout": "outdoor", "theme": "badlands", "obstacles": 0.3, "difficult": 0.35, "water": 0.0, "pits": 0.15, "cover": 0.3, "rooms": 0, "river": false,
 		"blurb": "Boulders, scree and chasms."},
 }
 const SIDES := ["west", "east", "north", "south", "random"]
 const LAYOUTS := {"group": "One group ahead", "spread": "Spread out", "surround": "Surrounding the party"}
 
+## Structures that can stand in the wild (outdoor terrains).
+const STRUCTURES := {
+	"none": {"name": "None", "blurb": "Just the land."},
+	"ruins": {"name": "Ruins", "blurb": "Broken walls of old buildings, rubble inside."},
+	"camp": {"name": "Camp", "blurb": "Tents around a campfire: bandits, hunters or an army scout party."},
+	"cabins": {"name": "Cabins", "blurb": "A few lone homes with furniture inside (stilt huts in a swamp)."},
+	"tower": {"name": "Watchtower", "blurb": "A stone tower with stairs and supplies, maybe a wall around it."},
+	"shrine": {"name": "Shrine", "blurb": "A ring of standing stones around an altar, or a small chapel."},
+	"crypts": {"name": "Crypts", "blurb": "Stone mausoleums with sarcophagi inside."},
+	"hamlet": {"name": "Hamlet", "blurb": "A handful of homes along a road, with a tavern when there are enough."},
+	"inn": {"name": "Roadside inn", "blurb": "A tavern and its stable on a road through the wilds."},
+	"fort": {"name": "Fort", "blurb": "A palisade with a gate, a tower and a barracks inside."},
+}
+## Building styles for towns, hamlets, inns and interiors.
+const STYLES := {"human": "Human", "dwarf": "Dwarven", "elf": "Elven"}
+## What an "Indoors" map is.
+const INTERIORS := {"rooms": "Plain rooms", "tavern": "Tavern", "temple": "Temple"}
+## Map colour theme per style (towns and interiors).
+const STYLE_THEMES := {"town": {"human": "village", "dwarf": "dwarfhold", "elf": "glade"}, "indoor": {"human": "tavern", "dwarf": "dwarfhold", "elf": "glade"}}
+
 const DEFAULTS := {
 	"terrain": "dungeon", "w": 30, "h": 20, "seed": 0, "rooms": 6, "river": false,
 	"party_side": "west", "enemy_distance": 0.6, "enemy_layout": "group", "include_monsters": true, "hidden": 0.0,
 	"spawn_count": 6, "name": "",
+	"structures": "none", "structure_count": 2, "style": "human", "interior": "rooms", "taverns": 1,
+	"renames": {},   # generated place name -> the DM's name for it
 }
 
 var s: Dictionary
@@ -49,6 +87,12 @@ var cells: PackedByteArray
 var rng := RandomNumberGenerator.new()
 var spawns: Array = []        # Vector2i
 var dist: PackedInt32Array    # walking steps from the party's start points (-1 = unreachable)
+var ground: PackedByteArray   # G_* per cell
+var props: Array = []         # {"k", "x", "y", "w", "h"}: furniture and dressing, drawn over the cells
+var labels: Array = []        # {"text", "x", "y", "kind", "sid"}: place names (x, y: centre, in cells)
+var structures: Array = []    # {"id", "type", "name", "gen_name", "rect", "info"}: what was built
+var keep_clear := {}          # Vector2i -> true: doorsteps and paths that clutter must not block
+var place_name := ""          # a town or hamlet's name
 
 ## Settings for `terrain` with its default environment sliders filled in.
 static func defaults_for(terrain: String) -> Dictionary:
@@ -57,7 +101,16 @@ static func defaults_for(terrain: String) -> Dictionary:
 	d.terrain = terrain
 	for k in ["obstacles", "difficult", "water", "pits", "cover", "rooms", "river"]:
 		d[k] = t[k]
+	d.structures = t.get("structures", "none")
 	return d
+
+## The colour theme a map built with these settings gets.
+static func theme_for(st: Dictionary) -> String:
+	var terrain := str(st.get("terrain", "dungeon"))
+	var t: Dictionary = TERRAINS.get(terrain, TERRAINS.dungeon)
+	if STYLE_THEMES.has(terrain):
+		return STYLE_THEMES[terrain].get(str(st.get("style", "human")), t.theme)
+	return t.theme
 
 ## Build a map. Returns a map dictionary (see Session.map_snapshot) plus "report": the encounter and map summary.
 static func generate(settings: Dictionary) -> Dictionary:
@@ -71,15 +124,30 @@ func _run(settings: Dictionary) -> Dictionary:
 	h = clampi(int(s.h), 8, 60)
 	rng.seed = hash([int(s.seed), w, h, str(s.terrain)])
 	var t: Dictionary = TERRAINS.get(s.terrain, TERRAINS.dungeon)
+	if not settings.has("habitat"):
+		s.habitat = t.get("habitat", s.terrain)
+	if not s.style in STYLES:
+		s.style = "human"
 	cells = PackedByteArray()
 	cells.resize(w * h)
+	ground = PackedByteArray()
+	ground.resize(w * h)
 	match t.layout:
 		"rooms": _rooms()
 		"cave": _cave()
-		"interior": _interior()
-		_: _outdoor()
+		"interior":
+			if str(s.interior) in ["tavern", "temple"]:
+				StructureBuilder.indoor(self)
+			else:
+				_interior()
+		"town": StructureBuilder.town(self)
+		_:
+			_outdoor()
+			if str(s.structures) != "none" and STRUCTURES.has(str(s.structures)):
+				StructureBuilder.wilderness(self)
 	_choose_spawns()
 	_connect()
+	_apply_renames()
 	var monsters: Array = []
 	var enc := {}
 	if s.include_monsters:
@@ -94,9 +162,65 @@ func _run(settings: Dictionary) -> Dictionary:
 	for m in monsters:
 		if Data.custom_monsters.has(m.mid):
 			custom[m.mid] = Data.custom_monsters[m.mid]
-	var nm: String = str(s.name) if str(s.name) != "" else "%s %d" % [t.name, int(s.seed) % 10000]
-	return {"name": nm, "w": w, "h": h, "cells": Array(cells), "monsters": monsters, "spawns": sp, "theme": t.theme, "bg": "",
-		"custom_monsters": custom, "report": {"encounter": enc, "terrain": s.terrain, "placed": monsters.size(), "seed": int(s.seed)}}
+	var nm: String = str(s.name)
+	if nm == "":
+		if place_name != "":
+			nm = place_name
+		elif structures.size() == 1 and t.layout == "interior":
+			nm = str(structures[0].name)
+		else:
+			nm = "%s %d" % [t.name, int(s.seed) % 10000]
+	var out := {"name": nm, "w": w, "h": h, "cells": Array(cells), "monsters": monsters, "spawns": sp, "theme": theme_for(s), "bg": "",
+		"custom_monsters": custom, "report": {"encounter": enc, "terrain": s.terrain, "placed": monsters.size(), "seed": int(s.seed),
+			"structures": structures, "place_name": place_name}}
+	if Array(ground).any(func(g): return g != G_NONE) or not props.is_empty() or not labels.is_empty():
+		out.ground = Array(ground)
+		out.props = props
+		out.labels = labels
+	return out
+
+## The DM's own names for places replace the generated ones (matched by generated name, so they stick for as
+## long as the same seed builds the same place).
+func _apply_renames() -> void:
+	var rn: Dictionary = s.get("renames", {})
+	for st in structures:
+		var nn := str(rn.get(st.gen_name, "")).strip_edges()
+		if nn != "":
+			st.name = nn
+			if st.info.has("name"):
+				st.info.name = nn
+		for l in labels:
+			if l.get("sid", "") == st.id:
+				l.text = st.name
+		if st.type == "town":
+			place_name = st.name
+
+# ---------------------------------------------------------------- dressing helpers (used by StructureBuilder)
+
+## A prop drawn over the cells at (x, y), `pw` × `ph` cells big. Purely visual.
+func prop(k: String, x: int, y: int, pw := 1, ph := 1) -> void:
+	if _in(Vector2i(x, y)):
+		var p := {"k": k, "x": x, "y": y}
+		if pw != 1: p.w = pw
+		if ph != 1: p.h = ph
+		props.append(p)
+
+func gset(p: Vector2i, code: int) -> void:
+	if _in(p):
+		ground[_i(p)] = code
+
+func gat(p: Vector2i) -> int:
+	return ground[_i(p)] if _in(p) else G_NONE
+
+## A place name drawn on the map at cell coordinates (x, y) (its centre).
+func label(text: String, x: float, y: float, kind: String, sid: String) -> void:
+	labels.append({"text": text, "x": snappedf(x, 0.5), "y": snappedf(y, 0.5), "kind": kind, "sid": sid, "style": str(s.get("style", "human"))})
+
+## Record a built place; returns its id.
+func add_structure(type: String, nm: String, r: Rect2i, info := {}) -> String:
+	var id := "s%d" % structures.size()
+	structures.append({"id": id, "type": type, "name": nm, "gen_name": nm, "rect": [r.position.x, r.position.y, r.size.x, r.size.y], "info": info})
+	return id
 
 # ---------------------------------------------------------------- grid helpers
 
@@ -313,13 +437,31 @@ func _interior() -> void:
 		if c.x < 0 or _near(c, WALL, 1):
 			continue
 		var run := Vector2i(1, 0) if rng.randf() < 0.5 else Vector2i(0, 1)
+		var n := 0
 		for k in rng.randi_range(2, 3):
 			if _at(c + run * k) == FLOOR and not _near(c + run * k, WALL, 1):
 				_put(c + run * k, DIFFICULT)
+				n = k
+			else:
+				break
+		if n >= 1:
+			var a := c + run
+			var e := c + run * n
+			prop("table_long" if n > 1 else "table_round", mini(a.x, e.x), mini(a.y, e.y), absi(e.x - a.x) + 1, absi(e.y - a.y) + 1)
 	var keep_difficult := float(s.difficult)
 	s.difficult = 0.0   # already placed as tables
+	var keep_cover := float(s.cover)
+	s.cover = 0.0       # pillars are added below as props
 	_overlays([FLOOR])
 	s.difficult = keep_difficult
+	s.cover = keep_cover
+	StructureBuilder.dress_plain(self)
+	if keep_cover > 0.01:
+		for i in _density(keep_cover, 0.04):
+			var c := _random_cell_of([FLOOR])
+			if c.x >= 0 and not _near(c, WALL, 1) and not _near(c, PIT, 1) and not _near(c, DIFFICULT, 1):
+				_put(c, WALL)
+				prop(["pillar", "crate", "barrel", "shelf"][rng.randi() % 4], c.x, c.y)
 
 func _near(p: Vector2i, v: int, r: int) -> bool:
 	for dy in range(-r, r + 1):

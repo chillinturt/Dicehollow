@@ -22,7 +22,9 @@ static func new_state(w: int, h: int) -> Dictionary:
 	# "clock" counts elapsed game time in rounds (6 seconds each); see revivable().
 	return {"name": "Untitled", "w": w, "h": h, "cells": cells, "combatants": {}, "order": [], "turn": 0, "round": 0, "clock": 0,
 		"in_combat": false, "zones": [], "items": [], "log": [], "next_id": 1, "spawns": [], "theme": "stone",
-		"fog": {"mode": "off", "shared": true, "range": 0}, "fog_seen": {}}
+		"fog": {"mode": "off", "shared": true, "range": 0}, "fog_seen": {},
+		# Map dressing (drawn only): per-cell ground material, furniture/props and place-name labels.
+		"ground": PackedByteArray(), "props": [], "labels": []}
 
 # ================================================================ basics
 
@@ -65,6 +67,27 @@ func sfx(sound: String, cid := "") -> void:
 	if cid != "":
 		e.cid = cid
 	events.append(e)
+
+## A dice roll that clients may animate in their dice tray (each player chooses whether to see it).
+## cid: who rolled; tid: who it was against ("" if no one). dice: [{"s": sides, "v": value, "off": true if dropped}].
+## mod: the bonus added to the kept roll; total: the final result; result: "HIT", "MISS", "CRIT", "SUCCESS", "FAIL" or "".
+## kind: "d20" (attacks, saves, checks: the client holds the next event briefly so the dice land first) or "damage".
+func dice_event(cid: String, label: String, dice: Array, mod: int, total: int, result := "", tid := "", kind := "d20") -> void:
+	if dice.is_empty():
+		return
+	events.append({"t": "dice", "cid": cid, "tid": tid, "label": label, "dice": dice, "mod": mod, "total": total,
+		"result": result, "kind": kind})
+
+## Dice-tray dice for a Dice.roll_d20 result: the roll it didn't keep (advantage / disadvantage) is marked "off".
+static func d20_faces(rr: Dictionary) -> Array:
+	var out: Array = []
+	var kept_done := false
+	for v in rr.get("rolls", [rr.get("roll", 0)]):
+		var keep: bool = not kept_done and int(v) == int(rr.roll)
+		if keep:
+			kept_done = true
+		out.append({"s": 20, "v": int(v), "off": not keep})
+	return out
 
 func nm(c: Dictionary) -> String:
 	var col = "#8fd0ff" if c.get("team", "") == "party" else "#ff9c8f"
@@ -1016,6 +1039,99 @@ func slots_free(c: Dictionary, lv: int) -> int:
 		n += c.pact_max - c.pact_used
 	return n
 
+# ================================================================ roll-fixing choices
+
+## Abilities a player decides to use after seeing a roll. In 5e the choice is theirs, so a player's
+## character asks first; a player can switch any of them to "automatic" (c.toggles.auto_fix[id]).
+## Monsters, characters the AI plays and unconscious ones always use the automatic rules below, which
+## only spend an ability when it turns the roll around.
+const FIX_NAMES := {
+	"lucky": "Lucky", "indomitable": "Indomitable", "bardic_inspiration": "Bardic Inspiration",
+	"emboldening_bond": "Emboldening Bond", "flash_of_genius": "Flash of Genius", "guided_strike": "Guided Strike",
+	"favored_by_the_gods": "Favored by the Gods", "precision": "Precision Attack",
+}
+
+## The Session turns this on while it resolves a request, so questions can be asked. Off (the default),
+## every roll-fixing ability is automatic, which is what the AI, the tests and scripted fights want.
+var fix_ask := false
+## Answers already given to this request's questions, in the order they were asked. The Session rolls the
+## request back when a question has no answer yet and runs it again with the answer added; the dice are
+## the same each time, so the question comes back in the same place.
+var fix_answers: Array = []
+var fix_n := 0
+## The first question that had no answer: {cid, key, title, detail, answers}. Once set, the rest of this
+## run is a throwaway (every later question just gets "no").
+var fix_wait: Dictionary = {}
+
+## The ids of the roll-fixing abilities `c` can have (the setting menu lists them).
+static func fix_owned(c: Dictionary) -> Array:
+	var out: Array = []
+	var res: Dictionary = c.get("resources", {})
+	var feats: Dictionary = c.get("features", {})
+	if res.has("lucky"): out.append("lucky")
+	if res.has("indomitable"): out.append("indomitable")
+	if res.has("flash_of_genius"): out.append("flash_of_genius")
+	if feats.has("guided_strike"): out.append("guided_strike")
+	if res.has("favored_by_the_gods"): out.append("favored_by_the_gods")
+	if "precision" in c.get("maneuvers", []): out.append("precision")
+	# Anyone can be handed these by an ally.
+	out.append("bardic_inspiration")
+	out.append("emboldening_bond")
+	return out
+
+## Does `c` have this ability ready to use right now?
+func fix_ready(c: Dictionary, id: String) -> bool:
+	match id:
+		"lucky", "indomitable", "flash_of_genius", "favored_by_the_gods":
+			return res_left(c, id) > 0
+		"guided_strike":
+			return c.features.has("guided_strike") and res_left(c, "channel_divinity") > 0
+		"precision":
+			return "precision" in c.get("maneuvers", []) and res_left(c, "superiority") > 0
+		"bardic_inspiration":
+			return has_tag(c, "bardic_inspiration")
+		"emboldening_bond":
+			return _bond_available(c)
+	return false
+
+## True when `c` is a player's character who gets asked before `id` is used.
+func fix_manual(c: Dictionary, id: String) -> bool:
+	return fix_ask and c.get("kind", "") == "pc" and not c.get("ai", false) and conscious(c) \
+		and not bool(c.get("toggles", {}).get("auto_fix", {}).get(id, false))
+
+## Is there any player's character who might be asked something? (The Session only keeps a snapshot to
+## roll back to when this is true.)
+func fix_any_manual() -> bool:
+	for c in all_combatants():
+		if c.get("kind", "") != "pc" or c.get("ai", false) or not conscious(c):
+			continue
+		for id in FIX_NAMES:
+			if fix_ready(c, id) and not bool(c.get("toggles", {}).get("auto_fix", {}).get(id, false)):
+				return true
+	return false
+
+## Should `c` use `id` now? For an automatic user that is `auto_rule` (the old behaviour: use it when it
+## turns the roll around). For a player's character it is their answer, asked with `detail` as context.
+func fix_use(c: Dictionary, id: String, auto_rule: bool, detail: String) -> bool:
+	if not fix_manual(c, id):
+		return auto_rule
+	if fix_n < fix_answers.size():
+		fix_n += 1
+		return bool(fix_answers[fix_n - 1])
+	if fix_wait.is_empty():
+		fix_wait = {"cid": c.id, "key": id, "answers": fix_answers.duplicate(),
+			"title": "%s: use %s?" % [c.name, FIX_NAMES[id]], "detail": detail}
+	return false
+
+## The result of using a roll-fixing ability: an automatic user always stops there (as before); a player's
+## character stops only if the roll now succeeds and otherwise may try another ability.
+## Returns {} to carry on.
+func _fix_result(c: Dictionary, id: String, ok: bool, notes: PackedStringArray, out: Dictionary) -> Dictionary:
+	if ok or not fix_manual(c, id):
+		out.note = ", ".join(notes)
+		return out
+	return {}
+
 # ================================================================ saving throws
 
 ## Returns true on success. src may be {} for environmental effects.
@@ -1105,6 +1221,7 @@ func saving_throw(t: Dictionary, ability: String, dc: int, src: Dictionary, opts
 				line += " → %s's Chronal Shift forces a reroll: %d" % [nm(p), total]
 				break
 	line += "  [color=%s]%s[/color]" % ["#7fdc7f" if ok else "#ff7f7f", "SUCCESS" if ok else "FAIL"]
+	dice_event(t.id, "%s save · DC %d" % [ability.to_upper(), dc], d20_faces(rr), bonus, total, "SUCCESS" if ok else "FAIL", str(src.get("id", "")))
 	log_line(line)
 	if not ok:
 		return _legendary_or_fail(t)
@@ -1169,37 +1286,81 @@ func _aura_of_protection(t: Dictionary) -> int:
 
 func _save_helpers(t: Dictionary, ability: String, dc: int, total: int, adv: int, bonus: int) -> Dictionary:
 	var need = dc - total
-	if spend_res_if(t, "indomitable"):
+	var notes: PackedStringArray = []
+	var ctx := "%s failed a %s save: %d against DC %d." % [t.name, ability.to_upper(), total, dc]
+	if res_left(t, "indomitable") > 0 and fix_use(t, "indomitable", true, ctx):
+		spend_res(t, "indomitable")
 		var r = Dice.roll_d20(adv)
 		var nt: int = int(r.roll) + bonus
-		return {"ok": nt >= dc, "total": nt, "note": "Indomitable reroll"}
-	if res_left(t, "lucky") > 0:
+		notes.append("Indomitable reroll")
+		var out = _fix_result(t, "indomitable", nt >= dc, notes, {"ok": nt >= dc, "total": nt})
+		if not out.is_empty():
+			return out
+		total = nt
+		need = dc - total
+		ctx = "%s rerolled the save and got %d against DC %d." % [t.name, total, dc]
+	if res_left(t, "lucky") > 0 and fix_use(t, "lucky", true, ctx):
 		spend_res(t, "lucky")
 		var r2 = Dice.roll_d20(0)
 		var nt2: int = maxi(int(r2.roll) + bonus, total)
-		return {"ok": nt2 >= dc, "total": nt2, "note": "Lucky"}
+		notes.append("Lucky")
+		var out2 = _fix_result(t, "lucky", nt2 >= dc, notes, {"ok": nt2 >= dc, "total": nt2})
+		if not out2.is_empty():
+			return out2
+		total = nt2
+		need = dc - total
+		ctx = "%s's save is now %d against DC %d." % [t.name, total, dc]
 	for e in t.effects:
 		if e.get("tag", "") == "bardic_inspiration":
-			var bi: int = Dice.roll(e.die).total
-			if bi >= need:
+			# An automatic user peeks at the die and only spends it when it is enough; a player decides first.
+			var manual := fix_manual(t, "bardic_inspiration")
+			var bi: int = 0 if manual else Dice.roll(e.die).total
+			if fix_use(t, "bardic_inspiration", bi >= need, ctx):
+				if manual:
+					bi = Dice.roll(e.die).total
 				remove_effect(t, e.eid)
-				return {"ok": true, "total": total + bi, "note": "Bardic Inspiration +%d" % bi}
-	if _bond_available(t) and need <= 4:
+				notes.append("Bardic Inspiration +%d" % bi)
+				var out3 = _fix_result(t, "bardic_inspiration", total + bi >= dc, notes, {"ok": true, "total": total + bi})
+				if not out3.is_empty():
+					return out3
+				total += bi
+				need = dc - total
+				ctx = "%s's save is now %d against DC %d." % [t.name, total, dc]
+				break
+	if _bond_available(t) and fix_use(t, "emboldening_bond", need <= 4, ctx):
 		var b: int = Dice.d(4)
 		t.turn["bond_used"] = true
-		if b >= need:
-			return {"ok": true, "total": total + b, "note": "Emboldening Bond +%d" % b}
-	if res_left(t, "favored_by_the_gods") > 0 and need <= 8:
+		if b >= need or fix_manual(t, "emboldening_bond"):
+			notes.append("Emboldening Bond +%d" % b)
+			var out4 = _fix_result(t, "emboldening_bond", total + b >= dc, notes, {"ok": true, "total": total + b})
+			if not out4.is_empty():
+				return out4
+			total += b
+			need = dc - total
+			ctx = "%s's save is now %d against DC %d." % [t.name, total, dc]
+	if res_left(t, "favored_by_the_gods") > 0 and fix_use(t, "favored_by_the_gods", need <= 8, ctx):
 		spend_res(t, "favored_by_the_gods")
 		var fg: int = Dice.roll("2d4").total
-		return {"ok": total + fg >= dc, "total": total + fg, "note": "Favored by the Gods +%d" % fg}
+		notes.append("Favored by the Gods +%d" % fg)
+		var out5 = _fix_result(t, "favored_by_the_gods", total + fg >= dc, notes, {"ok": total + fg >= dc, "total": total + fg})
+		if not out5.is_empty():
+			return out5
+		total += fg
+		need = dc - total
+		ctx = "%s's save is now %d against DC %d." % [t.name, total, dc]
 	for p in allies_of(t):
 		if p.features.has("flash_of_genius") and can_react(p) and res_left(p, "flash_of_genius") > 0 and dist(p, t) <= 30:
 			var add: int = maxi(1, int(p.mods.int))
-			if add >= need:
+			if fix_use(p, "flash_of_genius", add >= need, "%s (adds +%d)" % [ctx, add]):
 				spend_res(p, "flash_of_genius")
 				use_reaction(p)
-				return {"ok": true, "total": total + add, "note": "%s's Flash of Genius +%d" % [p.name, add]}
+				notes.append("%s's Flash of Genius +%d" % [p.name, add])
+				var out6 = _fix_result(p, "flash_of_genius", total + add >= dc, notes, {"ok": total + add >= dc, "total": total + add})
+				if not out6.is_empty():
+					return out6
+				total += add
+				need = dc - total
+				break
 	if t.features.has("arcane_deflection") and can_react(t) and need <= 4:
 		use_reaction(t)
 		return {"ok": true, "total": total + 4, "note": "Arcane Deflection +4"}
@@ -1210,7 +1371,7 @@ func _save_helpers(t: Dictionary, ability: String, dc: int, total: int, adv: int
 			var r3 = Dice.roll_d20(adv)
 			var nt3: int = int(r3.roll) + bonus
 			return {"ok": nt3 >= dc, "total": nt3, "note": "%s's Chronal Shift reroll" % p.name}
-	return {"ok": false, "total": total, "note": ""}
+	return {"ok": false, "total": total, "note": ", ".join(notes)}
 
 func spend_res_if(c: Dictionary, id: String) -> bool:
 	return spend_res(c, id) if res_left(c, id) > 0 else false
@@ -1298,6 +1459,10 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 			note = fix.note
 			if fix.get("crit", false):
 				crit = true
+		elif str(fix.get("note", "")) != "":
+			# A player's character tried to fix the roll and it still missed.
+			total = int(fix.total)
+			note = str(fix.note)
 	# Defender helpers when hit.
 	if hit and not crit and hostile(a, t):
 		var fx2 = _attack_hit_defense(a, t, total, ac, adv, bonus)
@@ -1312,6 +1477,8 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 	if hit and dist(a, t) <= 5 and (has_cond(t, "paralyzed") or has_cond(t, "unconscious")):
 		crit = true
 	var res_txt = "[color=#ffd166]CRIT![/color]" if crit and hit else ("[color=#7fdc7f]HIT[/color]" if hit else "[color=#aaaaaa]MISS[/color]")
+	dice_event(a.id, "%s · AC %d" % [str(atk.get("name", "Attack")), ac], d20_faces(rr), bonus, total,
+		"CRIT" if crit and hit else ("HIT" if hit else "MISS"), t.id)
 	log_line("  %s → %s: %d%s%s = %d vs AC %d %s%s" % [nm(a), nm(t), nat, how, (" " + Rules.fmt_mod(int(atk.get("to_hit", 0))) if extra == "" else " " + Rules.fmt_mod(int(atk.get("to_hit", 0))) + extra), total, ac, res_txt, (" (" + note + ")") if note != "" else ""])
 	if not hit:
 		float_text(t.id, "Miss", "#bbbbbb")
@@ -1327,38 +1494,77 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 	return {"hit": hit, "crit": crit and hit, "nat": nat, "total": total, "ac": ac, "adv": adv}
 
 func _attack_miss_helpers(a: Dictionary, t: Dictionary, need: int, adv: int, bonus: int) -> Dictionary:
-	if "precision" in a.get("maneuvers", []) and res_left(a, "superiority") > 0 and need <= int(a.vals.get("superiority_die", 8)) and need <= 5:
+	var ac: int = eff_ac(t)
+	var total: int = ac - need
+	var notes: PackedStringArray = []
+	var ctx := "%s missed %s: %d against AC %d." % [a.name, t.name, total, ac]
+	if "precision" in a.get("maneuvers", []) and res_left(a, "superiority") > 0 \
+			and fix_use(a, "precision", need <= int(a.vals.get("superiority_die", 8)) and need <= 5, ctx):
 		spend_res(a, "superiority")
 		var r: int = Dice.d(int(a.vals.superiority_die))
-		if r >= need:
-			return {"hit": true, "total": eff_ac(t) - need + r, "note": "Precision Attack +%d" % r}
-	if a.features.has("guided_strike") and res_left(a, "channel_divinity") > 0 and need <= 10 and need >= 3:
+		notes.append("Precision Attack +%d" % r)
+		total += r
+		need = ac - total
+		if need <= 0:
+			return {"hit": true, "total": total, "note": ", ".join(notes)}
+		ctx = "%s's attack is now %d against AC %d." % [a.name, total, ac]
+	if a.features.has("guided_strike") and res_left(a, "channel_divinity") > 0 \
+			and fix_use(a, "guided_strike", need <= 10 and need >= 3, ctx):
 		spend_res(a, "channel_divinity")
-		return {"hit": true, "total": eff_ac(t), "note": "Guided Strike +10"}
-	if res_left(a, "lucky") > 0:
+		notes.append("Guided Strike +10")
+		total += 10
+		need = ac - total
+		if need <= 0:
+			return {"hit": true, "total": maxi(total, ac), "note": ", ".join(notes)}
+		ctx = "%s's attack is now %d against AC %d." % [a.name, total, ac]
+	if res_left(a, "lucky") > 0 and fix_use(a, "lucky", true, ctx):
 		spend_res(a, "lucky")
 		var r2 = Dice.roll_d20(0)
-		var tot: int = int(r2.roll) + bonus
-		if int(r2.roll) >= 20 or tot >= eff_ac(t):
-			return {"hit": true, "total": tot, "note": "Lucky reroll", "crit": int(r2.roll) >= int(a.vals.get("crit_range", 20))}
-		return {"hit": false}
+		var rr: int = int(r2.roll)
+		var tot: int = rr + bonus
+		notes.append("Lucky reroll")
+		# A natural 1 misses and a natural 20 hits, whatever the totals.
+		if rr != 1 and (rr >= 20 or tot >= ac):
+			return {"hit": true, "total": tot, "note": ", ".join(notes), "crit": rr >= int(a.vals.get("crit_range", 20))}
+		if not fix_manual(a, "lucky"):
+			return {"hit": false}
+		if rr != 1:
+			total = maxi(total, tot)
+			need = ac - total
+		ctx = "%s's reroll was %d: still a miss against AC %d." % [a.name, tot, ac]
 	for e in a.effects:
 		if e.get("tag", "") == "bardic_inspiration":
-			var bi: int = Dice.roll(e.die).total
-			if bi >= need:
+			# An automatic user peeks at the die and only spends it when it is enough; a player decides first.
+			var manual := fix_manual(a, "bardic_inspiration")
+			var bi: int = 0 if manual else Dice.roll(e.die).total
+			if fix_use(a, "bardic_inspiration", bi >= need, ctx):
+				if manual:
+					bi = Dice.roll(e.die).total
 				remove_effect(a, e.eid)
-				return {"hit": true, "total": eff_ac(t) - need + bi, "note": "Bardic Inspiration +%d" % bi}
-	if _bond_available(a) and need <= 4:
+				notes.append("Bardic Inspiration +%d" % bi)
+				total += bi
+				need = ac - total
+				if need <= 0:
+					return {"hit": true, "total": total, "note": ", ".join(notes)}
+				ctx = "%s's attack is now %d against AC %d." % [a.name, total, ac]
+				break
+	if _bond_available(a) and fix_use(a, "emboldening_bond", need <= 4, ctx):
 		a.turn["bond_used"] = true
 		var b: int = Dice.d(4)
-		if b >= need:
-			return {"hit": true, "total": eff_ac(t), "note": "Emboldening Bond +%d" % b}
-	if res_left(a, "favored_by_the_gods") > 0 and need <= 8 and need >= 2:
+		if b >= need or fix_manual(a, "emboldening_bond"):
+			notes.append("Emboldening Bond +%d" % b)
+			total += b
+			need = ac - total
+			if need <= 0:
+				return {"hit": true, "total": maxi(total, ac), "note": ", ".join(notes)}
+			ctx = "%s's attack is now %d against AC %d." % [a.name, total, ac]
+	if res_left(a, "favored_by_the_gods") > 0 and fix_use(a, "favored_by_the_gods", need <= 8 and need >= 2, ctx):
 		spend_res(a, "favored_by_the_gods")
 		var fg: int = Dice.roll("2d4").total
+		notes.append("Favored by the Gods +%d" % fg)
 		if fg >= need:
-			return {"hit": true, "total": eff_ac(t), "note": "Favored by the Gods +%d" % fg}
-	return {"hit": false}
+			return {"hit": true, "total": maxi(total + fg, ac), "note": ", ".join(notes)}
+	return {"hit": false, "total": total, "note": ", ".join(notes)}
 
 func _attack_hit_defense(a: Dictionary, t: Dictionary, total: int, ac: int, adv: int, bonus: int) -> Dictionary:
 	var margin = total - ac
@@ -1402,7 +1608,7 @@ func _attack_hit_defense(a: Dictionary, t: Dictionary, total: int, ac: int, adv:
 		if int(rb.roll) == 1 or nb < ac:
 			return {"hit": false, "total": nb, "ac": ac, "note": "Silvery Barbs reroll: %d" % nb}
 		total = nb
-	if res_left(t, "lucky") > 0 and margin < 6:
+	if res_left(t, "lucky") > 0 and fix_use(t, "lucky", margin < 6, "%s hits %s: %d against AC %d. Lucky makes the attacker reroll and you take the lower roll." % [a.name, t.name, total, ac]):
 		spend_res(t, "lucky")
 		var r3 = Dice.roll_d20(0)
 		var nt3: int = mini(int(r3.roll) + bonus, total)

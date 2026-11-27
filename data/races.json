@@ -26,9 +26,9 @@
   {"id":"halfling","name":"Halfling","source":"PHB","size":"small","speed":25,"asi":{"dex":2},
    "traits":[{"name":"Lucky","desc":"Reroll natural 1s on attacks, checks and saves.","tag":"halfling_lucky"},
              {"name":"Brave","desc":"Advantage on saves against being frightened.","tag":"brave"},
-             {"name":"Halfling Nimbleness","desc":"Move through the space of larger creatures."}],
+             {"name":"Halfling Nimbleness","desc":"Move through the space of any creature larger than you, hostile or not.","tag":"halfling_nimbleness"}],
    "subraces":[
-     {"id":"lightfoot","name":"Lightfoot","asi":{"cha":1},"traits":[{"name":"Naturally Stealthy","desc":"Can hide behind larger creatures."}]},
+     {"id":"lightfoot","name":"Lightfoot","asi":{"cha":1},"traits":[{"name":"Naturally Stealthy","desc":"Can hide behind larger creatures.","tag":"naturally_stealthy"}]},
      {"id":"stout","name":"Stout","asi":{"con":1},"resist":["poison"],"traits":[{"name":"Stout Resilience","desc":"Advantage on saves against poison, resistance to poison.","tag":"dwarven_resilience"}]}
    ]},
   {"id":"dragonborn","name":"Dragonborn","source":"PHB","size":"medium","speed":30,"asi":{"str":2,"cha":1},

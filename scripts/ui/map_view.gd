@@ -12,7 +12,14 @@ const THEMES := {
 	"swamp": {"floor_a": Color("#36442c"), "floor_b": Color("#323f29"), "wall": Color("#1a2214"), "wall_top": Color("#4d5e34"), "grid": Color(1, 1, 1, 0.05)},
 	"ruins": {"floor_a": Color("#3a4038"), "floor_b": Color("#363c34"), "wall": Color("#1b1e1b"), "wall_top": Color("#6a706a"), "grid": Color(1, 1, 1, 0.05)},
 	"badlands": {"floor_a": Color("#6b5640"), "floor_b": Color("#65513c"), "wall": Color("#2e2218"), "wall_top": Color("#8f7556"), "grid": Color(0, 0, 0, 0.1)},
+	"village": {"floor_a": Color("#4a5a36"), "floor_b": Color("#465534"), "wall": Color("#1f2a17"), "wall_top": Color("#3f5a30"), "grid": Color(1, 1, 1, 0.05)},
+	"dwarfhold": {"floor_a": Color("#3e3a3c"), "floor_b": Color("#3a3638"), "wall": Color("#141214"), "wall_top": Color("#4a4448"), "grid": Color(1, 1, 1, 0.05)},
+	"glade": {"floor_a": Color("#35532d"), "floor_b": Color("#324e2a"), "wall": Color("#15261a"), "wall_top": Color("#2f5a2a"), "grid": Color(1, 1, 1, 0.05)},
 }
+## Theme choices for the DM's map tab: [id, label].
+const THEME_CHOICES := [["stone", "Theme: Dungeon stone"], ["cave", "Theme: Cave"], ["forest", "Theme: Forest"], ["tavern", "Theme: Tavern"],
+	["snow", "Theme: Snow"], ["swamp", "Theme: Swamp"], ["ruins", "Theme: Ruins / graveyard"], ["badlands", "Theme: Badlands / mountain"],
+	["village", "Theme: Village"], ["dwarfhold", "Theme: Dwarven hold"], ["glade", "Theme: Elven glade"]]
 
 var state: Dictionary = {}
 var reach_cells: Dictionary = {}
@@ -24,6 +31,8 @@ var range_center := Vector2.ZERO
 var range_ft := 0
 var hover := Vector2i(-1, -1)
 var show_spawns := false
+## Place names (taverns, shops, the town) drawn over the map.
+var show_labels := true
 ## Fog of war (a Fog.view_for result; {} = none). fog_dm: the DM sees through it, only shaded.
 var fog: Dictionary = {}
 var fog_dm := false
@@ -50,25 +59,46 @@ func _draw() -> void:
 	var wa := 0.55 if bg_tex else 1.0   # terrain is see-through over a background image
 	if bg_tex:
 		draw_texture_rect(bg_tex, Rect2(0, 0, w * CELL, h * CELL), false)
+	# Map dressing: ground materials per cell, furniture and props (see MapDecor).
+	var ground: PackedByteArray = state.get("ground", PackedByteArray())
+	var has_ground := ground.size() == w * h
+	var props: Array = state.get("props", [])
+	var cov: Dictionary = MapDecor.covered(props) if not props.is_empty() else {}
+	var fa := 0.55 if bg_tex else 1.0
 	for y in h:
 		for x in w:
 			var v = cells[y * w + x]
 			var r = cell_rect(Vector2i(x, y))
+			var gc: int = ground[y * w + x] if has_ground else 0
 			var base: Color = th.floor_a if (x + y) % 2 == 0 else th.floor_b
 			# Deterministic speckle so floors don't look flat.
 			var n = float((x * 73856093) ^ (y * 19349663)) / 4294967296.0
 			base = base.lightened(fposmod(n, 0.04))
 			match v:
 				EngineBase.WALL:
-					draw_rect(r, Color(th.wall, wa))
-					draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 12)), Color(th.wall_top, wa))
-					draw_rect(Rect2(r.position + Vector2(3, r.size.y - 9), Vector2(r.size.x - 6, 6)), th.wall.darkened(0.3))
+					if MapDecor.free_standing(cov, Vector2i(x, y)):
+						# A tree, forge or tent stands here: floor under it, the prop is drawn on top.
+						if gc > 0:
+							MapDecor.draw_floor(self, r, gc, x, y, true, fa)
+						elif not bg_tex:
+							draw_rect(r, base)
+					elif gc > 0:
+						MapDecor.draw_wall(self, r, gc, x, y, true, wa)
+					else:
+						draw_rect(r, Color(th.wall, wa))
+						draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 12)), Color(th.wall_top, wa))
+						draw_rect(Rect2(r.position + Vector2(3, r.size.y - 9), Vector2(r.size.x - 6, 6)), th.wall.darkened(0.3))
 				EngineBase.DIFFICULT:
-					draw_rect(r, Color(base.darkened(0.12), 0.3 if bg_tex else 1.0))
-					for i in 5:
-						var p = r.position + Vector2(10 + (i * 23) % 44, 12 + (i * 17) % 40)
-						draw_circle(p, 4.0, base.darkened(0.45))
-						draw_circle(p + Vector2(-1, -1), 2.5, base.lightened(0.1))
+					if gc > 0:
+						MapDecor.draw_floor(self, r, gc, x, y, true, fa)
+					else:
+						draw_rect(r, Color(base.darkened(0.12), 0.3 if bg_tex else 1.0))
+					if not cov.has(Vector2i(x, y)):
+						var b2: Color = MapDecor.FLOORS.get(gc, base) if gc > 0 else base
+						for i in 5:
+							var p = r.position + Vector2(10 + (i * 23) % 44, 12 + (i * 17) % 40)
+							draw_circle(p, 4.0, b2.darkened(0.45))
+							draw_circle(p + Vector2(-1, -1), 2.5, b2.lightened(0.1))
 				EngineBase.WATER:
 					draw_rect(r, Color(0.14, 0.32, 0.48, 0.45 if bg_tex else 1.0))
 					draw_line(r.position + Vector2(8, 22), r.position + Vector2(28, 18), Color("#4a86b8"), 2)
@@ -77,8 +107,12 @@ func _draw() -> void:
 					draw_rect(r, Color(0.02, 0.016, 0.03, 0.6 if bg_tex else 1.0))
 					draw_rect(r, Color("#2a2230"), false, 2)
 				_:
-					if not bg_tex:
+					if gc > 0:
+						MapDecor.draw_floor(self, r, gc, x, y, true, fa)
+					elif not bg_tex:
 						draw_rect(r, base)
+	if not props.is_empty():
+		MapDecor.draw_props(self, props, Vector2.ZERO, CELL)
 	# Grid lines.
 	if bg_tex:
 		th = th.duplicate()
@@ -138,6 +172,8 @@ func _draw() -> void:
 				var col2 = Color("#fff2a8") if a.has("temp_hp") else Color("#c8a0ff")
 				draw_circle(cen, rad, Color(col2, 0.07))
 				draw_arc(cen, rad, 0, TAU, 64, Color(col2, 0.5), 2)
+	if show_labels:
+		MapDecor.draw_labels(self, state.get("labels", []), Vector2.ZERO, CELL)
 	_draw_fog(w, h)
 	if show_spawns:
 		for p in state.get("spawns", []):

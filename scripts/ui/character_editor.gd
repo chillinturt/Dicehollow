@@ -281,13 +281,23 @@ func _tab_basics() -> void:
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		frame.add_child(ini)
 	pv.add_child(frame)
-	pv.add_child(UIKit.btn("Upload portrait…", func(): file_dialog.popup_centered_ratio(0.6), "PNG, JPG or WEBP. It's cropped to a square and used as your token."))
+	pv.add_child(UIKit.btn("📁 Upload your own image…", func(): file_dialog.popup_centered_ratio(0.6), "PNG, JPG, WEBP, BMP or SVG. It's cropped to a square and used as your token."))
+	pv.add_child(UIKit.lbl("…or pick an icon:", 13, UIKit.MUTED))
+	pv.add_child(_portrait_gallery())
 	if ch.get("portrait", "") != "":
-		pv.add_child(UIKit.btn("Remove portrait", func(): ch.portrait = ""; _changed(true)))
+		pv.add_child(UIKit.btn("Remove portrait", func(): ch.portrait = ""; ch.portrait_template = ""; _changed(true)))
 	var cp = ColorPickerButton.new()
 	cp.color = Color(ch.get("color", "#7a5cff"))
 	cp.custom_minimum_size = Vector2(0, 30)
+	cp.tooltip_text = "Token colour. Template icons are redrawn in this colour."
 	cp.color_changed.connect(func(col): ch.color = "#" + col.to_html(false); _changed())
+	# Redraw a template portrait (and the gallery) once the colour is chosen.
+	cp.popup_closed.connect(func():
+		var icon := str(ch.get("portrait_template", ""))
+		if icon != "":
+			_set_template(icon)
+		else:
+			_rebuild())
 	pv.add_child(UIKit.lbl("Token colour", 13, UIKit.MUTED))
 	pv.add_child(cp)
 	top.add_child(pv)
@@ -377,6 +387,21 @@ func _on_portrait_file(path: String) -> void:
 		title_lbl.text = "Couldn't read that image."
 		return
 	ch.portrait = key
+	ch.portrait_template = ""
+	_changed(true)
+
+## Grid of template icons drawn in the token colour; the class's suggested icon is outlined.
+func _portrait_gallery() -> Control:
+	var cur := str(ch.get("portrait_template", "")) if ch.get("portrait", "") != "" else ""
+	return PortraitTemplates.gallery(Color(ch.get("color", "#7a5cff")), cur, PortraitTemplates.suggested(ch), _set_template)
+
+func _set_template(icon: String) -> void:
+	var key := PortraitTemplates.make_portrait(icon, Color(ch.get("color", "#7a5cff")))
+	if key == "":
+		title_lbl.text = "Couldn't draw that icon."
+		return
+	ch.portrait = key
+	ch.portrait_template = icon
 	_changed(true)
 
 # ---------------------------------------------------------------- classes

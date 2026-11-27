@@ -33,7 +33,12 @@ func mon_named(n: String) -> Dictionary:
 	return {}
 
 func _ready() -> void:
-	var hero_ch: Dictionary = CharacterStore.premades()[0]
+	var hero_ch: Dictionary = CharacterStore.premades()[0].duplicate(true)
+	# These tests are about the DM tools, not about being asked whether to use Lucky.
+	var no_questions := {}
+	for fid in EngineBase.FIX_NAMES:
+		no_questions[fid] = true
+	hero_ch["auto_fix"] = no_questions
 
 	# --- Placement: no stacking, team and numbering.
 	fresh()
@@ -143,7 +148,9 @@ func _ready() -> void:
 	# --- Group rolls: a trap that deals 20 on a failed DEX save, half on a success.
 	fresh()
 	var a := eng().C(Session.add_character(hero_ch, 1, Vector2i(2, 2)))
-	var b := eng().C(Session.add_character(CharacterStore.premades()[1], 1, Vector2i(4, 2)))
+	var b_ch: Dictionary = CharacterStore.premades()[1].duplicate(true)
+	b_ch["auto_fix"] = no_questions
+	var b := eng().C(Session.add_character(b_ch, 1, Vector2i(4, 2)))
 	a.max_hp = 200; a.hp = 200; b.max_hp = 200; b.hp = 200
 	req({"type": "roll", "cids": [a.id, b.id], "kind": "save", "ability": "dex", "dc": 99, "damage": "20", "half": true})
 	check(a.hp == 180 and b.hp == 180, "DC 99 trap: everyone fails and takes the full 20")

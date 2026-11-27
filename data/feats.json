@@ -1,6 +1,6 @@
 [
  {"id":"alert","name":"Alert","desc":"+5 to initiative; you can't be surprised.","auto":true},
- {"id":"lucky","name":"Lucky","desc":"3 luck points per long rest: reroll a failed attack or save (automatic).","auto":true},
+ {"id":"lucky","name":"Lucky","desc":"3 luck points per long rest: reroll a failed attack or save, or make an attacker reroll (the game asks before each use).","auto":true},
  {"id":"war_caster","name":"War Caster","desc":"Advantage on CON saves to keep concentration; cast with hands full.","auto":true},
  {"id":"great_weapon_master","name":"Great Weapon Master","desc":"Toggle: -5 to hit, +10 damage with heavy melee weapons. Bonus attack after a crit or kill.","auto":true},
  {"id":"sharpshooter","name":"Sharpshooter","desc":"Toggle: -5 to hit, +10 damage with ranged weapons. No disadvantage at long range.","auto":true},

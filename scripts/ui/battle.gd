@@ -38,6 +38,7 @@ var tip: Label
 var banner: Label
 var mode_lbl: Label
 var dm_tabs: TabContainer
+var dice_tray: DiceTray
 var confirm_btn: Button
 
 # Interaction state
@@ -64,6 +65,11 @@ var bg_dialog: FileDialog
 var bg_fit := true
 var _last_hit_col := Color("#ffcf8a")   # spark colour for the next damage number, from the last attack's fx
 var shown_hit := ""       # id of the held weapon hit this player was last asked about
+var fix_panel: PanelContainer   # "Use Lucky?" and the like (see EngineBase.FIX_NAMES)
+var fix_title: Label
+var fix_detail: Label
+var fix_for: Label
+var fix_id := ""
 # DM tools: extra selected creatures (Ctrl+click) and the inspect panel's remembered inputs.
 var selected_ids: Array = []
 var place_hidden := false
@@ -78,12 +84,14 @@ var _inspect_key := ""
 var map_pick: OptionButton
 var map_name_edit: LineEdit
 var hidden_lbl: Label
+var labels_box: VBoxContainer   # DM map tab: the map's place names
 var _ending := false
 var top_bar: PanelContainer
 var bottom_bar: PanelContainer
 var right_panel: PanelContainer
 # Character sheets and levelling.
 var sheet_win: CharacterSheet
+var portrait_win: DialogPanel
 var sheet_cid := ""
 var level_win: LevelUpWizard
 var _announced_levels := {}   # cid -> allowed level already announced to this player
@@ -267,6 +275,21 @@ func _build_hud() -> void:
 		else:
 			auto_move = pm.is_item_checked(i))
 	ar.add_child(opts)
+	# Which of your abilities (Lucky...) are used for you, and which ask first.
+	var fix_menu := MenuButton.new()
+	fix_menu.text = "🎲"
+	fix_menu.flat = false
+	fix_menu.tooltip_text = "Lucky, Indomitable and similar abilities: ask me first, or use them automatically"
+	fix_menu.custom_minimum_size = Vector2(30, 0)
+	var fpm: PopupMenu = fix_menu.get_popup()
+	fpm.about_to_popup.connect(func(): _fill_fix_menu(fpm))
+	fpm.id_pressed.connect(func(id):
+		var fid: String = str(fpm.get_item_metadata(fpm.get_item_index(id)))
+		var c: Dictionary = _fix_target()
+		if fid != "" and not c.is_empty():
+			var on: bool = not bool(c.get("toggles", {}).get("auto_fix", {}).get(fid, false))
+			Session.request({"type": "set_auto_fix", "cid": c.id, "id": fid, "on": on}))
+	ar.add_child(fix_menu)
 	ev.add_child(ar)
 	bh.add_child(ev)
 	# DM toolbox (left), sized to the space between the top and bottom bars.
@@ -310,6 +333,9 @@ func _build_hud() -> void:
 	ui.add_child(mh)
 	mode_lbl.visible = false
 	confirm_btn.visible = false
+	# Dice rolls, in the bottom-left corner of the map (see DiceTray; each player picks what it shows).
+	dice_tray = DiceTray.new()
+	ui.add_child(dice_tray)
 
 ## Fit the side panels into the space the top and bottom bars leave, whatever their real heights.
 func _layout_hud() -> void:
@@ -317,11 +343,14 @@ func _layout_hud() -> void:
 		return
 	var vp := ui.get_viewport_rect().size
 	var top_h := top_bar.size.y
+	var bottom_top := vp.y - bottom_bar.size.y
 	right_panel.offset_top = top_h + 6
 	if dm_tabs != null:
-		var bottom_top := vp.y - bottom_bar.size.y
 		dm_tabs.position = Vector2(8, top_h + 6)
 		dm_tabs.size = Vector2(DM_W, maxf(200.0, bottom_top - top_h - 12))
+	var left := (DM_W + 16.0) if dm_tabs != null else 8.0
+	dice_tray.position = Vector2(left, top_h + 6)
+	dice_tray.size = Vector2(DiceTray.CARD_W + 8.0, maxf(100.0, bottom_top - top_h - 12))
 
 ## Make every label and check box under `node` wrap within its column instead of widening it.
 ## Only text stacked in a column (or set to expand) wraps: a short label beside buttons in a row keeps its width.
@@ -423,7 +452,7 @@ func _build_dm() -> void:
 	bh.add_child(UIKit.lbl("Brush", 13, UIKit.MUTED))
 	bh.add_child(UIKit.option([[1, "1×1"], [2, "2×2"], [3, "3×3"]], 1, func(v): brush = v))
 	mpv.add_child(bh)
-	mpv.add_child(UIKit.option([["stone", "Theme: Dungeon stone"], ["cave", "Theme: Cave"], ["forest", "Theme: Forest"], ["tavern", "Theme: Tavern"], ["snow", "Theme: Snow"], ["swamp", "Theme: Swamp"], ["ruins", "Theme: Ruins / graveyard"], ["badlands", "Theme: Badlands / mountain"]], Session.state.get("theme", "stone"), func(id): Session.request({"type": "dm_theme", "theme": id})))
+	mpv.add_child(UIKit.option(MapViewScript.THEME_CHOICES, Session.state.get("theme", "stone"), func(id): Session.request({"type": "dm_theme", "theme": id})))
 	var rs = UIKit.hbox()
 	var ws = UIKit.spin(8, 80, Session.state.w)
 	var hs = UIKit.spin(8, 60, Session.state.h)
@@ -438,6 +467,18 @@ func _build_dm() -> void:
 	mpv.add_child(bgr)
 	mpv.add_child(UIKit.check("Fit grid height to the image", bg_fit, func(p): bg_fit = p))
 	mpv.add_child(UIKit.btn("Clear terrain", func(): Session.request({"type": "dm_clear_map"})))
+	# Place names (taverns, shops, the town...) on the map, renamable.
+	mpv.add_child(HSeparator.new())
+	var lh2 = UIKit.hbox()
+	lh2.add_child(UIKit.lbl("Place names", 14, UIKit.GOLD))
+	lh2.add_child(UIKit.expand(Control.new()))
+	lh2.add_child(UIKit.check("Show", map_view.show_labels, func(p):
+		map_view.show_labels = p
+		map_view.queue_redraw()))
+	mpv.add_child(lh2)
+	labels_box = UIKit.vbox(4)
+	mpv.add_child(labels_box)
+	_fill_labels()
 	# Fog of war.
 	mpv.add_child(HSeparator.new())
 	mpv.add_child(UIKit.lbl("Fog of war", 14, UIKit.GOLD))
@@ -511,6 +552,39 @@ func _build_dm() -> void:
 	party_box = pv
 	_wrap_texts(dm_tabs)
 	_refresh_dm()
+
+## The DM's list of place names on the map: edit to rename (Enter or leave the box), 🎲 for a new tavern
+## name, ✕ to take the name off the map.
+func _fill_labels() -> void:
+	if labels_box == null:
+		return
+	UIKit.clear(labels_box)
+	var labels: Array = Session.state.get("labels", [])
+	labels_box.set_meta("shown", str(labels))
+	if labels.is_empty():
+		var l = UIKit.lbl("None. Generated towns, taverns and shops get names here.", 12, UIKit.MUTED)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD
+		labels_box.add_child(l)
+		return
+	for i in labels.size():
+		var lab: Dictionary = labels[i]
+		var row = UIKit.hbox(4)
+		var e = UIKit.line(str(lab.text), "Name")
+		UIKit.expand(e)
+		e.tooltip_text = "Rename: type and press Enter"
+		var send := func():
+			if e.text.strip_edges() != "" and e.text.strip_edges() != str(lab.text):
+				Session.request({"type": "dm_label", "i": i, "text": e.text.strip_edges()})
+		e.text_submitted.connect(func(_t): send.call())
+		e.focus_exited.connect(send)
+		row.add_child(e)
+		if str(lab.get("kind", "")) == "tavern":
+			row.add_child(UIKit.btn("🎲", func():
+				var rng := RandomNumberGenerator.new()
+				rng.randomize()
+				Session.request({"type": "dm_label", "i": i, "text": TavernGenerator.random_name(rng, str(lab.get("style", "human")))}), "A new random tavern name"))
+		row.add_child(UIKit.btn("✕", func(): Session.request({"type": "dm_label", "i": i, "text": ""}), "Take this name off the map"))
+		labels_box.add_child(row)
 
 func _open_monster_editor(tpl: Dictionary) -> void:
 	var ed = MonsterEditorScript.new(tpl)
@@ -698,6 +772,99 @@ func _open_sheet(cid: String) -> CharacterSheet:
 	ui.add_child(sheet_win)
 	return sheet_win
 
+## Portrait picker for a PC this peer controls: upload an image or pick a template icon, and set the
+## token colour. Changes go to the DM, who shares the new portrait with every player.
+func _open_portrait_picker(cid: String) -> DialogPanel:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_control(c) or c.kind != "pc" or not Session.sheets.has(cid):
+		return null
+	if is_instance_valid(portrait_win):
+		portrait_win.close()
+	portrait_win = DialogPanel.new("Portrait — %s" % c.name, Vector2(440, 560))
+	var fd = FileDialog.new()
+	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	fd.access = FileDialog.ACCESS_FILESYSTEM
+	fd.use_native_dialog = true
+	fd.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp, *.bmp, *.svg ; Images"])
+	fd.file_selected.connect(func(path):
+		var key = CharacterStore.import_portrait(path)
+		if key == "":
+			_flash("Could not read that image.")
+			return
+		Session.set_portrait(cid, key, "", str(Session.engine.C(cid).get("color", "")))
+		_fill_portrait_picker(cid, key))
+	portrait_win.add_child(fd)
+	ui.add_child(portrait_win)
+	_fill_portrait_picker(cid)
+	return portrait_win
+
+## (Re)build the picker body. `shown_key` previews a portrait just chosen, before the DM's echo arrives.
+func _fill_portrait_picker(cid: String, shown_key := "", shown_color := "") -> void:
+	if not is_instance_valid(portrait_win):
+		return
+	var c: Dictionary = Session.engine.C(cid)
+	var sheet: Dictionary = Session.sheets.get(cid, {})
+	if c.is_empty():
+		portrait_win.close()
+		return
+	var key: String = shown_key if shown_key != "" else str(c.get("portrait", ""))
+	var col := Color(shown_color if shown_color != "" else str(c.get("color", "#7a5cff")))
+	var cur_tpl: String = str(sheet.get("portrait_template", "")) if key == str(sheet.get("portrait", "")) else ""
+	if key.begins_with(PortraitTemplates.KEY_PREFIX):
+		cur_tpl = key.trim_prefix(PortraitTemplates.KEY_PREFIX).rsplit("_", true, 1)[0]
+	var body := portrait_win.body
+	UIKit.clear(body)
+	var row = UIKit.hbox(14)
+	body.add_child(row)
+	var frame = UIKit.panel(null, Color("#0d0b12"), col)
+	frame.custom_minimum_size = Vector2(150, 150)
+	var tex = CharacterStore.portrait_texture(key)
+	if tex:
+		var tr = TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		frame.add_child(tr)
+	else:
+		var l = UIKit.lbl(UIKit.initials(str(c.name)), 44, col)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		frame.add_child(l)
+	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(frame)
+	var side = UIKit.vbox(6)
+	UIKit.expand(side)
+	row.add_child(side)
+	side.add_child(DialogPanel.wrap_lbl("Your new portrait shows on your token for everyone at the table and is saved to your character.", 13))
+	var fd: FileDialog = null
+	for ch in portrait_win.get_children():
+		if ch is FileDialog:
+			fd = ch
+	side.add_child(UIKit.btn("📁 Upload your own image…", func(): fd.popup_centered_ratio(0.6), "PNG, JPG, WEBP, BMP or SVG. It's cropped to a square."))
+	side.add_child(UIKit.lbl("Token colour", 13, UIKit.MUTED))
+	var cp = ColorPickerButton.new()
+	cp.color = col
+	cp.custom_minimum_size = Vector2(0, 30)
+	cp.tooltip_text = "Token colour. Icons are redrawn in this colour."
+	cp.popup_closed.connect(func():
+		var hex: String = "#" + cp.color.to_html(false)
+		if cur_tpl != "":
+			var k := PortraitTemplates.make_portrait(cur_tpl, cp.color)
+			Session.set_portrait(cid, k, cur_tpl, hex)
+			_fill_portrait_picker(cid, k, hex)
+		else:
+			Session.set_portrait(cid, key, "", hex)
+			_fill_portrait_picker(cid, key, hex))
+	side.add_child(cp)
+	body.add_child(UIKit.lbl("…or pick an icon:", 13, UIKit.MUTED))
+	body.add_child(PortraitTemplates.gallery(col, cur_tpl, PortraitTemplates.suggested(sheet), func(icon):
+		var k := PortraitTemplates.make_portrait(icon, col)
+		if k == "":
+			_flash("Couldn't draw that icon.")
+			return
+		Session.set_portrait(cid, k, icon, "#" + col.to_html(false))
+		_fill_portrait_picker(cid, k, "#" + col.to_html(false))))
+
 ## Opens the guided level-up for a PC this peer controls. `force` (tests) opens it without a pending level.
 func _open_level_up(cid: String, force := false) -> LevelUpWizard:
 	var c: Dictionary = Session.engine.C(cid)
@@ -865,6 +1032,12 @@ func _play_events() -> void:
 				# Projectiles hold the next event (usually the damage number) until they land.
 				var wait = _spawn_fx(e, snd)
 				await get_tree().create_timer(maxf(0.14, wait)).timeout
+			"dice":
+				if _show_dice(e):
+					Sfx.play("dice")
+					# Attacks, saves and checks: hold the result (the log line, HIT/Miss) until the dice land.
+					if str(e.get("kind", "d20")) == "d20":
+						await get_tree().create_timer(DiceTray.ROLL_TIME * 0.85).timeout
 			"sfx":
 				Sfx.play(str(e.get("name", "")))
 				var ctk = tokens.get(str(e.get("cid", "")))
@@ -903,9 +1076,39 @@ func _float_sfx(e: Dictionary) -> String:
 	if text == "0": return ""
 	return "condition"
 
-## Speaker toggle plus volume slider, kept in sync with the Sfx settings.
+## Puts a "dice" event in the dice tray if this player's setting wants it. Returns whether it did.
+## "My rolls" means rolls by or against a creature this screen owns (the DM owns the monsters).
+## A roll by a creature this screen can't see stays hidden unless it is against one of its own.
+func _show_dice(e: Dictionary) -> bool:
+	if DiceTray.mode() == "off":
+		return false
+	var roller: Dictionary = _find(str(e.get("cid", "")))
+	var target: Dictionary = _find(str(e.get("tid", "")))
+	var me := Session.my_peer()
+	var mine_target: bool = not target.is_empty() and int(target.get("owner", 0)) == me
+	var mine: bool = mine_target or (not roller.is_empty() and int(roller.get("owner", 0)) == me)
+	if not DiceTray.wants(mine):
+		return false
+	var tk = tokens.get(str(e.get("cid", "")))
+	if roller.is_empty() or ((tk == null or not tk.visible) and not mine_target):
+		return false
+	var col := Color("#8fd0ff") if roller.get("team", "") == "party" else Color("#ff9c8f")
+	dice_tray.add_roll(e, str(roller.get("name", "?")), col)
+	return true
+
+## Speaker toggle plus volume slider, kept in sync with the Sfx settings, and the dice tray setting.
 func _build_volume() -> Control:
 	var h = UIKit.hbox(4)
+	var dice_btn: Button = UIKit.btn("🎲 " + DiceTray.MODE_NAMES[DiceTray.mode()], Callable(),
+		"Dice animations: off, only rolls by or against your creatures, or every roll. This setting is yours alone.")
+	dice_btn.pressed.connect(func():
+		DiceTray.set_mode(DiceTray.next_mode())
+		dice_btn.text = "🎲 " + DiceTray.MODE_NAMES[DiceTray.mode()]
+		if DiceTray.mode() == "off":
+			dice_tray.clear()
+		Sfx.play("dice"))
+	dice_btn.custom_minimum_size = Vector2(84, 0)
+	h.add_child(dice_btn)
 	var mute_btn = UIKit.btn("", func(): Sfx.toggle_muted(), "Sound effects on/off")
 	mute_btn.custom_minimum_size = Vector2(40, 0)
 	h.add_child(mute_btn)
@@ -1094,6 +1297,12 @@ func _refresh_ui() -> void:
 	if hidden_lbl != null:
 		var nh: int = st.get("reserve", {}).size()
 		hidden_lbl.text = "%d hidden monster%s waiting" % [nh, "" if nh == 1 else "s"] if nh > 0 else "No hidden monsters"
+	if labels_box != null and str(st.get("labels", [])) != str(labels_box.get_meta("shown", "")):
+		var editing := false
+		for e in labels_box.find_children("*", "LineEdit", true, false):
+			editing = editing or e.has_focus()
+		if not editing:
+			_fill_labels()
 	if map_name_edit != null and not map_name_edit.has_focus() and str(st.get("name", "")) != map_name_edit.get_meta("shown", ""):
 		map_name_edit.set_meta("shown", str(st.get("name", "")))
 		map_name_edit.text = str(st.get("name", ""))
@@ -1115,10 +1324,90 @@ func _refresh_ui() -> void:
 	_refresh_inspect()
 	_refresh_highlights()
 	_check_pending_hit()
+	_check_pending_fix()
 	if is_instance_valid(sheet_win) and not Session.engine.C(sheet_cid).is_empty():
 		sheet_win.update_live(Session.engine.C(sheet_cid), Session.pending_levels(sheet_cid))
 	if dm_tabs != null and dm_tabs.current_tab == 3:
 		_refresh_dm()
+
+## Whose roll-fixing settings the menu shows: the selected character if you control it (the DM picks one
+## to change), otherwise the creature you're playing.
+func _fix_target() -> Dictionary:
+	var sel: Dictionary = Session.engine.C(selected_cid)
+	if not sel.is_empty() and sel.kind == "pc" and _can_control(sel):
+		return sel
+	return Session.engine.C(control_cid)
+
+## The menu of roll-fixing abilities for the creature this player controls. A tick means "use it
+## automatically"; unticked, the game asks each time.
+func _fill_fix_menu(pm: PopupMenu) -> void:
+	pm.clear()
+	var c: Dictionary = _fix_target()
+	if c.is_empty() or c.kind != "pc":
+		pm.add_item("No character selected")
+		pm.set_item_disabled(0, true)
+		return
+	pm.add_separator("Use automatically (otherwise ask first)")
+	var auto: Dictionary = c.get("toggles", {}).get("auto_fix", {})
+	var i := 1
+	for id in EngineBase.fix_owned(c):
+		pm.add_check_item(str(EngineBase.FIX_NAMES[id]), i)
+		var idx := pm.get_item_index(i)
+		pm.set_item_metadata(idx, id)
+		pm.set_item_checked(idx, bool(auto.get(id, false)))
+		i += 1
+
+## A roll-fixing ability a character may use (Lucky...): ask the player who decides.
+func _check_pending_fix() -> void:
+	var p: Dictionary = Session.state.get("pending_fix", {})
+	if p.is_empty():
+		fix_id = ""
+		if fix_panel != null:
+			fix_panel.visible = false
+		return
+	var c: Dictionary = Session.engine.C(str(p.cid))
+	# The player who owns the character answers; the DM can answer for anyone (an absent player).
+	if c.is_empty() or not (Session.is_dm() or int(c.owner) == Session.my_peer()):
+		if fix_panel != null:
+			fix_panel.visible = false
+		return
+	if fix_panel == null:
+		fix_panel = UIKit.panel(null, Color("#2a2338"), UIKit.GOLD)
+		fix_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		fix_panel.offset_top = 150
+		fix_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		var v := UIKit.vbox(6)
+		fix_title = UIKit.lbl("", 20, UIKit.GOLD)
+		v.add_child(fix_title)
+		fix_for = UIKit.lbl("", 14, UIKit.MUTED)
+		v.add_child(fix_for)
+		fix_detail = UIKit.lbl("", 16)
+		fix_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		fix_detail.custom_minimum_size = Vector2(440, 0)
+		v.add_child(fix_detail)
+		var row := UIKit.hbox(8)
+		row.add_child(UIKit.btn("Yes, use it", func(): _answer_fix(true)))
+		row.add_child(UIKit.btn("No", func(): _answer_fix(false)))
+		v.add_child(row)
+		fix_panel.add_child(v)
+		ui.add_child(fix_panel)
+	fix_id = str(p.id)
+	fix_title.text = str(p.title)
+	fix_detail.text = str(p.detail)
+	var owner_name := ""
+	if Session.is_dm() and int(c.owner) != 1:
+		owner_name = "Waiting for %s. You can answer for them." % str(Session.players.get(int(c.owner), {}).get("name", "the player"))
+	fix_for.text = owner_name
+	fix_for.visible = owner_name != ""
+	fix_panel.visible = true
+
+func _answer_fix(use: bool) -> void:
+	if fix_id == "":
+		return
+	Session.request({"type": "fix_choice", "id": fix_id, "use": use})
+	fix_id = ""
+	if fix_panel != null:
+		fix_panel.visible = false
 
 ## A weapon hit held for this player's on-hit choices (Divine Smite, Stunning Strike, a maneuver):
 ## ask one question at a time, then send the answers. Closing a popup counts as "no".
@@ -1284,6 +1573,8 @@ func _refresh_card() -> void:
 		var cid: String = c.id
 		var sb = UIKit.btn("📜 Sheet", func(): _open_sheet(cid), "Character sheet, features, spells, level plan and history (C)")
 		pcol.add_child(sb)
+		if _can_control(c):
+			pcol.add_child(UIKit.btn("🖼 Portrait", func(): _open_portrait_picker(cid), "Pick an icon or upload a new image for this character's token."))
 		if _can_control(c) and Session.pending_levels(c.id) > 0:
 			var lb = UIKit.btn("⬆ Level up", func(): _open_level_up(cid), "A new level is ready. Opens the guided level-up.")
 			lb.add_theme_color_override("font_color", UIKit.GOLD)

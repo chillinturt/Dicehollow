@@ -74,6 +74,9 @@ static func from_character(id: String, ch: Dictionary, owner: int) -> Dictionary
 	c.class_levels = st.class_levels
 	c.subclasses = st.subclasses
 	c.feats = st.feats
+	# Which roll-fixing abilities (Lucky...) the player has switched to automatic; the rest ask first.
+	var af = ch.get("auto_fix", {})
+	c.toggles["auto_fix"] = af.duplicate() if af is Dictionary else {}
 	# Hit dice by die size ("10": count), spent on short rests and half regained on a long rest.
 	var hd: Dictionary = {}
 	for die in st.hit_dice_pool:

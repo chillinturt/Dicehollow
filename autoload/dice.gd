@@ -97,10 +97,11 @@ func times(expr: String, n: int) -> String:
 
 ## Roll a dice string. Options: crit (double dice), max (maximise dice),
 ## min_die (treat lower results as this, e.g. Elemental Adept = 2), reroll_below (GWF: reroll 1s and 2s once).
-## Returns {"total": int, "rolls": Array[int], "expr": String}
+## Returns {"total": int, "rolls": Array[int], "expr": String, "dice": [{"s": sides, "v": value}]} (dice: for the dice tray)
 func roll(expr: String, opts := {}) -> Dictionary:
 	var total = 0
 	var rolls: Array = []
+	var faces: Array = []
 	var crit: bool = opts.get("crit", false)
 	var maximize: bool = opts.get("max", false)
 	var min_die: int = opts.get("min_die", 0)
@@ -120,8 +121,9 @@ func roll(expr: String, opts := {}) -> Dictionary:
 			if min_die > 0 and r < min_die:
 				r = min_die
 			rolls.append(r * sign)
+			faces.append({"s": int(t.s), "v": r})
 			total += r * sign
-	return {"total": total, "rolls": rolls, "expr": expr}
+	return {"total": total, "rolls": rolls, "expr": expr, "dice": faces}
 
 ## Average value of a dice string (for AI and previews).
 func average(expr: String) -> float:

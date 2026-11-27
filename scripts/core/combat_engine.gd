@@ -67,6 +67,7 @@ func start_combat() -> void:
 		c.init = int(r.roll) + bonus
 		c.init_tiebreak = int(c.mods.get("dex", 0)) * 100 + Dice.d(99)
 		order.append(c)
+		dice_event(c.id, "Initiative", d20_faces(r), bonus, c.init, "", "", "init")
 		log_line("%s rolls initiative: %d%s %s = [b]%d[/b]" % [nm(c), r.roll, " (adv)" if adv > 0 else "", Rules.fmt_mod(bonus), c.init])
 	order.sort_custom(func(a, b): return [a.init, a.init_tiebreak] > [b.init, b.init_tiebreak])
 	var ids: Array = []
@@ -464,6 +465,7 @@ func _death_save(c: Dictionary) -> void:
 	if r == 20:
 		c.hp = 1
 		c.death = {"s": 0, "f": 0, "stable": false, "dead": false}
+		dice_event(c.id, "Death save", [{"s": 20, "v": 20}], 0, 20, "SUCCESS")
 		log_line("%s rolls a natural 20 on a death save and regains 1 HP!" % nm(c))
 		float_text(c.id, "Nat 20!", "#ffd166")
 		sync_move(c)
@@ -474,6 +476,7 @@ func _death_save(c: Dictionary) -> void:
 		c.death.s += 1
 	else:
 		c.death.f += 1
+	dice_event(c.id, "Death save", [{"s": 20, "v": r}], 0, r, "SUCCESS" if r >= 10 else "FAIL")
 	log_line("%s makes a death saving throw: %d (successes %d, failures %d)" % [nm(c), r, c.death.s, c.death.f])
 	if c.death.f >= 3:
 		_kill(c, "failed death saves")
@@ -765,7 +768,7 @@ func _resolve_area_effect(src: Dictionary, t: Dictionary, data: Dictionary, dc: 
 	_use_zone_charge(zone)
 	var ok = false
 	if data.has("save"):
-		ok = saving_throw(t, data.save, dc, src, {"spell": true, "cond": data.get("effect", {}).get("condition", "") if data.get("effect", null) is Dictionary else ""})
+		ok = saving_throw(t, data.save, dc, src, {"spell": true, "cond": data.get("effect", {}).get("condition", "") if data.get("effect", null) is Dictionary else "", "dmg_type": _first_dmg_type(data.get("damage", []))})
 	if data.has("damage"):
 		var parts: Array = []
 		var first = true
@@ -955,7 +958,7 @@ func _burst(c: Dictionary, spell_id: String, at: Vector2i, data: Dictionary, dc:
 	for o in creatures_in_cells(cells, c.id if data.get("spare_caster", true) else ""):
 		var ok: bool = false
 		if data.has("save"):
-			ok = saving_throw(o, str(data.save), dc, c, {"spell": true})
+			ok = saving_throw(o, str(data.save), dc, c, {"spell": true, "dmg_type": _first_dmg_type(data.get("damage", []))})
 		var parts: Array = []
 		var di = 0
 		for d in data.get("damage", []):
@@ -1149,8 +1152,9 @@ func _can_stand_path(c: Dictionary, q: Vector2i, flying: bool) -> bool:
 			return false
 		var o = creature_at(oc, c.id)
 		# A hostile creature's space can only be crossed if it is two or more sizes apart from you
-		# (Kinetic Jaunt lets you move through any creature's space).
-		if not o.is_empty() and hostile(o, c) and absi(size_rank(o) - size_rank(c)) < 2 and not mod_any(c, "pass_creatures"):
+		# (Kinetic Jaunt lets you move through any creature's space; Halfling Nimbleness, through any larger one's).
+		if not o.is_empty() and hostile(o, c) and absi(size_rank(o) - size_rank(c)) < 2 and not mod_any(c, "pass_creatures") \
+				and not (c.tags.has("halfling_nimbleness") and size_rank(o) > size_rank(c)):
 			return false
 	return true
 
@@ -1648,8 +1652,9 @@ func skill_check(c: Dictionary, ab: String) -> Dictionary:
 	var adv: int = 1 if ab == "str" and has_tag(c, "rage") else 0
 	if exhaustion(c) >= 1 or has_cond(c, "poisoned") or has_cond(c, "frightened"):
 		adv -= 1
-	var r: Dictionary = Dice.roll_d20(adv)
+	var r: Dictionary = Dice.roll_d20(adv, c.tags.has("halfling_lucky"))
 	var b: int = _escape_bonus(c, ab)
+	dice_event(c.id, _escape_label(ab), d20_faces(r), b, int(r.roll) + b)
 	return {"total": int(r.roll) + b, "text": "%s %d" % [_escape_label(ab), int(r.roll) + b]}
 
 ## The defender's side of a grapple or shove: the better of its Athletics and Acrobatics.
@@ -2268,7 +2273,7 @@ func _basic(c: Dictionary, a: Dictionary, targets: Array) -> void:
 					if b > bonus:
 						bonus = b
 						best_ab = ab
-				var roll: int = Dice.d20() + bonus
+				var roll: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll) + bonus
 				var dc: int = int(g.get("escape_dc", 10))
 				var what = "the grapple" if g.get("cond", "") == "grappled" else str(g.get("name", "the hold"))
 				var holder: Dictionary = C(str(g.get("src", "")))
@@ -2302,7 +2307,7 @@ func _basic(c: Dictionary, a: Dictionary, targets: Array) -> void:
 				add_effect(targets[0], {"name": "Distracted", "tag": "helped", "src": "*", "for_team": c.team, "rounds": 1, "tick_cid": c.id, "tick_on": "start"})
 				log_line("%s helps an ally against %s." % [nm(c), nm(targets[0])])
 		"hide":
-			var roll: int = Dice.d20() + int(c.skills.get("stealth", c.mods.dex))
+			var roll: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll) + int(c.skills.get("stealth", c.mods.dex))
 			var best = 0
 			for o in enemies_of(c):
 				if conscious(o):
@@ -2533,9 +2538,11 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 	var my_turn = is_turn_of(c)
 	var weapon_type = "bludgeoning"
 	var first = true
+	var faces: Array = []  # shown in the dice tray
 	for d in atk.get("damage", []):
 		var r = Dice.roll(d.dice, {"crit": crit, "reroll_below": 2 if gwf else 0})
 		var amt: int = r.total
+		var shown: Array = r.dice
 		if first:
 			weapon_type = d.type
 			# Savage Attacker: reroll weapon dice once per turn.
@@ -2543,6 +2550,7 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 				var r2 = Dice.roll(d.dice, {"crit": crit})
 				if r2.total > amt:
 					amt = r2.total
+					shown = r2.dice
 				once.savage = true
 			if crit and melee and atk.has("die"):
 				if c.tags.has("savage_attacks"):
@@ -2550,13 +2558,16 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 				if int(c.vals.get("brutal_dice", 0)) > 0:
 					amt += Dice.roll(Dice.times(atk.die, int(c.vals.brutal_dice))).total
 		first = false
+		faces.append_array(shown)
 		parts.append({"amount": amt, "type": d.type})
 	if parts.is_empty():
 		return parts
 	var crit_mult = 2 if crit else 1
 	var wpn: bool = not atk.get("spell_attack", false)  # weapon-only riders skip Spiritual Weapon and other spell attacks
 	var dmg_dice = func(expr: String, typ: String, label: String) -> void:
-		var amt: int = Dice.roll(expr, {"crit": crit}).total
+		var rr: Dictionary = Dice.roll(expr, {"crit": crit})
+		var amt: int = rr.total
+		faces.append_array(rr.dice)
 		parts.append({"amount": amt, "type": typ})
 		notes.append("%s %d" % [label, amt])
 	# Rage.
@@ -2701,6 +2712,7 @@ func weapon_damage(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionar
 		for p in parts:
 			p.amount = int(p.amount) / 2
 		notes.append("enfeebled: half damage")
+	_damage_dice_event(c, t, faces, parts, crit)
 	if not notes.is_empty():
 		log_line("    (%s)" % ", ".join(notes))
 	return parts
@@ -2867,7 +2879,7 @@ func _monster_save_action(c: Dictionary, a: Dictionary, targets: Array, cellp: V
 	for t in victims:
 		if not alive(t):
 			continue
-		var ok = saving_throw(t, m.get("save", "dex"), dc, c, {"cond": m.get("condition", ""), "magic": true})
+		var ok = saving_throw(t, m.get("save", "dex"), dc, c, {"cond": m.get("condition", ""), "magic": true, "dmg_type": _first_dmg_type(m.get("damage", []))})
 		var parts: Array = []
 		var di = 0
 		for d in m.get("damage", []):
@@ -2888,6 +2900,13 @@ func _monster_save_action(c: Dictionary, a: Dictionary, targets: Array, cellp: V
 			if m.get("save_ends", false):
 				e.save_ends = {"ability": m.get("save", "wis"), "dc": dc}
 			add_effect(t, e)
+
+## The first damage type in a list of damage entries ({type: ...}), "" if none: lets a save know it is
+## against poison (Stout Resilience, Dwarven Resilience).
+func _first_dmg_type(parts) -> String:
+	if parts is Array and not parts.is_empty() and parts[0] is Dictionary:
+		return str(parts[0].get("type", ""))
+	return ""
 
 func _dmg_color(parts: Array) -> String:
 	var typ: String = parts[0].type if parts.size() > 0 else "force"
@@ -3261,7 +3280,7 @@ func _try_counterspell(caster: Dictionary, sp: Dictionary, slot: int) -> bool:
 			log_line("  [color=#7ad0ff]%s's %s is countered![/color]" % [nm(caster), sp.name])
 			return true
 		var e = caster_entry(o, "wizard")
-		var roll: int = Dice.d20() + int(e.get("mod", 0))
+		var roll: int = int(Dice.roll_d20(0, o.tags.has("halfling_lucky")).roll) + int(e.get("mod", 0))
 		if roll >= 10 + slot:
 			log_line("  Ability check %d vs DC %d — [color=#7ad0ff]countered![/color]" % [roll, 10 + slot])
 			return true
@@ -3309,8 +3328,19 @@ func _spell_damage(c: Dictionary, sp: Dictionary, cbd: Dictionary, ctx: Dictiona
 		parts.append({"dice": dice, "type": typ})
 	return parts
 
+## The dice tray's damage roll: the dice shown, with whatever else was added (modifiers, rage...) as the bonus.
+func _damage_dice_event(c: Dictionary, t: Dictionary, faces: Array, parts: Array, crit: bool) -> void:
+	var total := 0
+	for p in parts:
+		total += int(p.get("amount", 0))
+	var sum := 0
+	for f in faces:
+		sum += int(f.v)
+	dice_event(c.id, "Damage" + (" (crit)" if crit else ""), faces, total - sum, total, "", str(t.get("id", "")), "damage")
+
 func _roll_parts(c: Dictionary, parts: Array, crit: bool, ctx: Dictionary) -> Array:
 	var out: Array = []
+	var faces: Array = []
 	var adept: String = ""
 	if c.get("feats", []).has("elemental_adept"):
 		adept = str(c.choices.get("elemental_adept", "fire"))
@@ -3320,6 +3350,7 @@ func _roll_parts(c: Dictionary, parts: Array, crit: bool, ctx: Dictionary) -> Ar
 			o.min_die = 2
 		var r = Dice.roll(p.dice, o)
 		var amt: int = r.total
+		faces.append_array(r.dice)
 		if ctx.get("meta", "") == "empowered":
 			# Reroll the lowest dice (up to CHA mod) and keep the new values.
 			var rolls: Array = r.rolls.duplicate()
@@ -3332,6 +3363,7 @@ func _roll_parts(c: Dictionary, parts: Array, crit: bool, ctx: Dictionary) -> Ar
 				if sides > 0 and rolls[i] < (sides + 1) / 2.0:
 					amt += Dice.d(sides) - int(rolls[i])
 		out.append({"amount": amt, "type": p.type})
+	_damage_dice_event(c, {}, faces, out, crit)
 	return out
 
 func _spell_targets_area(c: Dictionary, sp: Dictionary, cbd: Dictionary, ctx: Dictionary) -> Array:
@@ -4389,7 +4421,7 @@ func _sp_dispel_magic(c: Dictionary, sp: Dictionary, cbd: Dictionary, targets: A
 			var lv: int = int(esp.level) + int(e.get("upl", 0))
 			if lv > auto_lv:
 				var bonus: int = int(ctx.entry.get("mod", 0)) + (int(c.prof) if c.features.has("improved_abjuration") else 0)
-				var roll: int = Dice.d20() + bonus
+				var roll: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll) + bonus
 				if roll < 10 + lv:
 					log_line("  %s holds against the dispel (check %d vs DC %d)." % [esp.name, roll, 10 + lv])
 					continue
@@ -5120,7 +5152,7 @@ func _feature(c: Dictionary, a: Dictionary, targets: Array, cellp: Vector2i, par
 			log_line("%s exhales a blast of %s!" % [nm(c), br.type])
 			var broll2: int = Dice.roll(c.vals.breath_dice).total
 			for o in creatures_in_cells(cells, c.id):
-				var ok2 = saving_throw(o, br.save, int(c.vals.breath_dc), c, {})
+				var ok2 = saving_throw(o, br.save, int(c.vals.breath_dc), c, {"dmg_type": str(br.type)})
 				var dmg2: int = broll2
 				apply_damage(o, [{"amount": dmg2 / 2 if ok2 else dmg2, "type": br.type}], c, {"magic": true})
 		"healing_hands":

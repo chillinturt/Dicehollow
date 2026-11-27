@@ -172,7 +172,7 @@ static func habitats_of(m: Dictionary) -> Array:
 ## Monsters allowed by the settings. Falls back to ignoring the habitat when it leaves nothing.
 static func pool(settings: Dictionary, max_xp: int) -> Array:
 	var types: Array = settings.get("types", [])
-	var terrain: String = settings.get("terrain", "dungeon")
+	var terrain: String = settings.get("habitat", settings.get("terrain", "dungeon"))
 	var habitat: bool = settings.get("match_habitat", true)
 	var allow_custom: bool = settings.get("allow_custom", true)
 	var exclude: Array = settings.get("exclude", [])

@@ -82,7 +82,7 @@ func names() -> Array:
 	return ["sword", "blunt", "punch", "claw", "bite", "bow", "crossbow", "throw",
 		"fire", "cold", "lightning", "thunder", "acid", "poison", "necrotic", "radiant", "psychic", "force",
 		"cast", "heal", "buff", "rage", "teleport", "hit", "crit", "miss", "down", "death", "nat20",
-		"condition", "turn", "step", "click"]
+		"condition", "turn", "step", "click", "dice"]
 
 # ================================================================ internals
 
@@ -413,3 +413,13 @@ func _s_step() -> PackedFloat32Array:
 
 func _s_click() -> PackedFloat32Array:
 	return _tone(0.05, 1500.0, 1200.0, 0.001, 0.01, "tri")
+
+## Dice rattling: a handful of short wooden clacks.
+func _s_dice() -> PackedFloat32Array:
+	var b = _buf(0.34)
+	for i in 7:
+		var at = 0.02 + i * 0.04 + _rng.randf_range(-0.012, 0.012)
+		var click = _noise(0.03, 3200.0, 1400.0, 0.001, 0.006, 600.0)
+		click = _mix(click, _tone(0.025, _rng.randf_range(900.0, 1500.0), 700.0, 0.001, 0.005, "tri"), 0.0, 0.5)
+		b = _mix(b, click, at, 1.0 - i * 0.09)
+	return b
