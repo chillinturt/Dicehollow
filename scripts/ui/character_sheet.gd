@@ -18,12 +18,18 @@ var tabs: TabContainer
 var head_box: HBoxContainer
 var pending := 0
 var history_remote := false  # the backups live on the player's computer, not this one
+var inv_page: ScrollContainer
+var inv_panel: InventoryPanel   # the Inventory tab (wire its op_requested / give_requested to act on it)
+var inv_holder: Callable        # () -> the holder the Inventory tab shows (default: live, else the sheet)
+var inv_opts: Dictionary = {}   # InventoryPanel options for the tab (editable only when the sheet is too)
 
 ## opts: live (combatant), editable (bool), advancement ("xp" | "milestone"), history (Array),
-## pending (levels the DM has granted but not yet taken)
+## pending (levels the DM has granted but not yet taken), inv_holder (Callable), inv_opts (InventoryPanel options)
 func _init(ch: Dictionary, opts := {}) -> void:
 	super("Character sheet", Vector2(1080, 780))
 	sheet = ch
+	inv_holder = opts.get("inv_holder", Callable())
+	inv_opts = opts.get("inv_opts", {})
 	live = opts.get("live", {})
 	editable = opts.get("editable", false)
 	advancement = str(opts.get("advancement", "milestone"))
@@ -49,9 +55,14 @@ func rebuild(new_sheet: Dictionary = {}, opts := {}) -> void:
 			"advancement": advancement = str(opts.advancement)
 			"editable": editable = opts.editable
 			"history_remote": history_remote = opts.history_remote
+			"inv_holder": inv_holder = opts.inv_holder
+			"inv_opts": inv_opts = opts.inv_opts
 	var cur := tabs.current_tab
 	set_title("%s — character sheet" % sheet.get("name", "?"))
 	_build_head()
+	# The inventory tab is kept (see _tab_inventory); everything else is rebuilt.
+	if inv_page != null and is_instance_valid(inv_page) and inv_page.get_parent() == tabs:
+		tabs.remove_child(inv_page)
 	UIKit.clear(tabs)
 	_tab_overview()
 	_tab_features()
@@ -60,9 +71,36 @@ func rebuild(new_sheet: Dictionary = {}, opts := {}) -> void:
 	var plan := LevelPlanView.new(sheet, editable)
 	plan.changed.connect(func(p): plan_changed.emit(p))
 	pv.add_child(plan)
+	_tab_inventory()
 	if editable:
 		_tab_history()
 	tabs.current_tab = clampi(cur, 0, tabs.get_tab_count() - 1)
+
+## What the character carries: purse, load, hands, attunement and every item. In a game it shows the token's
+## live inventory, and the character's player (or the DM) can use it just like the 🎒 window: equip, attune,
+## swap weapons, pack into bags, give, drop, and store in a chest beside them. The panel is built once and
+## kept across rebuilds, so the filter, search and scroll position survive changes.
+func _tab_inventory() -> void:
+	if not sheet.get("inventory", null) is Array and not live.get("inventory", null) is Array:
+		if inv_page != null and is_instance_valid(inv_page) and inv_page.get_parent() == null:
+			inv_page.queue_free()
+		return
+	if inv_page == null or not is_instance_valid(inv_page):
+		var v = UIKit.vbox(10)
+		inv_page = UIKit.scroll(UIKit.margin(v, 10))
+		inv_page.name = "Inventory"
+		var holder: Callable = inv_holder if inv_holder.is_valid() else func(): return live if live.get("inventory", null) is Array else sheet
+		var po: Dictionary = inv_opts.duplicate() if not inv_opts.is_empty() else {"editable": false}
+		if not editable:
+			po.editable = false
+		inv_panel = InventoryPanel.new(holder, po)
+		v.add_child(inv_panel)
+	else:
+		for k in inv_opts:
+			inv_panel.opts[k] = inv_opts[k]
+		inv_panel.opts.editable = editable and inv_opts.get("editable", false)
+		inv_panel.refresh()
+	tabs.add_child(inv_page)
 
 ## Refresh only the live numbers at the top (hit points, slots, conditions).
 func update_live(c: Dictionary, new_pending := -1) -> void:
@@ -239,6 +277,8 @@ func _tab_overview() -> void:
 		right.add_child(_section("Limited-use features", rs.strip_edges()))
 	# Proficiencies and choices.
 	var pr := "[b]Armor:[/b] %s\n[b]Weapons:[/b] %s" % [", ".join(st.armor_prof.map(func(x): return Data.pretty(x))) if not st.armor_prof.is_empty() else "none", ", ".join(st.weapon_prof.map(func(x): return Data.pretty(x)))]
+	var tl: Array = st.get("tools", [])
+	pr += "\n[b]Tools:[/b] %s" % (", ".join(tl.map(func(x): return str(Data.item(str(x)).get("name", x)))) if not tl.is_empty() else "none")
 	if not st.resist.is_empty():
 		pr += "\n[b]Resistances:[/b] " + ", ".join(st.resist)
 	for key in ["fighting_styles", "maneuvers", "metamagic", "invocations", "infusions"]:
@@ -247,16 +287,28 @@ func _tab_overview() -> void:
 			pr += "\n[b]%s:[/b] %s" % [Data.pretty(key), ", ".join(arr.map(func(x): return Data.pretty(x)))]
 	if not st.feats.is_empty():
 		pr += "\n[b]Feats:[/b] " + ", ".join(st.feats.map(func(x): return Data.feat(x).get("name", x)))
-	var eq: Dictionary = sheet.get("equipment", {})
 	var gear: PackedStringArray = []
-	if str(eq.get("armor", "")) != "":
-		gear.append(Data.item(eq.armor).get("name", eq.armor) + (" +%d" % int(eq.armor_bonus) if int(eq.get("armor_bonus", 0)) > 0 else ""))
-	if eq.get("shield", false):
-		gear.append("Shield")
-	for wid in eq.get("weapons", []):
-		gear.append(Data.item(wid).get("name", wid))
+	if sheet.get("inventory", null) is Array:
+		# Worn and wielded items from the inventory (magic ones in their rarity's colour, ✦ = attuned).
+		for e in sheet.inventory:
+			if e.get("eq", false) and str(e.get("in", "")) == "":
+				var nm: String = Inventory.display_name(e).replace("[", "(")
+				gear.append(("[color=%s]%s%s[/color]" % [Inventory.rarity_color(e), "✦ " if e.get("att", false) else "", nm]) if Inventory.is_magic(Inventory.def(e)) else nm)
+		for e in sheet.inventory:
+			if not e.get("eq", false) and e.get("att", false):
+				gear.append("[color=%s]✦ %s[/color]" % [Inventory.rarity_color(e), Inventory.display_name(e).replace("[", "(")])
+	else:
+		var eq: Dictionary = sheet.get("equipment", {})
+		if str(eq.get("armor", "")) != "":
+			gear.append(Data.item(eq.armor).get("name", eq.armor) + (" +%d" % int(eq.armor_bonus) if int(eq.get("armor_bonus", 0)) > 0 else ""))
+		if eq.get("shield", false):
+			gear.append("Shield")
+		for wid in eq.get("weapons", []):
+			gear.append(Data.item(wid).get("name", wid))
 	if not gear.is_empty():
 		pr += "\n[b]Equipment:[/b] " + ", ".join(gear)
+	if sheet.get("coins", null) is Dictionary:
+		pr += "\n[b]Coins:[/b] %s   [b]Load:[/b] %s / %d lb" % [Inventory.fmt_coins(sheet.coins), Inventory._lb_txt(snappedf(float(st.get("load_lb", 0.0)), 0.1)), int(st.get("capacity", 0))]
 	right.add_child(_section("Proficiencies & choices", pr))
 	if str(sheet.get("notes", "")).strip_edges() != "":
 		right.add_child(_section("Notes", str(sheet.notes).replace("[", "(")))

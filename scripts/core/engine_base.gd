@@ -24,7 +24,9 @@ static func new_state(w: int, h: int) -> Dictionary:
 		"in_combat": false, "zones": [], "items": [], "log": [], "next_id": 1, "spawns": [], "theme": "stone",
 		"fog": {"mode": "off", "shared": true, "range": 0}, "fog_seen": {},
 		# Map dressing (drawn only): per-cell ground material, furniture/props and place-name labels.
-		"ground": PackedByteArray(), "props": [], "labels": []}
+		"ground": PackedByteArray(), "props": [], "labels": [],
+		# Things to break, pick up or open (MapObjects); "stream": endless-map bookkeeping (MapStream).
+		"objects": [], "stream": {}}
 
 # ================================================================ basics
 
@@ -761,6 +763,11 @@ func eff_speed(c: Dictionary) -> int:
 	if not mod_any(c, "no_fly"):
 		sp = maxi(sp, int(mod_sum(c, "fly")))  # the Fly spell's flying speed
 	sp += int(mod_sum(c, "speed"))
+	# Carrying too much (Inventory.encumbrance: the variant rule's -10 / -20 ft; over capacity, 5 ft or none).
+	var enc: Dictionary = Inventory.encumbrance_of(s, c) if c.form.is_empty() else {}
+	sp += int(enc.get("speed", 0))
+	if enc.has("max_speed"):
+		sp = mini(sp, int(enc.max_speed))
 	var mult = 1.0
 	for v in mod_list(c, "speed_mult"):
 		mult *= float(v)
@@ -897,6 +904,11 @@ func attack_advantage(a: Dictionary, t: Dictionary, melee: bool, atk: Dictionary
 	for cond in ["blinded", "frightened", "poisoned", "prone", "restrained"]:
 		if has_cond(a, cond): dis = true
 	if (has_cond(t, "invisible") and not _sees_invisible(a)) or t.get("hidden", false): dis = true
+	# Cloak of Displacement: attacks against the wearer have disadvantage, unless it was hurt since its last
+	# turn began, or is incapacitated, restrained or unable to move.
+	if t.get("tags", {}).has("displacement") and not t.get("displace_off", false) and not is_incapacitated(t) \
+			and not has_cond(t, "restrained") and eff_speed(t) > 0:
+		dis = true
 	if not melee:
 		if not a.get("feats", []).has("crossbow_expert"):
 			for o in enemies_of(a):
@@ -918,6 +930,9 @@ func attack_advantage(a: Dictionary, t: Dictionary, melee: bool, atk: Dictionary
 	if exhaustion(a) >= 3:
 		dis = true
 	# Armor worn without proficiency: disadvantage on attack rolls that use STR or DEX.
+	# Heavily encumbered (variant rule): disadvantage on attack rolls that use STR, DEX or CON.
+	if Inventory.encumbrance_of(s, a).get("dis", false) and str(atk.get("ability", "str")) in ["str", "dex", "con"]:
+		dis = true
 	if a.get("armor_unproficient", false) and not atk.get("spell_attack", false) and str(atk.get("ability", "str")) in ["str", "dex"]:
 		dis = true
 	# Heavy obscurement: an unseen target is attacked at disadvantage, an unseen attacker gains
@@ -1159,6 +1174,9 @@ func saving_throw(t: Dictionary, ability: String, dc: int, src: Dictionary, opts
 	if opts.get("heightened", false) or opts.get("dis", false): dis = true
 	# Armor or a shield worn without proficiency: disadvantage on STR and DEX saves.
 	if ability in ["str", "dex"] and t.get("armor_unproficient", false): dis = true
+	if ability in ["str", "dex", "con"] and Inventory.encumbrance_of(s, t).get("dis", false): dis = true
+	# Antitoxin: advantage on saves against poison.
+	if (cc == "poisoned" or opts.get("dmg_type", "") == "poison") and mod_any(t, "poison_save_adv"): adv = true
 	# Effects granting advantage on some saves (Beacon of Hope: WIS; Circle of Power: against spells).
 	for v in mod_list(t, "save_adv"):
 		if v is Array and ability in v:
@@ -1440,6 +1458,9 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 	if has_tag(a, "sacred_weapon") and not opts.get("spell", false):
 		bonus += maxi(1, int(a.mods.cha))
 	var ac = eff_ac(t)
+	# Arrow-Catching Shield: +2 AC against ranged attacks.
+	if not melee and t.get("tags", {}).has("arrow_catching"):
+		ac += 2
 	var crit_range: int = int(a.get("vals", {}).get("crit_range", 20)) if not opts.get("spell", false) else 20
 	for e in t.effects:
 		if e.get("tag", "") == "hexblade_curse" and e.get("src", "") == a.id:
@@ -1476,6 +1497,10 @@ func _roll_attack_at(a: Dictionary, t: Dictionary, atk: Dictionary, melee: bool,
 	# Any hit on a paralysed or unconscious creature from within 5 ft is a critical (melee or ranged).
 	if hit and dist(a, t) <= 5 and (has_cond(t, "paralyzed") or has_cond(t, "unconscious")):
 		crit = true
+	# Adamantine armor: a critical hit against the wearer becomes a normal hit.
+	if crit and hit and t.get("tags", {}).has("adamantine"):
+		crit = false
+		note = (note + "; " if note != "" else "") + "adamantine armor turns the critical hit"
 	var res_txt = "[color=#ffd166]CRIT![/color]" if crit and hit else ("[color=#7fdc7f]HIT[/color]" if hit else "[color=#aaaaaa]MISS[/color]")
 	dice_event(a.id, "%s · AC %d" % [str(atk.get("name", "Attack")), ac], d20_faces(rr), bonus, total,
 		"CRIT" if crit and hit else ("HIT" if hit else "MISS"), t.id)
@@ -1681,12 +1706,14 @@ func apply_damage(t: Dictionary, parts: Array, src: Dictionary, opts := {}) -> i
 		var typ: String = p.type
 		var bps = typ in ["bludgeoning", "piercing", "slashing"]
 		var mundane_only: bool = t.get("mundane_resist", false) and bps
+		# "Nonmagical attacks that aren't silvered": a silvered weapon gets through too (Inventory: silvered weapons).
+		var gets_past: bool = magic or (opts.get("silver", false) and t.get("mundane_silver", false))
 		# Flat reductions (Heavy Armor Master) come before resistance and vulnerability (PHB p.197).
 		if bps and not magic and t.get("heavy_armor", false) and t.get("feats", []).has("heavy_armor_master"):
 			amt = maxi(0, amt - 3)
-		if typ in immune and not (mundane_only and magic):
+		if typ in immune and not (mundane_only and gets_past):
 			amt = 0
-		elif typ in resist and typ != ignore_res and not (mundane_only and magic and typ in t.resist):
+		elif typ in resist and typ != ignore_res and not (mundane_only and gets_past and typ in t.resist):
 			amt = amt / 2
 		if typ in vulnerable:
 			amt *= 2
@@ -1707,6 +1734,12 @@ func apply_damage(t: Dictionary, parts: Array, src: Dictionary, opts := {}) -> i
 			use_reaction(t)
 			total = maxi(0, total - red)
 			log_line("  %s deflects the missile (-%d)." % [nm(t), red])
+		elif opts.get("ranged_weapon", false) and t.get("tags", {}).has("missile_snaring") and can_react(t):
+			# Gloves of Missile Snaring: 1d10 + Dexterity modifier off a ranged weapon hit.
+			var red3: int = maxi(0, Dice.d(10) + int(t.mods.dex))
+			use_reaction(t)
+			total = maxi(0, total - red3)
+			log_line("  %s snatches at the missile with the gloves (-%d)." % [nm(t), red3])
 		elif t.features.has("uncanny_dodge") and can_react(t) and (total >= 8 or total >= t.hp):
 			use_reaction(t)
 			total = total / 2
@@ -1751,6 +1784,9 @@ func apply_damage(t: Dictionary, parts: Array, src: Dictionary, opts := {}) -> i
 			end_wild_shape(t)
 	# Taking damage keeps a rage going.
 	t.rage_kept = true
+	# Cloak of Displacement: the illusion falters after the wearer is hurt, until its next turn.
+	if total > 0 and t.get("tags", {}).has("displacement"):
+		t.displace_off = true
 	var was_up: bool = t.hp > 0
 	t.hp -= total
 	# Harm can't drop a creature below 1 hit point.
@@ -1989,6 +2025,9 @@ func heal_creature(t: Dictionary, amount: int, src: Dictionary, why := "") -> in
 	if before <= 0 and t.hp > 0:
 		t.death = {"s": 0, "f": 0, "stable": false, "dead": false}
 		log_line("  %s regains consciousness!" % nm(t))
+	# Effects that last until the creature regains a hit point (a caltrop in the foot).
+	if gained > 0:
+		remove_effects_where(t, func(e): return e.get("until_healed", false))
 	log_line("  %s regains [color=#7fdc7f]%d[/color] HP%s." % [nm(t), gained, (" (" + why + ")") if why != "" else ""])
 	float_text(t.id, "+%d" % gained, "#7fdc7f")
 	return gained

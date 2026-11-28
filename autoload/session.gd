@@ -365,11 +365,49 @@ func _broadcast(events: Array) -> void:
 	# (a DM-applied condition or a reaction may have changed the mover's speed).
 	if state.in_combat:
 		engine.sync_move(engine.current())
+	# Creatures that drop let go of what they hold; then, on an endless map, new ground appears where the party
+	# can see the edge (which may move everything: the events' cells move with it).
+	MapObjects.sweep(engine)
+	# Loot picked up, potions drunk, scrolls read: save what changed to the characters' sheets.
+	_sync_gear()
+	_stream_update(events)
 	# Fog of war: whatever the party sees now (or saw along the way) is remembered.
 	Fog.update_seen(engine, events)
 	state_changed.emit(events)
 	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		_rpc_state.rpc(state, events)
+
+## Endless maps (MapStream): grow the map toward any edge the party can see, place wandering monsters that
+## turned up in the new ground, and tell clients how far everything moved.
+func _stream_update(events: Array) -> void:
+	var res: Dictionary = MapStream.update(engine)
+	if res.is_empty():
+		return
+	var d: Vector2i = res.shift
+	if d != Vector2i.ZERO:
+		MapStream.shift_in_place(events, d)
+		events.append({"t": "map_shift", "d": d})
+	for id in res.get("remove", []):
+		var t: Dictionary = engine.C(str(id))
+		if not t.is_empty():
+			_remove_creature(t)
+	var named := {}
+	for f in res.get("foes", []):
+		var probe := CombatantFactory.from_monster("probe", str(f.mid))
+		var at: Vector2i = f.pos
+		if not _fits(probe, at, "", true):
+			continue
+		var cid := add_monster(str(f.mid), at)
+		named[str(engine.C(cid).name)] = true
+	var lines: Array = ["[color=#a59cb5]New ground comes into view. The map is now %d × %d squares.[/color]" % [state.w, state.h]]
+	if not named.is_empty():
+		lines.append("[color=#ff9c8f]Something stirs in the newly seen ground: %s.[/color]" % ", ".join(named.keys()))
+	for line in lines:
+		var before: int = engine.events.size()
+		engine.log_line(line)
+		# log_line queues the event on engine.events; make sure it reaches this broadcast either way.
+		if not is_same(events, engine.events):
+			events.append(engine.events[before])
 
 ## Everything the UI wants to do goes through here.
 func request(req: Dictionary) -> void:
@@ -386,6 +424,8 @@ func can_control(peer: int, c: Dictionary) -> bool:
 func add_character(ch: Dictionary, owner: int, at = null) -> String:
 	var cid = engine.new_id("p")
 	ch = Progression.strip_history(ch)
+	# Sheets from before inventories get their class and background starting gear (Inventory.ensure).
+	Inventory.ensure(ch)
 	if str(ch.get("id", "")) == "":
 		ch.id = CharacterStore.new_id()  # so its progress can be saved later
 	for k in ["xp", "level_cap"]:
@@ -546,6 +586,12 @@ func _handle_op(peer: int, req: Dictionary) -> void:
 			_group_roll(who, req)
 		"set_sheet":
 			_set_sheet(peer, c, req.get("sheet", {}), str(req.get("label", "")))
+		"inv":
+			_inventory_op(peer, c, req)
+		"inv_give":
+			_give(peer, c, engine.C(str(req.get("to", ""))), req)
+		"stash":
+			_stash(peer, c, req)
 		"set_auto_fix":
 			# Switch one roll-fixing ability (Lucky...) between "ask me" and "use it automatically".
 			var fid := str(req.get("id", ""))
@@ -572,6 +618,26 @@ func _handle_op(peer: int, req: Dictionary) -> void:
 		"dm_grant_level":
 			if dm:
 				_grant_level(_pc_targets(req))
+		"dm_shop":
+			if dm: _set_shop(req)
+		"dm_give":
+			if dm: _dm_give(_pc_targets(req), req)
+		"dm_shop_stock":
+			if dm: _shop_stock(req)
+		"dm_split_coins":
+			if dm: _split_coins(_pc_targets(req))
+		"dm_treasure":
+			if dm and Inventory.TREASURE_MODES.any(func(m): return m[0] == str(req.get("mode", ""))):
+				state.treasure = str(req.mode)
+				engine.log_line("[color=#a59cb5]Treasure on bodies: %s.[/color]" % str(Inventory.TREASURE_MODES.filter(func(m): return m[0] == state.treasure)[0][1]).to_lower())
+		"dm_attune_free":
+			if dm:
+				state.attune_free = bool(req.get("on", false))
+				engine.log_line("[color=#a59cb5]Attunement: %s.[/color]" % ("the DM allows attuning without a rest" if state.attune_free else "attuning or ending an attunement takes a short rest (DMG)"))
+		"dm_encumbrance":
+			if dm and str(req.get("mode", "")) in ["standard", "variant"]:
+				state.encumbrance = str(req.mode)
+				engine.log_line("[color=#a59cb5]Encumbrance: %s.[/color]" % ("the variant rule (over 5 × STR lb: -10 ft; over 10 × STR: -20 ft and disadvantage on STR, DEX and CON rolls)" if req.mode == "variant" else "the standard rule (only more than 15 × STR lb slows you)"))
 		"dm_place_monster":
 			if dm and not Data.monster(str(req.mid)).is_empty():
 				var hidden: bool = req.get("hidden", false)
@@ -616,6 +682,8 @@ func _handle_op(peer: int, req: Dictionary) -> void:
 						continue
 					engine.set_cell(p, int(req.value))
 					painted[p] = true
+				# Objects (crates, chests, weak walls...) on repainted cells go with the old terrain.
+				state.objects = MapObjects.list(state).filter(func(o): return not painted.has(o.pos))
 				# Furniture and other props on repainted cells go with the old terrain.
 				if not painted.is_empty() and not state.get("props", []).is_empty():
 					state.props = state.props.filter(func(pr):
@@ -714,6 +782,38 @@ func _handle_op(peer: int, req: Dictionary) -> void:
 				state.ground = PackedByteArray()
 				state.props = []
 				state.labels = []
+				state.objects = []
+				state.stream = {}
+		"dm_object":
+			# Place an object (a chest gets loot for the party's level), or remove the one already on that cell.
+			if dm and engine.in_bounds(req.get("at", Vector2i(-1, -1))):
+				var at: Vector2i = req.at
+				var here: Array = MapObjects.at(state, at)
+				if not here.is_empty():
+					for o in here:
+						MapObjects.remove(engine, o)
+						# Taking a chest away doesn't destroy what the party stored in it.
+						if not MapObjects.store_empty(o):
+							MapObjects.spill_store(engine, o)
+				elif MapObjects.KINDS.has(str(req.get("k", ""))):
+					var k := str(req.k)
+					if int(MapObjects.KINDS[k].get("cell", -1)) == EngineBase.WALL and not engine.creature_at(at).is_empty():
+						status.emit("Someone is standing there.")
+						return
+					var extra := {}
+					if MapObjects.KINDS[k].get("container", false):
+						var rng := RandomNumberGenerator.new()
+						rng.randomize()
+						extra.loot = MapObjects.roll_loot(rng, _party_level(), k == "chest")
+						if k == "chest" and req.get("locked", false):
+							extra.locked = true
+							extra.dc = clampi(int(req.get("dc", 15)), 5, 30)
+					MapObjects.place(engine, MapObjects.make(k, at, EngineBase.FLOOR, extra))
+		"dm_stream":
+			# Switch an endless map's growing on or off.
+			if dm and not state.get("stream", {}).is_empty():
+				state.stream.on = bool(req.get("on", true))
+				engine.log_line("[color=#a59cb5]%s[/color]" % ("Endless map: new ground appears as the party nears an edge." if state.stream.on else "Endless map paused: the map stays as it is."))
 		"dm_label":
 			# Rename (or, with empty text, remove) a place name on the map.
 			if dm:
@@ -961,9 +1061,11 @@ func _check_victory() -> void:
 	var side = engine.side_defeated()
 	if side == "enemy":
 		engine.log_line("[color=#7fdc7f][b]Victory! All enemies are defeated.[/b][/color]")
+		engine.sfx("victory")
 		engine.end_combat()
 	elif side == "party":
 		engine.log_line("[color=#ff5050][b]The party has fallen…[/b][/color]")
+		engine.sfx("defeat")
 		engine.end_combat()
 
 func _should_auto(c: Dictionary) -> bool:
@@ -1049,10 +1151,21 @@ func _resize(w: int, h: int) -> void:
 		state.ground = ground
 	state.props = state.get("props", []).filter(func(p): return int(p.x) + int(p.get("w", 1)) <= w and int(p.y) + int(p.get("h", 1)) <= h)
 	state.labels = state.get("labels", []).filter(func(l): return float(l.x) < w and float(l.y) < h)
+	state.objects = MapObjects.list(state).filter(func(o): return o.pos.x < w and o.pos.y < h)
 	state.w = w
 	state.h = h
 	state.cells = cells
 	Fog.reset(state)  # the remembered cells no longer line up
+
+## Average level of the player characters on the map (1 if there are none).
+func _party_level() -> int:
+	var tot := 0
+	var n := 0
+	for c in engine.all_combatants():
+		if c.kind == "pc":
+			tot += int(c.get("level", 1))
+			n += 1
+	return maxi(1, tot / maxi(1, n))
 
 ## DM fog-of-war settings: any of "mode" (off / soft / hard), "shared" (party shares vision) and
 ## "range" (feet creatures see without darkvision; 0 = unlimited).
@@ -1099,6 +1212,10 @@ func map_snapshot() -> Dictionary:
 		snap.ground = Array(ground) if ground.size() == state.w * state.h else []
 		snap.props = state.get("props", []).duplicate(true)
 		snap.labels = state.get("labels", []).duplicate(true)
+	if not MapObjects.list(state).is_empty():
+		snap.objects = MapObjects.to_map(state.objects)
+	if not state.get("stream", {}).is_empty():
+		snap.stream = state.stream.duplicate(true)
 	return snap
 
 ## Map dressing from a saved or generated map, checked: per-cell ground materials, props and labels.
@@ -1132,6 +1249,9 @@ func _load_map(m: Dictionary) -> void:
 		state.cells.resize(w * h)
 	state.theme = m.get("theme", "stone")
 	_load_dressing(m, w, h)
+	# Interactable objects, and the endless-map record if the map grows as the party explores.
+	MapObjects.load_into(engine, m.get("objects", []))
+	state.stream = MapStream.clean(m.get("stream", {}))
 	# A new place: nothing explored yet. A map saved with fog settings brings them along.
 	Fog.reset(state)
 	if m.get("fog", {}) is Dictionary and not m.get("fog", {}).is_empty():
@@ -1287,6 +1407,10 @@ func _set_sheet(peer: int, c: Dictionary, incoming, label: String) -> void:
 	sheet.level_cap = int(old.get("level_cap", 0))
 	sheet.id = str(old.get("id", sheet.get("id", "")))
 	sheet.portrait = str(old.get("portrait", ""))
+	# What a character carries is the game's to change (loot, the shop), not an old copy of the sheet's.
+	sheet.inventory = old.get("inventory", []).duplicate(true)
+	sheet.coins = old.get("coins", {}).duplicate()
+	Inventory.sync_equipment(sheet)
 	sheets[c.id] = sheet
 	_apply_sheet(c, sheet)
 	if after > before:
@@ -1408,3 +1532,340 @@ func _grant_level(targets: Array) -> void:
 	if not names.is_empty():
 		engine.log_line("[color=#ffd166][b]⬆ Level up![/b] The DM grants a new level to %s. Open the character sheet to level up.[/color]" % ", ".join(names))
 	_broadcast_sheets()
+
+# ================================================================ belongings and shops (Inventory)
+
+## After every request: a PC whose pack or purse changed in play (loot, a potion drunk, a scroll read, a
+## torch lit) has the change written to its sheet and saved by its owner.
+func _sync_gear() -> void:
+	var changed := false
+	for c in engine.all_combatants():
+		if c.kind != "pc" or not sheets.has(c.id) or not c.get("inventory", null) is Array:
+			continue
+		var sh: Dictionary = sheets[c.id]
+		if c.inventory == sh.get("inventory", []) and c.get("coins", {}) == sh.get("coins", {}) and not c.get("gear_dirty", false):
+			continue
+		sh.inventory = c.inventory.duplicate(true)
+		sh.coins = c.get("coins", {}).duplicate()
+		Inventory.sync_equipment(sh)
+		c.load_lb = Inventory.carried_lb(c)
+		# Weapons swapped (or an item changed what the character wields): attacks and AC come from the sheet again.
+		if c.get("gear_dirty", false):
+			c.erase("gear_dirty")
+			_apply_sheet(c, sh)
+		_store_for_owner(c, sh, "", {})
+		changed = true
+	if changed:
+		_broadcast_sheets()
+
+## A PC's changed belongings: rebuild its stats from the sheet (AC, attacks, magic items, load) and save.
+func _commit_gear(c: Dictionary) -> void:
+	var sh: Dictionary = sheets[c.id]
+	sh.inventory = c.inventory.duplicate(true)
+	sh.coins = c.get("coins", {}).duplicate()
+	Inventory.sync_equipment(sh)
+	_apply_sheet(c, sh)
+	_store_for_owner(c, sh, "", {})
+	_broadcast_sheets()
+
+## The shop the DM has open ({} when none).
+func shop() -> Dictionary:
+	var sh = state.get("shop", {})
+	return sh if sh is Dictionary and sh.get("open", false) else {}
+
+## A player equips, attunes, drops, packs, buys or sells (see Inventory.apply_op).
+func _inventory_op(peer: int, c: Dictionary, req: Dictionary) -> void:
+	if c.is_empty() or c.kind != "pc" or not sheets.has(c.id) or not can_control(peer, c):
+		return
+	var dm := peer == 1
+	var op := str(req.get("op", ""))
+	var fighting: bool = state.in_combat
+	if op in ["buy", "sell"]:
+		if shop().is_empty():
+			_tell(peer, "There's no shop open.")
+			return
+		if fighting and not dm:
+			_tell(peer, "No shopping in the middle of a fight.")
+			return
+	if op in ["add", "coins"] and not dm:
+		return
+	var e := Inventory.find(c, str(req.get("uid", "")))
+	# In a fight, drawing a weapon is your free object interaction (then an action); a shield takes an action
+	# (PHB p.146), and so does taking something out of a bag of holding.
+	var cost := ""
+	if fighting and not dm and op in ["equip", "move", "swap"]:
+		if not engine.is_turn_of(c):
+			_tell(peer, "Wait for your turn.")
+			return
+		# Swapping weapon sets is one object interaction, unless a shield goes on or off (an action).
+		var shield_moves: bool = Inventory.swap_moves_shield(c) if op == "swap" else (op == "equip" and not e.is_empty() and req.get("on", true) and Inventory.equip_moves_shield(c, e))
+		if op == "move" or Inventory.is_shield(e) or shield_moves:
+			cost = "action"
+		elif not c.turn.get("obj_used", false):
+			cost = "obj"
+		else:
+			cost = "action"
+		if cost == "action" and not engine.can_pay(c, "action"):
+			_tell(peer, "That takes an action, and %s has none left." % c.name)
+			return
+	# Attunement waits for a rest unless the DM does it, or has switched on "attune without a rest".
+	var ctx := {"in_combat": fighting, "shop": shop(), "free": dm, "info": Inventory.sheet_info(sheets[c.id]),
+		"attune_now": dm or bool(state.get("attune_free", false)), "sheet": sheets[c.id]}
+	# Dropping in play leaves the item on the ground for someone else to pick up.
+	var dropped := {}
+	if op == "drop" and state.combatants.has(c.id) and not e.is_empty():
+		dropped = Inventory.take(c, str(e.uid), int(req.get("qty", 0)))
+		if dropped.is_empty():
+			return
+		_drop_pile(c, dropped)
+	else:
+		var err := Inventory.apply_op(c, req, ctx)
+		if err != "":
+			_tell(peer, err)
+			return
+	if cost == "obj":
+		c.turn.obj_used = true
+	elif cost == "action":
+		engine.pay(c, "action")
+	match op:
+		"buy":
+			var probe := {"id": str(req.get("id", "")), "base": str(req.get("base", ""))}
+			var qn := int(req.get("qty", 1))
+			engine.log_line("[color=#ffd166]%s buys %s%s.[/color]" % [c.name, ("%d× " % qn) if qn > 1 else "", Inventory.display_name(probe)])
+		"sell":
+			engine.log_line("[color=#ffd166]%s sells something to the %s.[/color]" % [c.name, str(shop().get("name", "shop"))])
+		"drop":
+			engine.log_line("%s drops %s." % [c.name, Inventory.display_name(dropped)])
+		"equip":
+			if fighting and e.get("eq", false):
+				engine.log_line("%s readies the %s." % [c.name, Inventory.display_name(e).to_lower()])
+		"swap":
+			engine.log_line("%s swaps weapons: now holding %s." % [c.name, Inventory.set_text(Inventory.held(c, false))])
+		"copy":
+			engine.log_line("[color=#c8a0ff]%s copies a scroll: %s[/color]" % [c.name, str(ctx.get("result", ""))])
+		"infuse":
+			var inf := str(req.get("infusion", ""))
+			if inf == "":
+				engine.log_line("[color=#c8a0ff]%s ends an infusion.[/color]" % c.name)
+			elif inf == "replicate_magic_item":
+				engine.log_line("[color=#c8a0ff]%s replicates a %s with an infusion.[/color]" % [c.name, str(Data.item(str(req.get("item", ""))).get("name", "magic item"))])
+			else:
+				engine.log_line("[color=#c8a0ff]%s infuses %s with %s.[/color]" % [c.name, Inventory.display_name(e) if not e.is_empty() else "an item", Data.pretty(inf)])
+		"store":
+			engine.log_line("[color=#c8a0ff]%s casts %s into the ring.[/color]" % [c.name, str(Data.spell(str(req.get("spell", ""))).get("name", "a spell"))])
+		"attune":
+			match str(e.get("pend", "")):
+				"on":
+					engine.log_line("[color=#c8a0ff]%s will attune to %s during the next short or long rest.[/color]" % [c.name, Inventory.display_name(e)])
+				"off":
+					engine.log_line("[color=#c8a0ff]%s will end attunement to %s during the next short or long rest.[/color]" % [c.name, Inventory.display_name(e)])
+		"add":
+			engine.log_line("[color=#ffd166]The DM gives %s %s.[/color]" % [c.name, Inventory.display_name({"id": str(req.get("id", "")), "base": str(req.get("base", "")), "spell": str(req.get("spell", ""))})])
+	_commit_gear(c)
+
+## Leave `entry` on the ground where `c` stands (a loot pile anyone can open).
+func _drop_pile(c: Dictionary, entry: Dictionary) -> void:
+	for o in MapObjects.at(state, c.pos):
+		if str(o.get("k", "")) == "pile" and not o.get("opened", false):
+			var l: Dictionary = o.get("loot", {})
+			var g: Array = l.get("gear", [])
+			g.append(entry)
+			l.gear = g
+			o.loot = l
+			return
+	MapObjects.place(engine, MapObjects.make("pile", c.pos, EngineBase.FLOOR, {"loot": {"gear": [entry]}}))
+
+## Hand an item (uid, qty) or coins ({"coins": {...}}) to another party member. In a fight they must be
+## within 5 ft, and it's your object interaction (an action if you've had it).
+func _give(peer: int, c: Dictionary, to: Dictionary, req: Dictionary) -> void:
+	if c.is_empty() or to.is_empty() or c.id == to.id or not can_control(peer, c) or to.kind != "pc" or not sheets.has(c.id) or not sheets.has(to.id):
+		return
+	var dm := peer == 1
+	if state.in_combat and not dm:
+		if not engine.is_turn_of(c):
+			_tell(peer, "Wait for your turn.")
+			return
+		if engine.dist(c, to) > 5:
+			_tell(peer, "%s is too far away to hand things to (5 ft)." % to.name)
+			return
+		if c.turn.get("obj_used", false):
+			if not engine.can_pay(c, "action"):
+				_tell(peer, "Handing it over takes an action now, and %s has none left." % c.name)
+				return
+			engine.pay(c, "action")
+		else:
+			c.turn.obj_used = true
+	var what := ""
+	if req.get("coins", null) is Dictionary:
+		var amt: Dictionary = {}
+		var purse := Inventory.coins(c)
+		for k in Inventory.COINS:
+			var n := clampi(int(req.coins.get(k, 0)), 0, int(purse[k]))
+			if n > 0:
+				amt[k] = n
+				purse[k] = int(purse[k]) - n
+		if amt.is_empty():
+			return
+		Inventory.give_coins(to, amt)
+		what = Inventory.fmt_coins(amt)
+	else:
+		var e := Inventory.find(c, str(req.get("uid", "")))
+		if e.is_empty():
+			return
+		var part := Inventory.take(c, str(e.uid), int(req.get("qty", 0)))
+		Inventory.add_entry(to, part)
+		what = (("%d× " % int(part.qty)) if int(part.get("qty", 1)) > 1 else "") + Inventory.display_name(part)
+	engine.log_line("%s gives %s %s." % [c.name, to.name, what])
+	_commit_gear(c)
+	_commit_gear(to)
+
+## Store things in (or take them from) a storage chest within 5 ft: {"obj", "op": "put" | "take", "uid", "qty"}
+## for an item (qty 0 = the whole stack) or {"obj", "op": "put" | "take", "coins": {...}} for coins. In a fight
+## each one is your object interaction on your turn (then an action), like handing something over.
+func _stash(peer: int, c: Dictionary, req: Dictionary) -> void:
+	if c.is_empty() or c.kind != "pc" or not sheets.has(c.id) or not can_control(peer, c):
+		return
+	var o := MapObjects.by_id(state, str(req.get("obj", "")))
+	if o.is_empty() or not MapObjects.is_storage(o):
+		_tell(peer, "There's no chest there to store things in.")
+		return
+	var dm := peer == 1
+	if not dm and not MapObjects._in_reach(engine, c, o, 5):
+		_tell(peer, "%s has to stand next to the %s (within 5 ft)." % [c.name, MapObjects.name_of(o).to_lower()])
+		return
+	var op := str(req.get("op", ""))
+	if not op in ["put", "take"]:
+		return
+	var store := MapObjects.store_of(o)
+	var fighting: bool = state.in_combat
+	var src: Dictionary = c if op == "put" else store
+	var dst: Dictionary = store if op == "put" else c
+	var e := {}
+	if not req.get("coins", null) is Dictionary:
+		e = Inventory.find(src, str(req.get("uid", "")))
+		if e.is_empty():
+			return
+		if op == "put":
+			var why := Inventory.stash_problem(e, fighting)
+			if why != "":
+				_tell(peer, why)
+				return
+	if fighting and not dm:
+		if not engine.is_turn_of(c):
+			_tell(peer, "Wait for your turn.")
+			return
+		if c.turn.get("obj_used", false):
+			if not engine.can_pay(c, "action"):
+				_tell(peer, "That takes an action now (you've had your free object interaction), and %s has none left." % c.name)
+				return
+			engine.pay(c, "action")
+		else:
+			c.turn.obj_used = true
+	var what := ""
+	if req.get("coins", null) is Dictionary:
+		var moved := Inventory.transfer_coins(src, dst, req.coins)
+		if moved.is_empty():
+			return
+		what = Inventory.fmt_coins(moved)
+	else:
+		var n := int(req.get("qty", 0))
+		var have := int(e.get("qty", 1))
+		var moved := Inventory.transfer(src, dst, str(e.uid), n)
+		if moved.is_empty():
+			return
+		var qn := have if n <= 0 or n >= have else n
+		what = (("%d× " % qn) if qn > 1 else "") + Inventory.display_name(moved)
+	var chest := MapObjects.name_of(o).to_lower()
+	if op == "put":
+		engine.log_line("%s puts %s in the %s." % [c.name, what, chest])
+	else:
+		engine.log_line("%s takes %s from the %s." % [c.name, what, chest])
+	engine.sfx("pickup", c.id)
+	_commit_gear(c)
+
+## The DM opens, changes or closes the shop.
+func _set_shop(req: Dictionary) -> void:
+	if not req.get("open", false):
+		if not shop().is_empty():
+			engine.log_line("[color=#a59cb5]%s closes.[/color]" % str(state.shop.get("name", "The shop")))
+		state.shop = {}
+		return
+	var kind := str(req.get("kind", "general"))
+	if not Inventory.SHOPS.has(kind):
+		kind = "general"
+	var magic_max := str(req.get("magic_max", "uncommon"))
+	if not magic_max in Inventory.RARITIES:
+		magic_max = "uncommon"
+	var was_open := not shop().is_empty()
+	var old: Dictionary = shop()
+	var nm := str(req.get("name", "")).strip_edges().left(40)
+	# Updating an open shop of the same kind keeps the DM's own stock changes and limited quantities.
+	var same: bool = was_open and str(old.get("kind", "")) == kind and str(old.get("magic_max", "")) == magic_max
+	state.shop = {"open": true, "kind": kind, "name": nm if nm != "" else str(Inventory.SHOPS[kind].name),
+		"markup": clampi(int(req.get("markup", 100)), 10, 1000), "buyback": clampi(int(req.get("buyback", 50)), 0, 100),
+		"magic_buyback": clampi(int(req.get("magic_buyback", 25)), 0, 100),
+		"magic_max": magic_max, "stock": old.stock.duplicate() if same else Inventory.shop_stock(kind, magic_max),
+		"qty": old.get("qty", {}).duplicate() if same else {}}
+	if not was_open:
+		engine.log_line("[color=#ffd166]🛒 %s is open for business. Click 🛒 Shop under your portrait to buy and sell.[/color]" % state.shop.name)
+
+## The DM adds an item to the open shop's stock (qty > 0: only that many; 0: as many as anyone wants) or
+## takes one off the shelves.
+func _shop_stock(req: Dictionary) -> void:
+	var sh: Dictionary = shop()
+	var id := str(req.get("id", ""))
+	if sh.is_empty() or Data.item(id).is_empty():
+		status.emit("Open a shop first." if sh.is_empty() else "Unknown item.")
+		return
+	if not sh.get("qty", null) is Dictionary:
+		sh.qty = {}
+	var nm := str(Data.item(id).get("name", id))
+	if str(req.get("op", "add")) == "remove":
+		sh.stock.erase(id)
+		sh.qty.erase(id)
+		engine.log_line("[color=#a59cb5]%s no longer sells %s.[/color]" % [str(sh.name), nm])
+		return
+	if not id in sh.stock:
+		sh.stock.append(id)
+	var n := int(req.get("qty", 0))
+	if n > 0:
+		sh.qty[id] = mini(n, 9999)
+	else:
+		sh.qty.erase(id)
+	engine.log_line("[color=#ffd166]%s now sells %s%s.[/color]" % [str(sh.name), nm, (" (%d in stock)" % n) if n > 0 else ""])
+
+## The DM shares out the coins the chosen characters (or the whole party) carry, evenly, coin by coin.
+func _split_coins(targets: Array) -> void:
+	if targets.size() < 2:
+		status.emit("Choose two or more characters (or none, for the whole party) to split coins between.")
+		return
+	var totals := Inventory.split_coins(targets)
+	for t in targets:
+		_commit_gear(t)
+	engine.log_line("[color=#ffd166]The DM splits the party's coins (%s) evenly between %s.[/color]" % [Inventory.fmt_coins(totals),
+		", ".join(targets.map(func(t): return str(t.name)))])
+
+## The DM hands out items or coins (treasure, rewards) to the chosen characters.
+func _dm_give(targets: Array, req: Dictionary) -> void:
+	var names: PackedStringArray = []
+	var probe := {"id": str(req.get("id", "")), "base": str(req.get("base", "")), "spell": str(req.get("spell", "")), "dtype": str(req.get("dtype", ""))}
+	for t in targets:
+		if req.get("coins", null) is Dictionary:
+			Inventory.give_coins(t, req.coins)
+		else:
+			var err := Inventory.apply_op(t, {"op": "add", "id": probe.id, "qty": int(req.get("qty", 1)), "base": probe.base,
+				"spell": probe.spell, "dtype": probe.dtype}, {"free": true})
+			if err != "":
+				status.emit(err)
+				return
+		names.append(str(t.name))
+		_commit_gear(t)
+	if names.is_empty():
+		return
+	var what := ""
+	if req.get("coins", null) is Dictionary:
+		what = Inventory.fmt_coins(req.coins)
+	else:
+		var qn := int(req.get("qty", 1))
+		what = (("%d× " % qn) if qn > 1 else "") + Inventory.display_name(probe)
+	engine.log_line("[color=#ffd166]The DM gives %s: %s.[/color]" % [", ".join(names), what])

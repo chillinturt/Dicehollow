@@ -15,6 +15,12 @@ const POOL_SIZE := 14
 ## Damage type -> sound name. Weapon damage types fall back to "hit" sounds.
 const DAMAGE_SFX := {"fire": "fire", "cold": "cold", "lightning": "lightning", "thunder": "thunder", "acid": "acid",
 	"poison": "poison", "necrotic": "necrotic", "radiant": "radiant", "psychic": "psychic", "force": "force"}
+## How loud each sound plays relative to the rest (every sound is normalised to the same peak first).
+## Interface ticks and footsteps sit well under the combat sounds; big moments sit on top.
+const LEVEL := {"click": 0.3, "select": 0.38, "cancel": 0.34, "error": 0.45, "step": 0.38, "dice": 0.5,
+	"condition": 0.55, "miss": 0.65, "turn": 0.7, "hit": 0.85, "danger": 0.8,
+	"combat_start": 0.9, "victory": 0.85, "defeat": 0.85, "levelup": 0.8, "nat20": 0.8}
+const DEFAULT_LEVEL := 0.9
 
 var volume := 0.7
 var muted := false
@@ -31,6 +37,13 @@ func _ready() -> void:
 		AudioServer.add_bus()
 		AudioServer.set_bus_name(AudioServer.bus_count - 1, BUS)
 		AudioServer.set_bus_send(AudioServer.bus_count - 1, "Master")
+	# A limiter keeps a pile of sounds at once (a fireball over six goblins) from clipping.
+	var bi := AudioServer.get_bus_index(BUS)
+	if AudioServer.get_bus_effect_count(bi) == 0:
+		var lim := AudioEffectHardLimiter.new()
+		lim.ceiling_db = -0.5
+		lim.pre_gain_db = 0.0
+		AudioServer.add_bus_effect(bi, lim)
 	for i in POOL_SIZE:
 		var p = AudioStreamPlayer.new()
 		p.bus = BUS
@@ -59,6 +72,7 @@ func play(sound_name: String, pitch_jitter := 0.06) -> void:
 	_next = (_next + 1) % _players.size()
 	p.stream = stream
 	p.pitch_scale = 1.0 + _rng.randf_range(-pitch_jitter, pitch_jitter)
+	p.volume_db = linear_to_db(float(LEVEL.get(sound_name, DEFAULT_LEVEL)))
 	p.play()
 
 func set_volume(v: float) -> void:
@@ -82,7 +96,9 @@ func names() -> Array:
 	return ["sword", "blunt", "punch", "claw", "bite", "bow", "crossbow", "throw",
 		"fire", "cold", "lightning", "thunder", "acid", "poison", "necrotic", "radiant", "psychic", "force",
 		"cast", "heal", "buff", "rage", "teleport", "hit", "crit", "miss", "down", "death", "nat20",
-		"condition", "turn", "step", "click", "dice"]
+		"condition", "turn", "step", "click", "dice", "select", "cancel", "error", "danger",
+		"combat_start", "victory", "defeat", "levelup",
+		"smash", "pickup", "chest", "potion", "glass", "unlock"]
 
 # ================================================================ internals
 
@@ -224,6 +240,53 @@ func _s_sword() -> PackedFloat32Array:
 	var b = _noise(0.22, 900.0, 4500.0, 0.06, 0.05, 500.0)  # whoosh
 	b = _mix(b, _ring(0.4, 1250.0, 0.12), 0.07, 0.35)          # blade "shing"
 	b = _mix(b, _noise(0.05, 5000.0, 2000.0, 0.001, 0.015, 1500.0), 0.07, 0.6)
+	return b
+
+# ---------------------------------------------------------------- objects (MapObjects)
+
+## Something breaking: a splintering crack and a few falling bits.
+func _s_smash() -> PackedFloat32Array:
+	var b = _noise(0.08, 2500.0, 900.0, 0.001, 0.025, 300.0)
+	b = _mix(b, _tone(0.3, 120.0, 50.0, 0.002, 0.08), 0.0, 1.0)
+	b = _mix(b, _crackle(0.35, 40.0, 3000.0), 0.03, 0.7)
+	for i in 4:
+		b = _mix(b, _noise(0.05, 1800.0, 600.0, 0.001, 0.015, 400.0), 0.12 + i * 0.07 + _rng.randf_range(0.0, 0.03), 0.5 - i * 0.08)
+	return b
+
+## Picking something up: a soft scrape and a thump.
+func _s_pickup() -> PackedFloat32Array:
+	var b = _noise(0.12, 800.0, 2200.0, 0.03, 0.04, 300.0)
+	b = _mix(b, _tone(0.12, 220.0, 160.0, 0.003, 0.04, "tri"), 0.06, 0.6)
+	return b
+
+## A lid creaking open, then coins.
+func _s_chest() -> PackedFloat32Array:
+	var b = _tone(0.32, 260.0, 340.0, 0.03, 0.18, "saw", 0.04, 22.0)
+	b = _mix(_buf(0.7), b, 0.0, 0.25)
+	for i in 6:
+		b = _mix(b, _ring(0.18, _rng.randf_range(2400.0, 3400.0), 0.05), 0.3 + i * 0.05 + _rng.randf_range(0.0, 0.02), 0.25)
+	return b
+
+## A bottle unstoppered and drunk: a pop and a few bubbles.
+func _s_potion() -> PackedFloat32Array:
+	var b = _noise(0.03, 3000.0, 1200.0, 0.001, 0.008, 800.0)
+	for i in 5:
+		var f = _rng.randf_range(500.0, 900.0)
+		b = _mix(b, _tone(0.07, f, f * 1.6, 0.004, 0.025), 0.06 + i * 0.06, 0.45)
+	b = _mix(b, _arpeggio([660.0, 880.0], 0.06, 0.2), 0.36, 0.5)
+	return b
+
+## Glass shattering.
+func _s_glass() -> PackedFloat32Array:
+	var b = _noise(0.05, 6000.0, 3000.0, 0.001, 0.02, 2000.0)
+	for i in 8:
+		b = _mix(b, _ring(0.2, _rng.randf_range(2800.0, 5200.0), 0.04), _rng.randf_range(0.0, 0.18), 0.22)
+	return b
+
+## A lock giving way: two metal clicks.
+func _s_unlock() -> PackedFloat32Array:
+	var b = _ring(0.08, 1800.0, 0.02)
+	b = _mix(b, _ring(0.12, 1300.0, 0.03), 0.09, 1.0)
 	return b
 
 func _s_blunt() -> PackedFloat32Array:
@@ -422,4 +485,67 @@ func _s_dice() -> PackedFloat32Array:
 		var click = _noise(0.03, 3200.0, 1400.0, 0.001, 0.006, 600.0)
 		click = _mix(click, _tone(0.025, _rng.randf_range(900.0, 1500.0), 700.0, 0.001, 0.005, "tri"), 0.0, 0.5)
 		b = _mix(b, click, at, 1.0 - i * 0.09)
+	return b
+
+## Picking an action from the hotbar: a soft, rising two-note blip.
+func _s_select() -> PackedFloat32Array:
+	var b = _tone(0.09, 880.0, 990.0, 0.002, 0.03, "tri")
+	b = _mix(b, _tone(0.12, 1320.0, 1480.0, 0.002, 0.04, "sine"), 0.045, 0.7)
+	return b
+
+## Backing out of targeting: the same blip, falling.
+func _s_cancel() -> PackedFloat32Array:
+	var b = _tone(0.09, 990.0, 880.0, 0.002, 0.03, "tri")
+	b = _mix(b, _tone(0.12, 740.0, 620.0, 0.002, 0.04, "sine"), 0.045, 0.7)
+	return b
+
+## Not allowed (not a valid target, not your turn): a short, low double buzz.
+func _s_error() -> PackedFloat32Array:
+	var b = _tone(0.08, 180.0, 170.0, 0.002, 0.03, "square")
+	b = _mix(b, _tone(0.1, 150.0, 140.0, 0.002, 0.04, "square"), 0.09, 1.0)
+	return b
+
+## One of your characters is badly hurt: two heartbeat thumps.
+func _s_danger() -> PackedFloat32Array:
+	var b = _buf(0.6)
+	for at in [0.0, 0.2]:
+		b = _mix(b, _tone(0.22, 85.0, 45.0, 0.004, 0.06), at, 1.0 if at == 0.0 else 0.8)
+		b = _mix(b, _noise(0.06, 300.0, 120.0, 0.002, 0.02), at, 0.4)
+	return b
+
+## Combat begins: a war-drum hit under a short brass-like call.
+func _s_combat_start() -> PackedFloat32Array:
+	var b = _tone(0.6, 95.0, 50.0, 0.002, 0.16)                       # drum body
+	b = _mix(b, _noise(0.2, 900.0, 200.0, 0.001, 0.05), 0.0, 0.7)    # skin
+	b = _mix(b, _tone(0.5, 92.0, 52.0, 0.002, 0.14), 0.22, 0.8)       # second hit
+	for f in [196.0, 294.0]:                                          # horn fifth
+		b = _mix(b, _tone(0.8, f, f, 0.06, 0.3, "saw", 0.01, 5.0), 0.2, 0.18)
+		b = _mix(b, _tone(0.8, f * 2.0, f * 2.0, 0.06, 0.25), 0.2, 0.08)
+	return b
+
+## Victory: a bright rising major fanfare that settles on a held chord.
+func _s_victory() -> PackedFloat32Array:
+	var b = _arpeggio([392.0, 523.0, 659.0, 784.0], 0.1, 0.5, "tri", 0.22)
+	for f in [523.0, 659.0, 784.0, 1047.0]:
+		b = _mix(b, _tone(1.1, f, f, 0.02, 0.45, "tri", 0.006, 5.0), 0.42, 0.22)
+	return b
+
+## Defeat: a slow falling minor line.
+func _s_defeat() -> PackedFloat32Array:
+	var b = _buf(1.6)
+	var notes = [392.0, 349.0, 311.0, 262.0]
+	for i in notes.size():
+		var f: float = notes[i]
+		b = _mix(b, _tone(0.7, f, f * 0.99, 0.03, 0.3, "saw"), i * 0.28, 0.25)
+		b = _mix(b, _tone(0.7, f * 0.5, f * 0.5, 0.03, 0.3), i * 0.28, 0.5)
+	return b
+
+## A level is ready: a quick sparkle up into a chord.
+func _s_levelup() -> PackedFloat32Array:
+	var b = _arpeggio([523.0, 659.0, 784.0, 1047.0, 1319.0], 0.05, 0.4, "sine", 0.18)
+	for f in [784.0, 1047.0, 1319.0]:
+		b = _mix(b, _tone(0.9, f, f, 0.01, 0.35, "tri"), 0.26, 0.2)
+	for i in 6:
+		var s = _rng.randf_range(2600.0, 4800.0)
+		b = _mix(b, _tone(0.18, s, s, 0.002, 0.05), 0.26 + i * 0.05, 0.12)
 	return b

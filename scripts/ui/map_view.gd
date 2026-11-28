@@ -26,7 +26,11 @@ var reach_cells: Dictionary = {}
 var path_cells: Array = []
 var area_cells: Array = []
 var area_color := Color(1, 0.5, 0.2)
+## The hovered move path leaves an enemy's reach (an opportunity attack): drawn in red.
+var path_danger := false
 var target_cells: Array = []
+## Cells of objects (MapObjects) the aimed action can be used on: outlined in gold.
+var object_cells: Array = []
 var range_center := Vector2.ZERO
 var range_ft := 0
 var hover := Vector2i(-1, -1)
@@ -62,7 +66,7 @@ func _draw() -> void:
 	# Map dressing: ground materials per cell, furniture and props (see MapDecor).
 	var ground: PackedByteArray = state.get("ground", PackedByteArray())
 	var has_ground := ground.size() == w * h
-	var props: Array = state.get("props", [])
+	var props: Array = state.get("props", []) + MapObjects.as_props(state.get("objects", []))
 	var cov: Dictionary = MapDecor.covered(props) if not props.is_empty() else {}
 	var fa := 0.55 if bg_tex else 1.0
 	for y in h:
@@ -113,6 +117,13 @@ func _draw() -> void:
 						draw_rect(r, base)
 	if not props.is_empty():
 		MapDecor.draw_props(self, props, Vector2.ZERO, CELL)
+	# Damaged objects: a small health bar along the bottom of the cell.
+	for o in state.get("objects", []):
+		if int(o.get("max_hp", 0)) > 0 and int(o.hp) < int(o.max_hp) and not MapObjects.kind(o).get("fixed", false):
+			var rr := cell_rect(o.pos)
+			var bar := Rect2(rr.position + Vector2(8, CELL - 9), Vector2(CELL - 16, 5))
+			draw_rect(bar, Color(0, 0, 0, 0.6))
+			draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(o.hp) / float(o.max_hp), 0, 1), bar.size.y)), Color("#e8b84a"))
 	# Grid lines.
 	if bg_tex:
 		th = th.duplicate()
@@ -189,6 +200,9 @@ func _draw() -> void:
 		draw_arc(range_center, (range_ft / 5.0 + 0.5) * CELL, 0, TAU, 96, Color(1, 0.85, 0.4, 0.45), 2)
 	for p in target_cells:
 		draw_rect(cell_rect(p).grow(-3), Color(1, 0.3, 0.25, 0.22))
+	# Objects the action being aimed can be used on.
+	for p in object_cells:
+		draw_rect(cell_rect(p).grow(-4), Color(1, 0.82, 0.4, 0.85), false, 3)
 	for p in area_cells:
 		draw_rect(cell_rect(p), Color(area_color, 0.32))
 		draw_rect(cell_rect(p), Color(area_color, 0.6), false, 1)
@@ -196,8 +210,9 @@ func _draw() -> void:
 		var pts = PackedVector2Array()
 		for p in path_cells:
 			pts.append(Vector2(p) * CELL + Vector2(CELL, CELL) * 0.5)
-		draw_polyline(pts, Color(1, 0.9, 0.5, 0.85), 4, true)
-		draw_circle(pts[pts.size() - 1], 8, Color(1, 0.9, 0.5))
+		var pc := Color(1, 0.4, 0.35) if path_danger else Color(1, 0.9, 0.5)
+		draw_polyline(pts, Color(pc, 0.85), 4, true)
+		draw_circle(pts[pts.size() - 1], 8, pc)
 	if hover.x >= 0 and hover.x < w and hover.y >= 0 and hover.y < h:
 		draw_rect(cell_rect(hover), Color(1, 1, 1, 0.5), false, 2)
 

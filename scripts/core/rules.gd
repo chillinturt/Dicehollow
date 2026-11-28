@@ -219,6 +219,12 @@ static func derive(ch: Dictionary) -> Dictionary:
 	var lvl = total_level(ch)
 	var pb = prof_bonus(lvl)
 	var scores = final_scores(ch)
+	# Magic items (Inventory): Gauntlets of Ogre Power and the like set a score unless it's already higher.
+	var mm: Dictionary = Inventory.magic_mods(ch)
+	st.magic = mm
+	for a in mm.set_score:
+		if scores.has(a) and int(mm.set_score[a]) > int(scores[a]):
+			scores[a] = int(mm.set_score[a])
 	var mods: Dictionary = {}
 	for a in scores:
 		mods[a] = mod(scores[a])
@@ -261,6 +267,8 @@ static func derive(ch: Dictionary) -> Dictionary:
 	st.subclasses = subs
 	st.features = feats_set
 	st.feature_info = feature_info
+	for t in mm.tags:
+		tags[t] = true
 	st.tags = tags
 	st.feats = feat_list
 
@@ -292,9 +300,10 @@ static func derive(ch: Dictionary) -> Dictionary:
 	st.saves = saves
 	st.armor_prof = armor_prof
 	st.weapon_prof = weapon_prof
+	st.tools = Inventory.tool_profs(ch)
 	var save_bonus: Dictionary = {}
 	for a in Data.ABILITIES:
-		save_bonus[a] = mods[a] + (pb if a in saves else 0)
+		save_bonus[a] = mods[a] + (pb if a in saves else 0) + int(mm.saves)
 	st.save_bonus = save_bonus
 
 	# --- skills
@@ -313,10 +322,10 @@ static func derive(ch: Dictionary) -> Dictionary:
 			b += pb
 		elif jack:
 			b += int(pb / 2)
-		skills[s] = b
+		skills[s] = b + int(mm.checks)
 	st.skill_prof = skill_prof
 	st.skills = skills
-	st.passive_perception = 10 + skills.perception + (5 if "observant" in feat_list else 0)
+	st.passive_perception = 10 + skills.perception + (5 if "observant" in feat_list else 0) + int(mm.passive)
 
 	# --- hit points
 	# The first character level takes the die's maximum; later levels use the HP the player rolled
@@ -356,14 +365,15 @@ static func derive(ch: Dictionary) -> Dictionary:
 	st.hit_dice = " + ".join(hd_txt)
 
 	# --- armor class
-	var eq: Dictionary = ch.get("equipment", {})
+	# What is worn and wielded comes from the inventory (Inventory.equipment_of); old sheets keep their equipment block.
+	var eq: Dictionary = Inventory.equipment_of(ch)
 	var armor = Data.item(eq.get("armor", ""))
 	var shield: bool = eq.get("shield", false)
 	var ac: int = 10 + mods.dex
 	var ac_note = "unarmored"
 	if not armor.is_empty():
 		ac = int(armor.base) + mini(mods.dex, int(armor.get("dex_max", 99))) + int(eq.get("armor_bonus", 0))
-		ac_note = armor.name
+		ac_note = str(eq.get("armor_name", "")) if str(eq.get("armor_name", "")) != "" else armor.name
 	else:
 		var opts = [[10 + mods.dex, "unarmored"]]
 		if feats_set.has("unarmored_defense_barbarian"): opts.append([10 + mods.dex + mods.con, "Unarmored Defense"])
@@ -376,13 +386,14 @@ static func derive(ch: Dictionary) -> Dictionary:
 				ac = o[0]
 				ac_note = o[1]
 	if shield:
-		ac += 2
-		ac_note += " + shield"
+		ac += 2 + int(eq.get("shield_bonus", 0))
+		ac_note += " + shield" if int(eq.get("shield_bonus", 0)) == 0 else " + shield +%d" % int(eq.shield_bonus)
 	var styles: Array = ch.get("fighting_styles", [])
 	if "defense" in styles and not armor.is_empty(): ac += 1
 	if tags.has("integrated_protection"): ac += 1
 	if feats_set.has("blessing_of_the_forge"): ac += 1
-	if "enhanced_defense" in ch.get("infusions", []) and cl.get("artificer", 0) >= 2:
+	# Enhanced Defense: on the infused armor or shield (Inventory "infused"); older sheets always have it.
+	if "enhanced_defense" in ch.get("infusions", []) and cl.get("artificer", 0) >= 2 and (not ch.get("inventory", null) is Array or eq.get("defense_infused", false)):
 		ac += 2 if cl.artificer >= 10 else 1
 	# Dual Wielder: +1 AC while wielding a separate melee weapon in each hand (so no shield).
 	if "dual_wielder" in feat_list and not shield:
@@ -391,6 +402,10 @@ static func derive(ch: Dictionary) -> Dictionary:
 			if Data.item(wid).get("melee", false):
 				melee_n += 1
 		if melee_n >= 2: ac += 1
+	# Cloak / Ring of Protection; Bracers of Defense only without armor or a shield.
+	ac += int(mm.ac)
+	if armor.is_empty() and not shield:
+		ac += int(mm.ac_unarmored)
 	st.ac = ac
 	st.ac_note = ac_note
 	# Armor or a shield you aren't proficient with: no spellcasting, disadvantage on STR/DEX rolls.
@@ -406,10 +421,16 @@ static func derive(ch: Dictionary) -> Dictionary:
 		var ml: int = cl.get("monk", 0)
 		speed += 10 if ml < 6 else (15 if ml < 10 else (20 if ml < 14 else (25 if ml < 18 else 30)))
 	if "mobile" in feat_list: speed += 10
-	if st.heavy_armor and int(armor.get("str", 0)) > scores.str and not tags.has("dwarf_armor_speed"): speed -= 10
+	if st.heavy_armor and int(armor.get("str", 0)) > scores.str and not tags.has("dwarf_armor_speed") and not eq.get("no_str_req", false) and int(mm.speed_min) <= 0: speed -= 10
 	if feats_set.has("armor_model") and ch.get("choices", {}).get("armor_model", "guardian") == "infiltrator": speed += 5
+	# Boots of Striding and Springing: at least 30 ft.
+	speed = maxi(speed, int(mm.speed_min))
 	st.speed = speed
 	st.darkvision = int(sub_race.get("darkvision", race.get("darkvision", 0)))
+	# Goggles of Night: darkvision 60 ft, or 60 ft further.
+	if int(mm.darkvision) > 0:
+		st.darkvision = int(st.darkvision) + int(mm.darkvision) if int(st.darkvision) > 0 else int(mm.darkvision)
+	st.stealth_dis = bool(armor.get("stealth_dis", false)) and not eq.get("no_stealth_dis", false)
 
 	# --- initiative
 	var init: int = mods.dex
@@ -419,11 +440,13 @@ static func derive(ch: Dictionary) -> Dictionary:
 	if feats_set.has("dread_ambusher"): init += mods.wis
 	if feats_set.has("rakish_audacity"): init += mods.cha
 	st.initiative = init
-	st.init_advantage = feats_set.has("feral_instinct") or feats_set.has("vigilant_blessing")
+	st.init_advantage = feats_set.has("feral_instinct") or feats_set.has("vigilant_blessing") or bool(mm.init_adv)
 
 	# --- resistances
 	var resist: Array = []
 	for x in race.get("resist", []) + sub_race.get("resist", []):
+		if not x in resist: resist.append(x)
+	for x in mm.resist:
 		if not x in resist: resist.append(x)
 	st.resist = resist
 	st.immune = ["poison"] if tags.has("poison_immunity") else []
@@ -436,7 +459,7 @@ static func derive(ch: Dictionary) -> Dictionary:
 	st.caster_level = slot_info.caster_level
 	var casting: Array = []
 	var focus_bonus = 0
-	if "enhanced_arcane_focus" in ch.get("infusions", []) and cl.get("artificer", 0) >= 2:
+	if "enhanced_arcane_focus" in ch.get("infusions", []) and cl.get("artificer", 0) >= 2 and (not ch.get("inventory", null) is Array or ch.inventory.any(func(e): return str(e.get("infused", "")) == "enhanced_arcane_focus")):
 		focus_bonus = 2 if cl.artificer >= 10 else 1
 	for c in ch.get("classes", []):
 		var t = caster_type(c)
@@ -465,7 +488,7 @@ static func derive(ch: Dictionary) -> Dictionary:
 				all_ids.append(sid)
 		casting.append({
 			"class": c.id, "name": Data.cls(c.id).get("name", c.id), "ability": ab, "mod": m,
-			"dc": 8 + pb + m, "attack": pb + m + focus_bonus, "spells": all_ids, "bonus_spells": bonus,
+			"dc": 8 + pb + m + (int(mm.spell_dc_warlock) if c.id == "warlock" else 0), "attack": pb + m + focus_bonus + int(mm.spell_attack), "spells": all_ids, "bonus_spells": bonus,
 			"pact": t == "pact", "max_level": max_spell_level_for(c), "counts": counts,
 		})
 		if c.id == "wizard":
@@ -556,6 +579,10 @@ static func derive(ch: Dictionary) -> Dictionary:
 
 	# --- attacks
 	st.weapons = build_weapon_attacks(ch, st)
+	# --- carrying (PHB p.176): what the inventory weighs against Strength × 15, scaled by size.
+	st.load_lb = Inventory.carried_lb(ch) if ch.get("inventory", null) is Array else 0.0
+	st.carry_mult = Inventory.size_mult(str(race.get("size", "medium")), tags)
+	st.capacity = int(int(scores.str) * 15 * st.carry_mult)
 	st.fighting_styles = styles
 	st.maneuvers = ch.get("maneuvers", [])
 	st.metamagic = ch.get("metamagic", [])
@@ -574,14 +601,20 @@ static func is_monk_weapon(w: Dictionary) -> bool:
 
 static func build_weapon_attacks(ch: Dictionary, st: Dictionary) -> Array:
 	var out: Array = []
-	var eq: Dictionary = ch.get("equipment", {})
+	var eq: Dictionary = Inventory.equipment_of(ch)
 	var mods: Dictionary = st.mods
 	var pb: int = st.prof
 	var f: Dictionary = st.features
 	var styles: Array = ch.get("fighting_styles", [])
 	var wbonus = int(eq.get("weapon_bonus", 0))
-	if "enhanced_weapon" in ch.get("infusions", []) and st.class_levels.get("artificer", 0) >= 2:
-		wbonus = maxi(wbonus, 2 if st.class_levels.artificer >= 10 else 1)
+	# Enhanced Weapon: with an inventory, only the infused weapon (Inventory: an entry's "infused"); older
+	# sheets without one treat every weapon as infused.
+	var infuse_b: int = 2 if st.class_levels.get("artificer", 0) >= 10 else 1
+	var old_infuse: bool = "enhanced_weapon" in ch.get("infusions", []) and st.class_levels.get("artificer", 0) >= 2
+	var has_inv: bool = ch.get("inventory", null) is Array
+	if not has_inv:
+		if old_infuse:
+			wbonus = maxi(wbonus, infuse_b)
 	var weapons: Array = eq.get("weapons", [])
 	var melee_count = 0
 	for wid in weapons:
@@ -600,16 +633,31 @@ static func build_weapon_attacks(ch: Dictionary, st: Dictionary) -> Array:
 			continue
 		seen[wid] = true
 		var ability = "str" if w.melee else "dex"
-		if "finesse" in w.props or (f.has("martial_arts") and is_monk_weapon(w)):
+		var finesse: bool = "finesse" in w.props or eq.get("weapon_finesse", {}).has(wid)
+		if finesse or (f.has("martial_arts") and is_monk_weapon(w)):
 			ability = "dex" if mods.dex > mods.str else "str"
-		var magic: bool = wbonus > 0
+		# A magic weapon's own bonus, name and extra damage (Inventory.equipment_of: a +1 longsword, a Flame Tongue).
+		var wb: int = maxi(wbonus, int(eq.get("weapon_bonuses", {}).get(wid, 0)))
+		# An infused weapon (Enhanced Weapon +1/+2, Repeating Shot or Radiant Weapon +1): magical too.
+		var inf: String = str(eq.get("weapon_infused", {}).get(wid, ""))
+		if inf != "" and inf in ch.get("infusions", []) and st.class_levels.get("artificer", 0) >= 2:
+			wb = maxi(wb, infuse_b if inf == "enhanced_weapon" else 1)
+		var extra: Array = eq.get("weapon_extra", {}).get(wid, [])
+		var wname: String = str(eq.get("weapon_names", {}).get(wid, w.name))
+		var magic: bool = wb > 0 or eq.get("weapon_magic", {}).has(wid)
+		# A Sun Blade deals radiant damage instead of slashing.
+		var wtype: String = str(eq.get("weapon_dtype", {}).get(wid, w.type))
 		if f.has("hex_warrior") and mods.cha >= mods[ability]:
 			ability = "cha"
 		if f.has("battle_ready") and mods.int >= mods[ability]:
 			ability = "int"
 			magic = true
 		var prof_ok = is_proficient_weapon(w, st.weapon_prof)
-		var to_hit: int = mods[ability] + (pb if prof_ok else 0) + wbonus
+		# A Sun Blade counts as proficient for anyone proficient with shortswords or longswords.
+		for alt in eq.get("weapon_prof_as", {}).get(wid, []):
+			if is_proficient_weapon(Data.item(str(alt)), st.weapon_prof):
+				prof_ok = true
+		var to_hit: int = mods[ability] + (pb if prof_ok else 0) + wb
 		if "archery" in styles and not w.melee: to_hit += 2
 		var die: String = w.damage
 		# Versatile weapons are swung two-handed when a hand is free, except by a Dueling
@@ -619,37 +667,42 @@ static func build_weapon_attacks(ch: Dictionary, st: Dictionary) -> Array:
 		if f.has("martial_arts") and is_monk_weapon(w):
 			if Dice.average("1d%d" % st.vals.martial_die) > Dice.average(die):
 				die = "1d%d" % st.vals.martial_die
-		var dmg_bonus: int = mods[ability] + wbonus
+		var dmg_bonus: int = mods[ability] + wb
 		if "dueling" in styles and w.melee and not "two_handed" in w.props and not dual: dmg_bonus += 2
 		var reach = 10 if "reach" in w.props else 5
 		var atk = {
-			"id": "w_" + wid, "name": w.name, "weapon": wid, "melee": w.melee, "ability": ability,
-			"to_hit": to_hit, "damage": [{"dice": Dice.add(die, str(dmg_bonus)), "type": w.type}],
+			"id": "w_" + wid, "name": wname, "weapon": wid, "melee": w.melee, "ability": ability,
+			"to_hit": to_hit, "damage": [{"dice": Dice.add(die, str(dmg_bonus)), "type": wtype}] + extra.duplicate(true),
 			"die": die, "reach": reach, "range": int(w.get("range", 0)), "long_range": int(w.get("long_range", 0)),
-			"props": w.props, "magic": magic, "finesse": "finesse" in w.props,
+			"props": w.props, "magic": magic, "finesse": finesse,
 			"heavy": "heavy" in w.props, "two_handed": "two_handed" in w.props or (die != w.damage and "versatile" in w.props),
 			"monk": f.has("martial_arts") and is_monk_weapon(w),
+			# The magic item behind it (on-hit powers, Inventory.hit_extra), its own bonus, and silvering.
+			"item": eq.get("weapon_items", {}).get(wid, {}).get("id", ""), "item_uid": eq.get("weapon_items", {}).get(wid, {}).get("uid", ""),
+			"wb": wb, "silver": eq.get("weapon_silver", {}).has(wid),
+			"no_ammo": inf == "repeating_shot" and inf in ch.get("infusions", []),   # Repeating Shot makes its own ammunition
 		}
 		out.append(atk)
 		# Thrown melee weapons get a ranged profile too.
 		if w.melee and "thrown" in w.props:
 			var t = atk.duplicate(true)
 			t.id = "wt_" + wid
-			t.name = "Throw " + w.name
+			t.name = "Throw " + wname
 			t.melee = false
 			t.thrown = true
 			if "thrown_weapon_fighting" in styles:
-				t.damage = [{"dice": Dice.add(die, str(dmg_bonus + 2)), "type": w.type}]
+				t.damage = [{"dice": Dice.add(die, str(dmg_bonus + 2)), "type": wtype}] + extra.duplicate(true)
 			out.append(t)
 	# Off-hand attack (two-weapon fighting).
 	if light_ids.size() >= 2 or (dual and "dual_wielder" in st.get("feats", [])):
 		var oid: String = light_ids[1] if light_ids.size() >= 2 else weapons[1]
 		var ow = Data.item(oid)
+		var owb: int = maxi(wbonus, int(eq.get("weapon_bonuses", {}).get(oid, 0)))
 		var ability = "dex" if ("finesse" in ow.props and mods.dex > mods.str) else "str"
 		var dmg: int = mini(mods[ability], 0) if not "two_weapon_fighting" in styles else mods[ability]
-		out.append({"id": "offhand", "name": "Off-hand " + ow.name, "weapon": oid, "melee": true, "ability": ability,
-			"to_hit": mods[ability] + (pb if is_proficient_weapon(ow, st.weapon_prof) else 0) + wbonus, "damage": [{"dice": Dice.add(ow.damage, str(dmg + wbonus)), "type": ow.type}],
-			"die": ow.damage, "reach": 5, "range": 0, "long_range": 0, "props": ow.props, "magic": wbonus > 0,
+		out.append({"id": "offhand", "name": "Off-hand " + str(eq.get("weapon_names", {}).get(oid, ow.name)), "weapon": oid, "melee": true, "ability": ability,
+			"to_hit": mods[ability] + (pb if is_proficient_weapon(ow, st.weapon_prof) else 0) + owb, "damage": [{"dice": Dice.add(ow.damage, str(dmg + owb)), "type": ow.type}] + eq.get("weapon_extra", {}).get(oid, []).duplicate(true),
+			"die": ow.damage, "reach": 5, "range": 0, "long_range": 0, "props": ow.props, "magic": owb > 0 or eq.get("weapon_magic", {}).has(oid),
 			"finesse": "finesse" in ow.props, "offhand": true, "cost": "bonus"})
 	# Unarmed strike.
 	var ua_die = "1"

@@ -71,6 +71,18 @@ static func theme() -> Theme:
 	t.set_stylebox("normal", "SpinBox", sb(Color("#120f19"), Color("#4a4060"), 1))
 	t.set_color("font_color", "CheckBox", INK)
 	t.set_color("font_color", "CheckButton", INK)
+	# Sliders (the volume control): a visible track that fills gold up to the grabber.
+	var track := sb(Color("#0d0b12"), Color("#4a4060"), 1, 3, 0)
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+	t.set_stylebox("slider", "HSlider", track)
+	var fill := sb(GOLD_SOFT, Color(0, 0, 0, 0), 0, 3, 0)
+	fill.content_margin_top = 3
+	fill.content_margin_bottom = 3
+	t.set_stylebox("grabber_area", "HSlider", fill)
+	var fill_hi := fill.duplicate()
+	fill_hi.bg_color = GOLD
+	t.set_stylebox("grabber_area_highlight", "HSlider", fill_hi)
 	_theme = t
 	return t
 
@@ -193,6 +205,42 @@ static func bar(value: float, max_value: float, color: Color, h := 10) -> Progre
 	p.add_theme_stylebox_override("background", sb(Color("#0d0b12"), Color("#3a3448"), 1, 3, 0))
 	p.add_theme_stylebox_override("fill", sb(color, Color(0, 0, 0, 0), 0, 3, 0))
 	return p
+
+static var _pack_tex: ImageTexture
+
+## A small drawn backpack (20 × 20) for the inventory buttons: the 🎒 emoji renders as an unreadable blob
+## at button size in some fonts.
+static func pack_icon() -> ImageTexture:
+	if _pack_tex != null:
+		return _pack_tex
+	var img := Image.create(20, 20, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var leather := Color("#b5793c")
+	var dark := Color("#4a2e14")
+	var flap := Color("#8f5a28")
+	var pocket := Color("#c98f52")
+	var paint := func(x0: int, y0: int, x1: int, y1: int, col: Color) -> void:
+		for x in range(x0, x1 + 1):
+			for y in range(y0, y1 + 1):
+				img.set_pixel(x, y, col)
+	# Handle loop on top.
+	paint.call(7, 1, 12, 1, dark)
+	paint.call(6, 2, 6, 4, dark)
+	paint.call(13, 2, 13, 4, dark)
+	# Body with a dark outline and rounded corners.
+	paint.call(3, 5, 16, 18, dark)
+	paint.call(4, 6, 15, 17, leather)
+	for p in [Vector2i(3, 5), Vector2i(16, 5), Vector2i(3, 18), Vector2i(16, 18)]:
+		img.set_pixelv(p, Color(0, 0, 0, 0))
+	# Flap and buckle.
+	paint.call(4, 6, 15, 9, flap)
+	paint.call(3, 10, 16, 10, dark)
+	paint.call(9, 9, 10, 11, GOLD)
+	# Front pocket.
+	paint.call(6, 12, 13, 17, dark)
+	paint.call(7, 13, 12, 16, pocket)
+	_pack_tex = ImageTexture.create_from_image(img)
+	return _pack_tex
 
 static func initials(name: String) -> String:
 	var parts = name.replace("(", " ").split(" ", false)

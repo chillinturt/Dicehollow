@@ -130,9 +130,24 @@ func _ready() -> void:
 	orc = cs[0]
 	foe = cs[1]
 	give_turn(orc)
+	# The HUD's warning (opportunity_threats) names the same creature before the move.
+	var away: Array = eng.path_to(orc, Vector2i(0, 2), eng.reachable(orc, eng.move_budget(orc)))
+	var threats: Array = eng.opportunity_threats(orc, away)
+	check(threats.size() == 1 and threats[0].id == foe.id, "move warning names the orc whose reach we leave")
+	check(eng.opportunity_threats(orc, [Vector2i(2, 3)]).is_empty(), "no warning for a step that stays in reach")
+	# Enough HP that a critical OA can't drop the orc before it moves (that made this check flaky).
+	orc.max_hp = 999
+	orc.hp = 999
 	eng.move(orc, Vector2i(0, 2))
 	check(not foe.turn.reaction, "leaving reach provokes an opportunity attack")
 	check(eng.move_left(orc) <= 20, "movement still spent after the OA")
+	check(eng.opportunity_threats(orc, [Vector2i(0, 3)]).is_empty(), "no warning from a foe whose reaction is spent")
+	# Disengage clears the warning too.
+	cs = board([["orc", "party", Vector2i(2, 2)], ["orc", "enemy", Vector2i(3, 2)]])
+	orc = cs[0]
+	give_turn(orc)
+	eng.execute(orc.id, "disengage", {})
+	check(eng.opportunity_threats(orc, [Vector2i(1, 2), Vector2i(0, 2)]).is_empty(), "no move warning after Disengage")
 
 	# --- Spellcasting on one turn: bonus-action spell rule.
 	cs = board([["mage", "party", Vector2i(2, 2)], ["goblin", "enemy", Vector2i(18, 8)]])

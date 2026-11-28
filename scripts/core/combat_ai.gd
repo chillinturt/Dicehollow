@@ -216,7 +216,9 @@ func _best_plan(c: Dictionary, costs: Array) -> Dictionary:
 	var best = {}
 	var best_v = 0.5
 	for a in actions:
-		if not a.enabled or not a.cost in costs or a.kind in ["toggle", "basic", "mspecial"]:
+		# Items from the pack (potions, scrolls, wand charges) are the player's to spend, not the AI's.
+		# (Magic or silvered ammunition too: its own attack buttons carry "ammo_uid".)
+		if not a.enabled or not a.cost in costs or a.kind in ["toggle", "basic", "mspecial"] or str(a.id).begins_with("inv:") or a.has("ammo_uid"):
 			continue
 		if not use_resources and _costs_resources(a):
 			continue

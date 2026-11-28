@@ -43,6 +43,9 @@ func start_combat() -> void:
 	for c in all_combatants():
 		c.erase("arcane_budget")
 		c.erase("hd_window")
+		# Arrows from the last fight that nobody went back for are left behind.
+		c.erase("ammo_recover")
+		c.erase("ammo_spent")
 	# Battle Smith defenders join automatically.
 	for c in all_combatants():
 		if alive(c) and c.features.has("steel_defender") and not _has_summon(c, "Steel Defender"):
@@ -82,6 +85,7 @@ func start_combat() -> void:
 	s.round = 1
 	s.in_combat = true
 	log_line("[color=#ffd166][b]⚔ Combat begins! Round 1[/b][/color]")
+	sfx("combat_start")
 	# Inspiring Leader.
 	for c in all_combatants():
 		if c.get("feats", []).has("inspiring_leader"):
@@ -129,6 +133,8 @@ func end_combat() -> void:
 	# Loose magic stones lose their magic with the fight, like other effects of a minute or less.
 	s.items = ground_items().filter(func(it): return int(it.get("rounds", 0)) > 10)
 	log_line("[color=#ffd166][b]Combat ends.[/b][/color]")
+	# Half the ammunition shot can be gathered up again (PHB p.146).
+	Inventory.combat_over(self)
 
 func begin_turn(c: Dictionary) -> void:
 	c.turn = new_turn(c)
@@ -136,6 +142,7 @@ func begin_turn(c: Dictionary) -> void:
 	s.turn_serial = int(s.get("turn_serial", 0)) + 1
 	c.turn.serial = s.turn_serial
 	c.acted = true
+	c.erase("displace_off")   # Cloak of Displacement works again from the start of the turn
 	refresh_teams()
 	log_line("[color=#c9a14a]— %s's turn (round %d) —[/color]" % [c.name, s.round])
 	tick_effects(c.id, "start")
@@ -459,6 +466,11 @@ func _recharge_need(c: Dictionary, name: String) -> int:
 func _death_save(c: Dictionary) -> void:
 	if c.death.stable:
 		log_line("%s is unconscious but stable." % nm(c))
+		return
+	# Periapt of Wound Closure: a dying wearer stabilizes at the start of its turn.
+	if c.get("tags", {}).has("wound_closure"):
+		c.death.stable = true
+		log_line("%s's Periapt of Wound Closure glows: %s is stable." % [nm(c), nm(c)])
 		return
 	# A death save is a saving throw: a halfling's Lucky rerolls a natural 1.
 	var r: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll)
@@ -803,6 +815,10 @@ func _resolve_area_effect(src: Dictionary, t: Dictionary, data: Dictionary, dc: 
 				exists = true
 		if not exists:
 			add_effect(t, e)
+	# Caltrops: a creature that fails stops moving for the turn.
+	if not ok and alive(t) and data.get("stop_on_fail", false) and is_current(t) and t.get("turn", {}).has("action"):
+		t.turn.speed_zero = true
+		log_line("  %s has to stop moving." % nm(t))
 	if not ok and alive(t):
 		var center: Vector2 = center_of(src) if src.has("pos") else Vector2(t.pos)
 		if zone.has("center") and zone.center is Vector2i:
@@ -1248,6 +1264,7 @@ func move(c: Dictionary, dest: Vector2i, free := false) -> bool:
 	if enforce:
 		sync_move(c)
 	if walked.size() > 1:
+		c.facing = [signi(walked[-1].x - walked[-2].x), signi(walked[-1].y - walked[-2].y)]   # an array, not a cell: map shifts leave it alone
 		events.append({"t": "move", "cid": c.id, "path": walked})
 		release_broken_grapples()
 	return walked.size() > 1
@@ -1293,36 +1310,59 @@ func _reach_of(c: Dictionary) -> int:
 		r += 5
 	return r
 
-func _opportunity_attacks(mover: Dictionary, from: Vector2i, to: Vector2i) -> void:
+## Whether o gets an opportunity attack when mover steps from `from` to `to` (it leaves o's reach).
+func _provokes(o: Dictionary, mover: Dictionary, from: Vector2i, to: Vector2i) -> bool:
+	if not alive(o) or not hostile(o, mover) or not same_space(o, mover):
+		return false
+	if not can_react(o) or (o.kind == "summon" and o.get("cannon", "") != ""):
+		return false
 	var disengaged: bool = mover.get("turn", {}).get("disengaged", false) or mod_any(mover, "no_provoke")
+	if disengaged and not o.get("feats", []).has("sentinel"):
+		return false
+	if not can_see(o, mover):
+		return false
+	var reach = _reach_of(o)
+	var was_in = false
+	var now_in = false
+	for p in occupied_cells(o):
+		for q in occupied_cells(mover, from):
+			if cheb(p, q) * 5 <= reach: was_in = true
+		for q in occupied_cells(mover, to):
+			if cheb(p, q) * 5 <= reach: now_in = true
+	if not was_in or now_in:
+		return false
+	if (mover.get("feats", []).has("mobile") or mover.features.has("fancy_footwork")) and o.id in mover.get("turn", {}).get("melee_targets", []):
+		return false
+	return not best_melee(o).is_empty()
+
+## The creatures that would make an opportunity attack if c walked `path` (cells after its own),
+## for the HUD's warning before a move. Each creature is listed once, as it has one reaction.
+func opportunity_threats(c: Dictionary, path: Array) -> Array:
+	var out: Array = []
+	if not s.in_combat or path.is_empty():
+		return out
+	var listed := {}
+	var from: Vector2i = c.pos
+	for p in path:
+		var to := Vector2i(Vector2(p))
+		for o in all_combatants():
+			if not listed.has(o.id) and _provokes(o, c, from, to):
+				listed[o.id] = true
+				out.append(o)
+		from = to
+	return out
+
+func _opportunity_attacks(mover: Dictionary, from: Vector2i, to: Vector2i) -> void:
 	# Hidden creatures can still make opportunity attacks, so don't use enemies_of() here.
-	var foes = all_combatants().filter(func(o): return alive(o) and hostile(o, mover) and same_space(o, mover))
-	for o in foes:
-		if not can_react(o) or (o.kind == "summon" and o.get("cannon", "") != ""):
+	for o in all_combatants():
+		if not _provokes(o, mover, from, to):
 			continue
 		var sentinel: bool = o.get("feats", []).has("sentinel")
-		if disengaged and not sentinel:
-			continue
-		if not can_see(o, mover):
-			continue
-		var reach = _reach_of(o)
-		var was_in = false
-		var now_in = false
-		for p in occupied_cells(o):
-			for q in occupied_cells(mover, from):
-				if cheb(p, q) * 5 <= reach: was_in = true
-			for q in occupied_cells(mover, to):
-				if cheb(p, q) * 5 <= reach: now_in = true
-		if not was_in or now_in:
-			continue
-		if (mover.get("feats", []).has("mobile") or mover.features.has("fancy_footwork")) and o.id in mover.get("turn", {}).get("melee_targets", []):
-			continue
 		var atk = best_melee(o)
-		if atk.is_empty():
-			continue
 		use_reaction(o)
 		log_line("%s makes an [b]opportunity attack[/b] against %s!" % [nm(o), nm(mover)])
-		var r = _attack_with(o, mover, atk, {"opportunity": true})
+		# Boots of Speed: opportunity attacks against the wearer have disadvantage.
+		var r = _attack_with(o, mover, atk, {"opportunity": true, "adv": -1 if has_tag(mover, "boots_of_speed") else 0})
 		if r.get("hit", false) and sentinel and mover.get("turn", {}) is Dictionary and not mover.turn.is_empty():
 			mover.turn.speed_zero = true
 			log_line("  %s's Sentinel stops %s in place (speed 0 this turn)." % [nm(o), nm(mover)])
@@ -1505,7 +1545,9 @@ func get_actions(c: Dictionary) -> Array:
 		if int(atk.get("recharge", 0)) > 0 and not c.recharge.get(atk.name, true):
 			a.enabled = false
 			a.reason = "Recharging"
-		out.append(a)
+		# Bows, crossbows, slings and blowguns shoot one piece of ammunition each (Inventory): the plain shot,
+		# plus one action per kind of magic or silvered ammunition carried.
+		out.append_array(Inventory.ammo_actions(self, c, a))
 	# --- monster special actions
 	var macts: Array = c.form.get("mactions", []) if not c.form.is_empty() else c.mactions
 	for m in macts:
@@ -1588,6 +1630,8 @@ func get_actions(c: Dictionary) -> Array:
 				hd.enabled = false
 				hd.reason = "Already at full HP"
 			out.append(hd)
+	# --- objects on the map: break, pick up, open, potions (MapObjects)
+	out.append_array(MapObjects.actions(self, c))
 	# --- toggles
 	out.append_array(_toggle_actions(c))
 	# Economy & incapacitation. An incapacitated creature can't take actions, bonus actions or
@@ -1650,12 +1694,37 @@ func grappled_by(c: Dictionary) -> Array:
 ## on Strength checks; exhaustion, poison and fear give disadvantage. Returns {"total", "text"}.
 func skill_check(c: Dictionary, ab: String) -> Dictionary:
 	var adv: int = 1 if ab == "str" and has_tag(c, "rage") else 0
+	# Heavily encumbered (variant rule): disadvantage on STR, DEX and CON checks.
+	if ab in ["str", "dex", "con"] and Inventory.encumbrance_of(s, c).get("dis", false):
+		adv -= 1
 	if exhaustion(c) >= 1 or has_cond(c, "poisoned") or has_cond(c, "frightened"):
 		adv -= 1
 	var r: Dictionary = Dice.roll_d20(adv, c.tags.has("halfling_lucky"))
 	var b: int = _escape_bonus(c, ab)
 	dice_event(c.id, _escape_label(ab), d20_faces(r), b, int(r.roll) + b)
 	return {"total": int(r.roll) + b, "text": "%s %d" % [_escape_label(ab), int(r.roll) + b]}
+
+## A Dexterity (Stealth) check to hide. Armor with a Stealth penalty (padded, scale, half plate, heavy armor;
+## not mithral) gives disadvantage; Boots or a Cloak of Elvenkind give advantage (they cancel out, PHB p.173).
+## Poison, fear, exhaustion and a heavy load (variant encumbrance) give disadvantage too. Returns {"total", "note"}.
+func stealth_roll(c: Dictionary) -> Dictionary:
+	var adv := 0
+	var why: PackedStringArray = []
+	if c.get("tags", {}).has("stealth_adv"):
+		adv += 1
+		why.append("elvenkind: adv")
+	if c.get("stealth_dis", false):
+		adv -= 1
+		why.append("armor: dis")
+	if exhaustion(c) >= 1 or has_cond(c, "poisoned") or has_cond(c, "frightened") or Inventory.encumbrance_of(s, c).get("dis", false):
+		adv -= 1
+		why.append("dis")
+	adv = clampi(adv, -1, 1)
+	var r: Dictionary = Dice.roll_d20(adv, c.get("tags", {}).has("halfling_lucky"))
+	var b: int = int(c.get("skills", {}).get("stealth", c.mods.get("dex", 0)))
+	var total: int = int(r.roll) + b
+	dice_event(c.id, "Stealth", d20_faces(r), b, total)
+	return {"total": total, "adv": adv, "note": (" (%s)" % ", ".join(why)) if not why.is_empty() else ""}
 
 ## The defender's side of a grapple or shove: the better of its Athletics and Acrobatics.
 func _contest_defense(t: Dictionary) -> Dictionary:
@@ -1723,92 +1792,94 @@ func _spell_actions(c: Dictionary) -> Array:
 			if not x in ids:
 				ids.append(x)
 		for sid in ids:
-			if seen.has(sid):
-				continue
-			var sp = Data.spell(sid)
-			if sp.is_empty():
+			if seen.has(sid) or Data.spell(sid).is_empty():
 				continue
 			seen[sid] = true
-			var lv = int(sp.get("level", 0))
-			var ct: String = sp.get("casting_time", "action")
-			var cb = sp.get("combat", null)
-			var cbd: Dictionary = cb if cb is Dictionary else {}
-			var tgt: String = cbd.get("target", "self")
-			if cbd.get("special", "") in ["spiritual_weapon"]:
-				tgt = "enemy"
-			if cbd.get("special", "") in ["misty_step", "thunder_step", "dimension_door"]:
-				tgt = "point"
-			if cbd.get("special", "") == "revivify":
-				tgt = "ally_dead"
-			var rng = int(sp.get("range", 0))
-			if rng < 0 or rng > 5000:
-				rng = 5000
-			# "Self"-range spells that still pick a creature or point (a range of 0 would mean
-			# unlimited reach): conjured blades reach 5 ft, auras 30 ft, weapon riders
-			# (Ensnaring Strike, Lightning Arrow, Hail of Thorns) the caster's weapon range.
-			if rng == 0 and tgt in ["enemy", "creature", "ally", "point"]:
-				if cbd.get("attack", null) == "melee":
-					rng = 5
-				elif tgt == "ally":
-					rng = 30
-				else:
-					rng = _weapon_range(c)
-			if c.get("feats", []).has("spell_sniper") and cbd.get("attack", null) != null:
-				rng *= 2
-			if sid == "eldritch_blast" and "eldritch_spear" in c.get("invocations", []):
-				rng = 300
-			var slots: Array = []
-			var innate = false
-			if lv == 0 or sid in e.get("at_will", []):
-				slots = [0]
-			elif c.resources.has("innate_" + sid):
-				if res_left(c, "innate_" + sid) > 0:
-					slots = [lv]
-					innate = true
-			else:
-				for L in range(lv, 10):
-					if slots_free(c, L) > 0:
-						slots.append(L)
-			var cost = "action" if ct == "action" else ("bonus" if ct == "bonus" else ("reaction" if ct == "reaction" else "long"))
-			var desc: String = sp.get("summary", "")
-			if not cb is Dictionary:
-				desc += " [Not automated in combat]"
-			# Quickened Spell turns a 1-action casting time into a bonus action.
-			var quick: bool = cost == "action" and str(c.get("toggles", {}).get("metamagic", "")) == "quickened" and res_left(c, "sorcery_points") >= 2
-			if quick:
-				cost = "bonus"
-			var a = _act("sp:" + sid, sp.name, "spell", cost if cost != "long" else "action", tgt, rng, desc,
-				{"spell": sid, "level": lv, "slots": slots, "class": e["class"], "area": cbd.get("area", {}), "innate": innate,
-				 "concentration": sp.get("concentration", false), "max_targets": int(cbd.get("max_targets", 1)), "targets_per_slot": int(cbd.get("targets_per_slot", 0)),
-				 "dc": int(e.dc), "spell_attack": int(e.attack), "cat": "spell", "school": sp.get("school", ""),
-				 "quickened": quick, "base_cost": "action" if quick else (cost if cost != "long" else "action")})
-			if slots.is_empty():
-				a.enabled = false
-				a.reason = "No spell slots"
-			elif cost == "reaction":
-				a.enabled = false
-				a.reason = "Reaction (cast automatically)"
-			elif cost == "long":
-				a.enabled = not s.in_combat
-				a.reason = "Casting time too long for combat"
-			elif spell_block_reason(c, cost, lv) != "":
-				a.enabled = false
-				a.reason = spell_block_reason(c, cost, lv)
-			# Feeblemind: no spells at all. Silence: no spells with a verbal component.
-			if mod_any(c, "no_spells"):
-				a.enabled = false
-				a.reason = "Can't cast spells"
-			elif has_tag(c, "rage"):
-				a.enabled = false
-				a.reason = "Can't cast spells while raging"
-			elif c.get("armor_unproficient", false) and e["class"] != "race":
-				a.enabled = false
-				a.reason = "Wearing armor you aren't proficient with"
-			elif "V" in str(sp.get("components", "")) and in_zone_flag(c, "silence"):
-				a.enabled = false
-				a.reason = "Silenced"
-			out.append(a)
+			out.append(_spell_action(c, e, sid))
 	return out
+
+## The hotbar action for casting spell `sid` from casting entry `e` (a class, a race, or an item: see Inventory).
+func _spell_action(c: Dictionary, e: Dictionary, sid: String) -> Dictionary:
+	var sp = Data.spell(sid)
+	var lv = int(sp.get("level", 0))
+	var ct: String = sp.get("casting_time", "action")
+	var cb = sp.get("combat", null)
+	var cbd: Dictionary = cb if cb is Dictionary else {}
+	var tgt: String = cbd.get("target", "self")
+	if cbd.get("special", "") in ["spiritual_weapon"]:
+		tgt = "enemy"
+	if cbd.get("special", "") in ["misty_step", "thunder_step", "dimension_door"]:
+		tgt = "point"
+	if cbd.get("special", "") == "revivify":
+		tgt = "ally_dead"
+	var rng = int(sp.get("range", 0))
+	if rng < 0 or rng > 5000:
+		rng = 5000
+	# "Self"-range spells that still pick a creature or point (a range of 0 would mean
+	# unlimited reach): conjured blades reach 5 ft, auras 30 ft, weapon riders
+	# (Ensnaring Strike, Lightning Arrow, Hail of Thorns) the caster's weapon range.
+	if rng == 0 and tgt in ["enemy", "creature", "ally", "point"]:
+		if cbd.get("attack", null) == "melee":
+			rng = 5
+		elif tgt == "ally":
+			rng = 30
+		else:
+			rng = _weapon_range(c)
+	if c.get("feats", []).has("spell_sniper") and cbd.get("attack", null) != null:
+		rng *= 2
+	if sid == "eldritch_blast" and "eldritch_spear" in c.get("invocations", []):
+		rng = 300
+	var slots: Array = []
+	var innate = false
+	if lv == 0 or sid in e.get("at_will", []):
+		slots = [0]
+	elif c.resources.has("innate_" + sid):
+		if res_left(c, "innate_" + sid) > 0:
+			slots = [lv]
+			innate = true
+	else:
+		for L in range(lv, 10):
+			if slots_free(c, L) > 0:
+				slots.append(L)
+	var cost = "action" if ct == "action" else ("bonus" if ct == "bonus" else ("reaction" if ct == "reaction" else "long"))
+	var desc: String = sp.get("summary", "")
+	if not cb is Dictionary:
+		desc += " [Not automated in combat]"
+	# Quickened Spell turns a 1-action casting time into a bonus action.
+	var quick: bool = cost == "action" and str(c.get("toggles", {}).get("metamagic", "")) == "quickened" and res_left(c, "sorcery_points") >= 2
+	if quick:
+		cost = "bonus"
+	var a = _act("sp:" + sid, sp.name, "spell", cost if cost != "long" else "action", tgt, rng, desc,
+		{"spell": sid, "level": lv, "slots": slots, "class": e["class"], "area": cbd.get("area", {}), "innate": innate,
+		 "concentration": sp.get("concentration", false), "max_targets": int(cbd.get("max_targets", 1)), "targets_per_slot": int(cbd.get("targets_per_slot", 0)),
+		 "dc": int(e.dc), "spell_attack": int(e.attack), "cat": "spell", "school": sp.get("school", ""),
+		 "quickened": quick, "base_cost": "action" if quick else (cost if cost != "long" else "action")})
+	if slots.is_empty():
+		a.enabled = false
+		a.reason = "No spell slots"
+	elif cost == "reaction":
+		a.enabled = false
+		a.reason = "Reaction (cast automatically)"
+	elif cost == "long":
+		a.enabled = not s.in_combat
+		a.reason = "Casting time too long for combat"
+	elif spell_block_reason(c, cost, lv) != "":
+		a.enabled = false
+		a.reason = spell_block_reason(c, cost, lv)
+	# Feeblemind: no spells at all. Silence: no spells with a verbal component.
+	if mod_any(c, "no_spells"):
+		a.enabled = false
+		a.reason = "Can't cast spells"
+	elif has_tag(c, "rage"):
+		a.enabled = false
+		a.reason = "Can't cast spells while raging"
+	elif c.get("armor_unproficient", false) and e["class"] != "race":
+		a.enabled = false
+		a.reason = "Wearing armor you aren't proficient with"
+	elif "V" in str(sp.get("components", "")) and in_zone_flag(c, "silence"):
+		a.enabled = false
+		a.reason = "Silenced"
+	return a
 
 ## Longest normal range among the creature's weapon attacks (melee reach counts), at least 5 ft.
 func _weapon_range(c: Dictionary) -> int:
@@ -2132,6 +2203,10 @@ func execute(cid: String, aid: String, params: Dictionary) -> bool:
 			targets.append(t)
 	var cell_v = params.get("cell", null)
 	var cellp: Vector2i = cell_v if cell_v is Vector2i else c.pos
+	# Facing (a bullseye lantern's beam follows it): toward the creature or point aimed at.
+	var aim: Vector2i = targets[0].pos if not targets.is_empty() and targets[0].id != c.id else (cellp if cell_v is Vector2i else c.pos)
+	if aim != c.pos:
+		c.facing = [signi(aim.x - c.pos.x), signi(aim.y - c.pos.y)]
 	# Range / sight validation for creature targets.
 	if a.target in ["enemy", "ally", "creature", "ally_other", "ally_dead"]:
 		if targets.is_empty():
@@ -2167,8 +2242,18 @@ func execute(cid: String, aid: String, params: Dictionary) -> bool:
 		"weapon":
 			if targets.is_empty():
 				return false
+			var piece: Dictionary = Inventory.spend_ammo(c, a)
+			if piece.get("none", false):
+				log_line("[color=#888]%s has nothing left to shoot from the %s.[/color]" % [nm(c), str(a.atk.get("name", "weapon")).to_lower()])
+				return false
 			pay(c, a.cost)
-			_attack_with(c, targets[0], a.atk, {"bonus_attack": a.cost == "bonus", "ask_on_hit": true})
+			var batk: Dictionary = Inventory.boost_attack(c, a.atk)   # Oil of Sharpness, Hill Giant Strength
+			var wres: Dictionary = _attack_with(c, targets[0], batk, {"bonus_attack": a.cost == "bonus", "ask_on_hit": true})
+			Inventory.note_spent(c, piece, wres.get("hit", false))
+			# A thrown object leaves the hand and lands by the target (MapObjects).
+			MapObjects.after_attack(self, c, a.atk, wres.get("target", targets[0]))
+		"object":
+			return MapObjects.execute(self, c, a, targets, cellp)
 		"multiattack":
 			pay(c, a.cost)
 			_multiattack(c, a.m, targets[0])
@@ -2307,16 +2392,17 @@ func _basic(c: Dictionary, a: Dictionary, targets: Array) -> void:
 				add_effect(targets[0], {"name": "Distracted", "tag": "helped", "src": "*", "for_team": c.team, "rounds": 1, "tick_cid": c.id, "tick_on": "start"})
 				log_line("%s helps an ally against %s." % [nm(c), nm(targets[0])])
 		"hide":
-			var roll: int = int(Dice.roll_d20(0, c.tags.has("halfling_lucky")).roll) + int(c.skills.get("stealth", c.mods.dex))
+			var hs: Dictionary = stealth_roll(c)
+			var roll: int = int(hs.total)
 			var best = 0
 			for o in enemies_of(c):
 				if conscious(o):
 					best = maxi(best, int(o.get("passive", 10)))
 			if roll >= best:
 				c.hidden = true
-				log_line("%s hides (Stealth %d vs passive Perception %d)." % [nm(c), roll, best])
+				log_line("%s hides (Stealth %d%s vs passive Perception %d)." % [nm(c), roll, hs.note, best])
 			else:
-				log_line("%s fails to hide (Stealth %d vs %d)." % [nm(c), roll, best])
+				log_line("%s fails to hide (Stealth %d%s vs %d)." % [nm(c), roll, hs.note, best])
 
 # ================================================================ weapon attacks
 
@@ -2328,7 +2414,7 @@ func _attack_with(c: Dictionary, t: Dictionary, atk: Dictionary, opts := {}) -> 
 	if not atk.get("spell_attack", false):
 		if tg.get("gwm", false) and melee and atk.get("heavy", false): power = true
 		if tg.get("sharpshooter", false) and not melee: power = true
-	var res = roll_attack(c, t, atk, {"melee": melee, "bonus": -5 if power else 0, "spell": atk.get("spell_attack", false), "fixed_target": opts.get("opportunity", false)})
+	var res = roll_attack(c, t, atk, {"melee": melee, "bonus": -5 if power else 0, "spell": atk.get("spell_attack", false), "fixed_target": opts.get("opportunity", false), "adv": int(opts.get("adv", 0))})
 	t = res.get("target", t)
 	fx("slash" if melee else "bolt", c.pos, t.pos, "#ffffff" if not atk.get("spell_attack", false) else "#c8a0ff", [], _attack_sfx(atk, melee))
 	if is_turn_of(c):
@@ -2426,7 +2512,9 @@ func _attack_hit(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionary,
 	var melee: bool = atk.get("melee", true)
 	var wctx = {"power": power, "opts": opts}
 	var parts2 = weapon_damage(c, t, atk, res, wctx)
-	var dealt = apply_damage(t, parts2, c, {"attack": true, "melee": melee, "ranged_weapon": not melee and not atk.get("spell_attack", false), "magic": atk.get("magic", false) or atk.get("spell_attack", false), "crit": res.crit, "radiant": _has_type(parts2, "radiant")})
+	# A slayer weapon against its foe, a Vicious Weapon on a 20 (Inventory).
+	parts2.append_array(Inventory.hit_extra(c, t, atk, res))
+	var dealt = apply_damage(t, parts2, c, {"attack": true, "melee": melee, "ranged_weapon": not melee and not atk.get("spell_attack", false), "magic": atk.get("magic", false) or atk.get("spell_attack", false), "crit": res.crit, "radiant": _has_type(parts2, "radiant"), "silver": atk.get("silver", false)})
 	if res.crit and is_turn_of(c):
 		c.turn.gwm_bonus = true
 	if is_turn_of(c) and c.turn.get("killed", false):
@@ -2434,6 +2522,8 @@ func _attack_hit(c: Dictionary, t: Dictionary, atk: Dictionary, res: Dictionary,
 	if atk.get("drain", false) and dealt > 0:
 		heal_creature(c, dealt / 2, c, "Vampiric Touch")
 	_on_hit_riders(c, t, atk, res, opts)
+	# Magic weapon and poison riders (Inventory: Giant Slayer, Mace of Disruption, Dagger of Venom, basic poison).
+	Inventory.on_weapon_hit(self, c, t, atk, res)
 	for se in wctx.get("smite_hits", []):
 		_smite_rider(c, t, se)
 
@@ -2967,7 +3057,7 @@ func _make_effect(src: Dictionary, sp: Dictionary, e: Dictionary, dc: int, save_
 	# on ranged weapon attacks only; one_own_attack: spent by the bearer's next attack roll (Frostbite);
 	# keep_conc: spending it doesn't end the caster's concentration; save_on_damage_adv: the new save
 	# when hurt has advantage (Hideous Laughter).
-	for flag in ["one_attack", "one_save", "melee_only", "one_hit", "ranged_only", "one_own_attack", "one_roll", "keep_conc", "save_on_damage_adv", "escape_save", "escape_auto", "spent_on_miss", "any_attack", "no_heal_on_hit"]:
+	for flag in ["one_attack", "one_save", "melee_only", "one_hit", "ranged_only", "one_own_attack", "one_roll", "keep_conc", "save_on_damage_adv", "escape_save", "escape_auto", "spent_on_miss", "any_attack", "no_heal_on_hit", "until_healed"]:
 		if e.get(flag, false):
 			out[flag] = true
 	# Restraints you can tear free of with an action (Web, Entangle...): ability check vs the spell DC
@@ -3054,7 +3144,11 @@ func _cast(c: Dictionary, a: Dictionary, targets: Array, cellp: Vector2i, params
 		targets = targets.slice(0, max_t)
 	# Pay.
 	pay(c, cost)
-	if a.get("innate", false):
+	if str(a.get("item_uid", "")) != "":
+		# A wand's charges or a scroll (Inventory). A failed check to read a scroll spends the action.
+		if not Inventory.spend_for_cast(self, c, a, slot):
+			return true
+	elif a.get("innate", false):
 		spend_res(c, "innate_" + a.spell)
 	elif slot > 0:
 		spend_slot(c, slot)
@@ -3411,6 +3505,9 @@ func _generic_spell(c: Dictionary, sp: Dictionary, cbd: Dictionary, targets: Arr
 		victims = [c]
 	victims = _filter_spell_victims(c, cbd, victims)
 	var dmg_parts = _spell_damage(c, sp, cbd, ctx)
+	# Damaging areas break objects caught in them too (walls, crates, chests: MapObjects).
+	if ctx.get("cells", null) is Array and not dmg_parts.is_empty() and cbd.get("attack", null) == null and not MapObjects.list(s).is_empty():
+		MapObjects.area_damage(self, ctx.cells, _roll_parts(c, dmg_parts, false, ctx), c)
 	var spell_lv = int(sp.level)
 	var kill_opts = {"spell": true, "spell_level": ctx.slot, "school": sp.get("school", "")}
 	# A buff on the caster that comes with the spell (Draconic Transformation's flight).
@@ -3757,6 +3854,9 @@ func _sp_magic_missile(c: Dictionary, sp: Dictionary, cbd: Dictionary, targets: 
 	for i in darts:
 		var t: Dictionary = targets[i % targets.size()]
 		if not alive(t):
+			continue
+		if t.get("tags", {}).has("mm_immune"):
+			log_line("  A dart melts into %s's Brooch of Shielding." % nm(t))
 			continue
 		if has_tag(t, "shield"):
 			log_line("  A dart fizzles against %s's Shield." % nm(t))
@@ -5239,6 +5339,8 @@ func short_rest() -> void:
 			log_line("%s can use Arcane Recovery to regain up to %d levels of spell slots." % [nm(c), c.arcane_budget])
 	s.clock = int(s.get("clock", 0)) + 600  # an hour
 	log_line("[color=#8fd0ff]The party takes a short rest.[/color]")
+	# Attunement changes queued for a rest (Inventory).
+	Inventory.rest_attunements(self)
 
 ## Hit dice still unspent, by die size ("10": count).
 func hit_dice_left(c: Dictionary) -> Dictionary:
@@ -5272,6 +5374,9 @@ func spend_hit_dice(c: Dictionary, max_dice := -1, size := 0) -> int:
 		spent += 1
 		var r: int = Dice.d(die)
 		var amt: int = maxi(0, r + conm)
+		# Periapt of Wound Closure: hit dice heal twice as much.
+		if c.get("tags", {}).has("wound_closure"):
+			amt *= 2
 		if c.get("feats", []).has("durable"):
 			amt = maxi(amt, 2 * conm)
 		gained += heal_creature(c, amt, c, "hit die d%d: %d%s" % [die, r, Rules.fmt_mod(conm)])
@@ -5347,6 +5452,8 @@ func long_rest() -> void:
 		for i in c.slots_used.size():
 			c.slots_used[i] = 0
 		c.pact_used = 0
+		# Dawn: wands regain charges, a pearl of power can be used again (Inventory).
+		Inventory.dawn(c)
 		c.effects = c.effects.filter(func(e): return int(e.get("rounds", 0)) > 4800 and e.get("cond", "") != "prone")
 		# A long rest (with food and drink) removes one level of exhaustion.
 		if remove_exhaustion_level(c):
@@ -5362,3 +5469,5 @@ func long_rest() -> void:
 	s.zones = []
 	s.clock = int(s.get("clock", 0)) + 4800  # eight hours
 	log_line("[color=#8fd0ff]The party takes a long rest and recovers fully.[/color]")
+	# Attunement changes queued for a rest (Inventory).
+	Inventory.rest_attunements(self)

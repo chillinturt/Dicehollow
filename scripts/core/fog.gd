@@ -40,12 +40,65 @@ static func _sense_ft(c: Dictionary, sense: String) -> int:
 	var m := re.search(str(c.get("senses", "")).to_lower())
 	return int(m.get_string(1)) if m else 0
 
-## How many cells `c` sees (grid distance), or -1 for no limit.
+## How many cells `c` sees in the dark on its own (grid distance), or -1 for no limit. Light from torches and
+## lanterns is shared by everyone who can see the lit cells (see light_mask), so it isn't counted here.
 static func sight_cells(s: Dictionary, c: Dictionary) -> int:
 	var rng: int = settings(s).range
 	if rng <= 0:
 		return -1
 	return maxi(rng, special_sight_ft(c)) / 5
+
+## Every light on the map: [{"cid", "pos", "ft", "cone", "dir"}] (Inventory.light_sources of each creature;
+## a bullseye lantern's beam points where its bearer last moved or aimed).
+static func lights(eng: EngineBase) -> Array:
+	var out: Array = []
+	for c in eng.all_combatants():
+		if not eng.alive(c) or not c.has("pos") or eng.rope_space(c) != "":
+			continue
+		for src in Inventory.light_sources(c):
+			var f = c.get("facing", [1, 0])
+			var dir := Vector2i(int(f[0]), int(f[1])) if f is Array and f.size() == 2 and (int(f[0]) != 0 or int(f[1]) != 0) else Vector2i(1, 0)
+			out.append({"cid": c.id, "pos": c.pos, "ft": int(src.ft), "cone": bool(src.cone), "dir": dir})
+	return out
+
+## The cells lit right now, for everyone (a w*h byte mask): each light shines out to its reach, stopped by walls
+## and heavily obscured zones; a bullseye lantern only within its cone (as wide as it is long, PHB p.153).
+static func light_mask(eng: EngineBase) -> PackedByteArray:
+	var s: Dictionary = eng.s
+	var w: int = s.w
+	var h: int = s.h
+	var ls := lights(eng)
+	var key := "L|%d|%d|%d|%d|%s" % [w, h, hash(s.cells), _zone_hash(s), str(ls)]
+	if _cache.has(key):
+		return _cache[key]
+	var out := PackedByteArray()
+	out.resize(w * h)
+	if not ls.is_empty():
+		var opaque := opacity(eng, true)
+		for l in ls:
+			var c: Dictionary = eng.C(str(l.cid))
+			var r: int = int(l.ft) / 5
+			var m := PackedByteArray()
+			m.resize(w * h)
+			for q in eng.occupied_cells(c):
+				if eng.in_bounds(q):
+					m[q.y * w + q.x] = 1
+					_shadowcast(m, opaque, w, h, q, r)
+			if l.cone:
+				var o: Vector2 = Vector2(l.pos) + Vector2(0.5, 0.5)
+				var dir := Vector2(l.dir).normalized()
+				var half := atan(0.5) + 0.05
+				for i in m.size():
+					if not m[i]:
+						continue
+					var v := Vector2(i % w, i / w) + Vector2(0.5, 0.5) - o
+					if v.length() > 0.75 and absf(v.angle_to(dir)) > half + 0.45 / maxf(v.length(), 0.5):
+						m[i] = 0
+			out = _or_into(out, m)
+	if _cache.size() > 512:
+		_cache.clear()
+	_cache[key] = out
+	return out
 
 ## Whether `c` can see anything at all right now (alive, awake, not tucked away in a pocket space).
 static func can_look(eng: EngineBase, c: Dictionary) -> bool:
@@ -65,13 +118,20 @@ static func vision(eng: EngineBase, c: Dictionary, at = null) -> PackedByteArray
 		radius = w + h
 	# Blindsight: only walls stop it, out to its range.
 	var blind: int = _sense_ft(c, "blindsight") / 5
-	var key := "%d,%d|%d|%d|%d|%d|%d" % [p.x, p.y, eng.occupied_cells(c, p).size(), radius, blind, hash(s.cells), _zone_hash(s)]
+	# In the dark, lit cells are seen by anyone with a line of sight to them (light_mask), however far.
+	var dark: bool = radius < w + h and not eng.has_cond(c, "blinded")
+	var lit := light_mask(eng) if dark else PackedByteArray()
+	var any_lit := dark and lit.has(1)
+	var key := "%d,%d|%d|%d|%d|%d|%d|%d" % [p.x, p.y, eng.occupied_cells(c, p).size(), radius, blind, hash(s.cells), _zone_hash(s), hash(lit) if any_lit else 0]
 	if _cache.has(key):
 		return _cache[key]
 	var out := PackedByteArray()
 	out.resize(w * h)
 	var with_zones := opacity(eng, true)
 	var walls_only := opacity(eng, false) if blind > 0 else with_zones
+	var los := PackedByteArray()
+	if any_lit:
+		los.resize(w * h)
 	for q in eng.occupied_cells(c, p):
 		if eng.in_bounds(q):
 			out[q.y * w + q.x] = 1
@@ -79,6 +139,12 @@ static func vision(eng: EngineBase, c: Dictionary, at = null) -> PackedByteArray
 				_shadowcast(out, with_zones, w, h, q, radius)
 			if blind > 0:
 				_shadowcast(out, walls_only, w, h, q, blind)
+			if any_lit:
+				_shadowcast(los, with_zones, w, h, q, w + h)
+	if any_lit:
+		for i in out.size():
+			if lit[i] and los[i]:
+				out[i] = 1
 	if _cache.size() > 512:
 		_cache.clear()
 	_cache[key] = out

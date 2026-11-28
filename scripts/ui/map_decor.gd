@@ -6,7 +6,7 @@ extends RefCounted
 
 ## Props that hang on a wall: the wall is drawn under them. Every other prop on a wall cell is free-standing
 ## (a forge, a tree, a tent): the floor is drawn under it instead.
-const WALL_MOUNTED := ["hearth", "keg", "wallshelf", "oven", "rack", "trophy", "dartboard", "shrine", "banner", "door"]
+const WALL_MOUNTED := ["hearth", "keg", "wallshelf", "oven", "rack", "trophy", "dartboard", "shrine", "banner", "door", "weak_wall", "cracked_wall"]
 
 const FLOORS := {
 	1: Color("#6b4a2f"), 2: Color("#5d5a58"), 3: Color("#6e5a3e"), 4: Color("#55525a"), 5: Color("#3f5e34"), 6: Color("#7a2630"),
@@ -385,6 +385,55 @@ static func draw_prop(ci: CanvasItem, p: Dictionary, off: Vector2, cs: float) ->
 			ci.draw_line(c + Vector2(0, -s * 0.3), c + Vector2(0, s * 0.3), WOOD_DARK, lw * 2)
 			ci.draw_line(c + Vector2(-s * 0.25, -s * 0.1), c + Vector2(s * 0.25, -s * 0.1), WOOD_DARK, lw * 2)
 			ci.draw_circle(c + Vector2(0, -s * 0.3), s * 0.12, Color("#c8b080"))
+		# ---- interactable objects (MapObjects)
+		"chest", "chest_open":
+			var q := Rect2(r.position + Vector2(s * 0.14, s * 0.26), Vector2(s * 0.72, s * 0.5))
+			ci.draw_rect(q, Color("#6b4423"))
+			ci.draw_rect(Rect2(q.position, Vector2(q.size.x, s * 0.16)), Color("#3a2414") if str(p.k) == "chest_open" else Color("#8a5a30"))
+			ci.draw_rect(q, Color("#2e1d0f"), false, lw)
+			if detail:
+				ci.draw_line(Vector2(q.position.x + s * 0.18, q.position.y), Vector2(q.position.x + s * 0.18, q.end.y), Color("#c9a14a"), lw)
+				ci.draw_line(Vector2(q.end.x - s * 0.18, q.position.y), Vector2(q.end.x - s * 0.18, q.end.y), Color("#c9a14a"), lw)
+				ci.draw_rect(Rect2(c + Vector2(-s * 0.05, -s * 0.06), Vector2(s * 0.1, s * 0.1)), Color("#e8c45a"))
+		"bottle":
+			ci.draw_circle(c + Vector2(0, s * 0.08), s * 0.11, Color("#3f7a4a"))
+			ci.draw_rect(Rect2(c + Vector2(-s * 0.035, -s * 0.2), Vector2(s * 0.07, s * 0.2)), Color("#3f7a4a"))
+			if detail:
+				ci.draw_circle(c + Vector2(-s * 0.04, s * 0.05), s * 0.03, Color(1, 1, 1, 0.5))
+		"table_leg", "branch":
+			var col := WOOD if str(p.k) == "table_leg" else Color("#5a4028")
+			var a := c + Vector2(-s * 0.28, s * 0.22)
+			var b := c + Vector2(s * 0.28, -s * 0.22)
+			ci.draw_line(a, b, WOOD_DARK, lw * (5.0 if str(p.k) == "branch" else 4.0))
+			ci.draw_line(a, b, col, lw * (3.0 if str(p.k) == "branch" else 2.5))
+			if str(p.k) == "branch" and detail:
+				ci.draw_line(c, c + Vector2(s * 0.08, s * 0.2), col, lw * 2)
+				ci.draw_circle(c + Vector2(s * 0.08, s * 0.22), s * 0.06, Color("#3f6b3a"))
+		"pitchfork":
+			ci.draw_line(c + Vector2(-s * 0.3, s * 0.3), c + Vector2(s * 0.15, -s * 0.15), WOOD, lw * 2.5)
+			for i in 3:
+				var base := c + Vector2(s * 0.1 + i * s * 0.06, -s * 0.2 + i * s * 0.06)
+				ci.draw_line(base, base + Vector2(s * 0.14, -s * 0.14), Color("#9a9aa2"), lw * 1.5)
+		"torch":
+			ci.draw_line(c + Vector2(-s * 0.2, s * 0.25), c + Vector2(s * 0.1, -s * 0.05), WOOD_DARK, lw * 3)
+			ci.draw_circle(c + Vector2(s * 0.14, -s * 0.1), s * 0.12, Color("#ff8c2a"))
+			ci.draw_circle(c + Vector2(s * 0.14, -s * 0.12), s * 0.06, Color("#ffe27a"))
+		"weapon_item":
+			ci.draw_line(c + Vector2(-s * 0.3, s * 0.3), c + Vector2(s * 0.28, -s * 0.28), Color("#3a3a42"), lw * 4)
+			ci.draw_line(c + Vector2(-s * 0.3, s * 0.3), c + Vector2(s * 0.28, -s * 0.28), Color("#c8c8d2"), lw * 2)
+			ci.draw_line(c + Vector2(-s * 0.2, s * 0.06), c + Vector2(-s * 0.06, s * 0.2), Color("#8a6a3e"), lw * 3)
+		"loot_pile":
+			for i in 5:
+				ci.draw_circle(c + Vector2((i % 3 - 1) * s * 0.12, (i / 3) * s * 0.1 - s * 0.02), s * 0.08, Color("#c9a14a"))
+				ci.draw_circle(c + Vector2((i % 3 - 1) * s * 0.12, (i / 3) * s * 0.1 - s * 0.04), s * 0.05, Color("#ffe27a"))
+		"weak_wall", "cracked_wall":
+			# Cracks over the wall cell: this one can be broken through.
+			var cc := Color("#1a1008") if str(p.k) == "weak_wall" else Color("#141218")
+			var w2 := lw * 1.6
+			ci.draw_polyline(PackedVector2Array([r.position + Vector2(0.2, 0.1) * s, r.position + Vector2(0.38, 0.4) * s, r.position + Vector2(0.3, 0.6) * s, r.position + Vector2(0.48, 0.9) * s]), cc, w2)
+			ci.draw_polyline(PackedVector2Array([r.position + Vector2(0.38, 0.4) * s, r.position + Vector2(0.62, 0.48) * s, r.position + Vector2(0.8, 0.3) * s]), cc, w2)
+			if detail:
+				ci.draw_line(r.position + Vector2(0.62, 0.48) * s, r.position + Vector2(0.7, 0.75) * s, cc, lw)
 
 # ---------------------------------------------------------------- labels
 

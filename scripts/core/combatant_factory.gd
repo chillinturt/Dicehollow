@@ -52,7 +52,9 @@ static func from_character(id: String, ch: Dictionary, owner: int) -> Dictionary
 	c.maneuvers = st.maneuvers
 	c.metamagic = st.metamagic
 	c.invocations = st.invocations
+	c.infusions = st.get("infusions", [])   # an artificer's infusions, put on items in the inventory
 	c.attacks = st.weapons
+	c.weapon_prof = st.weapon_prof  # improvised weapons that resemble a real one use its proficiency (MapObjects)
 	c.casting = st.casting
 	c.slots_max = st.slots
 	c.slots_used = []
@@ -71,9 +73,18 @@ static func from_character(id: String, ch: Dictionary, owner: int) -> Dictionary
 	c.armored = st.armored
 	c.has_shield = st.shield
 	c.armor_unproficient = st.armor_unproficient
+	c.stealth_dis = st.stealth_dis   # armor with a Stealth penalty (not mithral): disadvantage when hiding
+	c.tools = st.get("tools", [])    # tool proficiencies (class, background, race): thieves' tools for locks
 	c.class_levels = st.class_levels
 	c.subclasses = st.subclasses
 	c.feats = st.feats
+	# Belongings (Inventory): the game works on these copies, and the server saves them back to the sheet.
+	var inv = ch.get("inventory", [])
+	c.inventory = inv.duplicate(true) if inv is Array else []
+	var co = ch.get("coins", {})
+	c.coins = co.duplicate() if co is Dictionary else {}
+	c.load_lb = float(st.get("load_lb", 0.0))
+	c.magic_items = st.get("magic", {}).get("items", [])
 	# Which roll-fixing abilities (Lucky...) the player has switched to automatic; the rest ask first.
 	var af = ch.get("auto_fix", {})
 	c.toggles["auto_fix"] = af.duplicate() if af is Dictionary else {}
@@ -146,6 +157,8 @@ static func from_monster(id: String, mid: String) -> Dictionary:
 			mundane = true
 	c.tags = tags
 	c.mundane_resist = mundane
+	# "... nonmagical attacks that aren't silvered": a silvered weapon gets through as well (lycanthropes).
+	c.mundane_silver = m.get("traits", []).any(func(t): return "silvered" in str(t.get("desc", "")).to_lower())
 	if tags.has("legendary_resistance"):
 		c.legendary_res = int(tags.legendary_resistance) if tags.legendary_resistance is int else 3
 	# Monster actions -> attack profiles + special actions.

@@ -26,6 +26,8 @@ var blurb_lbl: Label
 var env_sliders: Dictionary = {}   # settings key -> HSlider
 var rooms_row: Control
 var river_chk: CheckBox
+var endless_box: VBoxContainer    # endless-map options (only for terrains MapStream supports)
+var endless_note: Label
 var seed_spin: SpinBox
 var name_edit: LineEdit
 var places_box: VBoxContainer     # Structures tab: named places of the current result
@@ -361,6 +363,35 @@ func _build_environment() -> VBoxContainer:
 	v.add_child(rooms_row)
 	river_chk = UIKit.check("River crossing between the party and the enemy (bridges in town, fords in the wild)", bool(settings.river), func(p): settings.river = p; _changed())
 	v.add_child(river_chk)
+	_section(v, "Interactables")
+	_slider(v, "Objects", "interactables", 0, 1, 0.05, _pct, "Breakable crates and barrels, weak walls to smash through, and rocks, branches, bottles or torches to pick up and fight with")
+	_section(v, "Treasure")
+	var loot_items: Array = []
+	for k in MapObjects.LOOT:
+		loot_items.append([k, MapObjects.LOOT[k].name])
+	var loot_note := _note("")
+	var lr = UIKit.hbox()
+	var ll = UIKit.lbl("Loot", 14)
+	ll.custom_minimum_size = Vector2(150, 0)
+	lr.add_child(ll)
+	var lo: OptionButton = UIKit.option(loot_items, str(settings.get("loot", "normal")), func(id):
+		settings.loot = id
+		loot_note.text = MapObjects.loot_level(id).desc
+		_changed())
+	lo.tooltip_text = "How much treasure is in chests (some locked) and in crates and barrels, scaled to the party's level. Monsters' own treasure is a separate table setting."
+	lr.add_child(UIKit.expand(lo))
+	v.add_child(lr)
+	loot_note.text = MapObjects.loot_level(settings.get("loot", "normal")).desc
+	v.add_child(loot_note)
+	_section(v, "Endless map")
+	endless_box = UIKit.vbox(6)
+	endless_box.add_child(UIKit.check("Endless: new ground appears as the party nears an edge", bool(settings.get("endless", false)), func(p): settings.endless = p; _changed()))
+	_slider(endless_box, "Largest size", "endless_max", 40, MapStream.MAX_LIMIT, 10, func(x): return "%d sq per side" % int(x),
+		"Past this, ground far behind the party is dropped (it comes back freshly made if they return)")
+	_slider(endless_box, "Wandering monsters", "endless_foes", 0, 1, 0.05, _pct, "Chance that each new stretch of ground holds a few monsters (an easy group for the party)")
+	v.add_child(endless_box)
+	endless_note = _note("Endless works for outdoor terrain, caves and town streets.")
+	v.add_child(endless_note)
 	v.add_child(UIKit.btn("Reset to this terrain's defaults", func(): _set_terrain(settings.terrain)))
 	v.add_child(_note("Anything the party couldn't walk to is filled in, so every start point can reach every monster on foot."))
 	_update_env_visibility()
@@ -553,6 +584,9 @@ func _update_env_visibility() -> void:
 		rooms_row.visible = layout == "rooms" or (layout == "interior" and str(settings.get("interior", "rooms")) == "rooms")
 	if river_chk:
 		river_chk.visible = layout in ["outdoor", "town"]
+	if endless_box:
+		endless_box.visible = MapStream.supports(str(settings.terrain))
+		endless_note.visible = not endless_box.visible
 
 func _changed() -> void:
 	if _building or regen_timer == null:
@@ -594,6 +628,26 @@ func _update_summary() -> void:
 	var enc: Dictionary = rep.get("encounter", {})
 	var lines: Array = []
 	lines.append("[b]%s[/b]  ·  %s, %d×%d squares, %d start points, seed %d" % [result.name, t.name, result.w, result.h, result.spawns.size(), int(settings.seed)])
+	var objs: Array = result.get("objects", [])
+	if not objs.is_empty() or result.has("stream"):
+		var chests := objs.filter(func(o): return o.k == "chest").size()
+		var walls := objs.filter(func(o): return o.k in ["weak_wall", "cracked_wall"]).size()
+		var bits: Array = []
+		if chests > 0: bits.append("%d chest%s" % [chests, "" if chests == 1 else "s"])
+		if walls > 0: bits.append("%d weak wall%s" % [walls, "" if walls == 1 else "s"])
+		var other := objs.size() - chests - walls
+		if other > 0: bits.append("%d other object%s" % [other, "" if other == 1 else "s"])
+		var gp := 0.0
+		for o in objs:
+			var l: Dictionary = o.get("loot", {})
+			gp += int(l.get("pp", 0)) * 10 + int(l.get("gp", 0)) + int(l.get("ep", 0)) * 0.5 + int(l.get("sp", 0)) * 0.1 + int(l.get("cp", 0)) * 0.01
+		var lv: Dictionary = MapObjects.loot_level(settings.get("loot", "normal"))
+		if str(settings.get("loot", "normal")) == "none":
+			bits.append("no loot")
+		else:
+			bits.append("[color=#ffd166]%s loot%s[/color]" % [lv.name, (" (%d gp in coin)" % int(gp)) if gp >= 1 else ""])
+		if result.has("stream"): bits.append("[color=#8fd0ff]endless (grows to %d squares a side)[/color]" % int(result.stream.max))
+		lines.append("  " + "  ·  ".join(bits))
 	var taverns: Array = []
 	var others := 0
 	for st in rep.get("structures", []):
@@ -691,7 +745,7 @@ class MapPreview extends Control:
 		var cells: Array = map.cells
 		var ground: Array = map.get("ground", [])
 		var has_g := ground.size() == w * h
-		var props: Array = map.get("props", [])
+		var props: Array = map.get("props", []) + MapObjects.as_props(map.get("objects", []))
 		var cov: Dictionary = MapDecor.covered(props)
 		var detail := cs >= 20.0
 		for y in h:

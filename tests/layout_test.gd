@@ -151,6 +151,71 @@ func _dialogs_from(owner: Node, ui_root: Control, tag: String) -> void:
 				pw.close()
 				await _frames(1)
 				break
+		# Inventory for every PC, and the shop (every filter, buy and sell) for the first.
+		for c in Session.state.combatants.values():
+			if c.kind != "pc" or not owner.has_method("_open_inventory"):
+				continue
+			var iw = owner._open_inventory(c.id)
+			await audit(ui_root, "%s/inventory/%s" % [tag, c.name], owner)
+			iw.close()
+			await _frames(1)
+		Session.request({"type": "dm_shop", "open": true, "kind": "magic", "magic_max": "very_rare"})
+		await _frames(1)
+		for c in Session.state.combatants.values():
+			if c.kind == "pc" and owner.has_method("_open_shop"):
+				await audit(ui_root, "%s/card-with-shop/%s" % [tag, c.name], owner)
+				for kind in ["magic", "general", "smith"]:
+					Session.request({"type": "dm_shop", "open": true, "kind": kind, "magic_max": "very_rare"})
+					await _frames(1)
+					var sw = owner._open_shop(c.id)
+					await audit(ui_root, "%s/shop-%s/%s" % [tag, kind, c.name], owner)
+					owner.shop_panel._mode = "sell"
+					owner.shop_panel.refresh()
+					await audit(ui_root, "%s/shop-%s-sell/%s" % [tag, kind, c.name], owner)
+					sw.close()
+					await _frames(1)
+				break
+		Session.request({"type": "dm_shop", "open": false})
+		# A storage chest beside the first PC: the card with its 📦 Storage button, the storage window (empty, then
+		# holding things), and the sheet's inventory tab with the chest in reach.
+		if owner.has_method("_open_stash"):
+			for c in Session.state.combatants.values():
+				if c.kind != "pc":
+					continue
+				var spot := Vector2i(-1, -1)
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1)]:
+					var p: Vector2i = c.pos + d
+					if Session.engine.in_bounds(p) and Session.engine.cell(p) == EngineBase.FLOOR and MapObjects.at(Session.state, p).is_empty() and Session.engine.creature_at(p).is_empty():
+						spot = p
+						break
+				if spot.x < 0:
+					continue
+				Session.request({"type": "dm_object", "at": spot, "k": "stash"})
+				await _frames(1)
+				var oid := str(MapObjects.at(Session.state, spot)[0].id)
+				owner.control_cid = c.id
+				owner._refresh_ui()
+				await audit(ui_root, "%s/card-with-storage/%s" % [tag, c.name], owner)
+				var stw = owner._open_stash(c.id, oid)
+				await audit(ui_root, "%s/storage-empty/%s" % [tag, c.name], owner)
+				var st := MapObjects.store_of(MapObjects.by_id(Session.state, oid))
+				for id in ["cloak_of_protection", "rope_hempen", "arrows", "gem_50", "potion_healing", "longsword"]:
+					Inventory.add(st, id, 3)
+				Inventory.give_coins(st, {"gp": 1234, "sp": 56})
+				owner.stash_panel.refresh()
+				await audit(ui_root, "%s/storage-full/%s" % [tag, c.name], owner)
+				stw.close()
+				var w = owner._open_sheet(c.id)
+				for t in w.tabs.get_tab_count():
+					if w.tabs.get_tab_title(t) == "Inventory":
+						w.tabs.current_tab = t
+						await audit(ui_root, "%s/sheet-inventory-by-chest/%s" % [tag, c.name], owner)
+				w.close()
+				Session.request({"type": "dm_object", "at": spot})
+				for o in MapObjects.at(Session.state, spot):
+					MapObjects.remove(Session.engine, o)
+				await _frames(1)
+				break
 		# Level-up wizard for every PC, walking every step.
 		for c in Session.state.combatants.values():
 			if c.kind != "pc":

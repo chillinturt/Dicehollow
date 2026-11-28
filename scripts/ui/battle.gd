@@ -34,12 +34,16 @@ var end_btn: Button
 var auto_btn: Button
 var auto_use_resources := true  # Auto Turn may spend spell slots / limited-use features
 var auto_move := true  # Auto Turn may move
-var tip: Label
+var tip: RichTextLabel
 var banner: Label
 var mode_lbl: Label
 var dm_tabs: TabContainer
 var dice_tray: DiceTray
 var confirm_btn: Button
+var cancel_btn: Button
+var prompt_box: PanelContainer
+var legend_lbl: Label
+var _hurt_warned := {}   # cid -> true once "badly hurt" has sounded, until healed above the line
 
 # Interaction state
 var selected_cid := ""
@@ -48,6 +52,9 @@ var mode := ""              # "", "target", "paint", "place_monster", "spawn"
 var pending := {}
 var paint_value := 1
 var brush := 1
+var place_obj := "chest"       # DM: object kind placed in "place_object" mode (MapObjects.PLACEABLE)
+var place_obj_locked := false
+var stream_chk: CheckBox
 var place_mid := ""
 var place_ally := false
 var hot_cat := "all"
@@ -96,6 +103,28 @@ var sheet_cid := ""
 var level_win: LevelUpWizard
 var _announced_levels := {}   # cid -> allowed level already announced to this player
 var party_box: VBoxContainer
+# Inventory and shop windows (InventoryPanel, ShopPanel) and the DM's Loot tab.
+var inv_win: DialogPanel
+var inv_panel: InventoryPanel
+var inv_cid := ""
+var _inv_key := 0
+var shop_win: DialogPanel
+var shop_panel: ShopPanel
+var shop_cid := ""
+var _shop_key := 0
+var stash_win: DialogPanel
+var stash_panel: StoragePanel
+var stash_cid := ""
+var stash_obj := ""
+var _stash_key := 0
+var _sheet_inv_key := 0
+var loot_status: Label
+var loot_picker: ItemPicker
+var loot_shop := {"kind": "general", "name": "", "markup": 100, "buyback": 50, "magic_buyback": 25, "magic_max": "uncommon"}
+var stock_picker: ItemPicker
+var stock_qty := 0
+var loot_coins := 50
+var loot_coin := "gp"
 var dm_xp_amount := 100
 var dm_xp_split := true
 # Fog of war: what this screen may show ({} = everything; see Fog.view_for).
@@ -203,8 +232,8 @@ func _build_hud() -> void:
 	log_rt = UIKit.rich("", false)
 	log_rt.scroll_following = true
 	UIKit.expand(log_rt, true, true)
-	log_rt.add_theme_font_size_override("normal_font_size", 13)
-	log_rt.add_theme_font_size_override("bold_font_size", 13)
+	log_rt.add_theme_font_size_override("normal_font_size", 14)
+	log_rt.add_theme_font_size_override("bold_font_size", 14)
 	rv.add_child(log_rt)
 	chat_in = UIKit.line("", "Chat, or /roll 2d6+3")
 	chat_in.text_submitted.connect(func(t): Session.send_chat(t); chat_in.clear())
@@ -230,7 +259,7 @@ func _build_hud() -> void:
 	hv.add_child(cat_row)
 	for cat in [["all", "All"], ["attack", "Attacks"], ["spell", "Spells"], ["feature", "Features"], ["basic", "Actions"]]:
 		var key: String = cat[0]
-		var b = UIKit.btn(cat[1], func(): hot_cat = key; _refresh_hotbar())
+		var b = UIKit.btn(cat[1], func(): hot_cat = key; Sfx.play("click", 0.0); _refresh_hotbar())
 		b.toggle_mode = true
 		b.set_meta("cat", key)
 		cat_row.add_child(b)
@@ -305,8 +334,15 @@ func _build_hud() -> void:
 	get_viewport().size_changed.connect(_layout_hud)
 	_layout_hud.call_deferred()
 	# Floating helpers.
-	tip = UIKit.lbl("", 15, Color.WHITE)
-	tip.add_theme_stylebox_override("normal", UIKit.sb(Color(0, 0, 0, 0.8), UIKit.GOLD, 1, 4, 6))
+	tip = UIKit.rich("", true)
+	tip.autowrap_mode = TextServer.AUTOWRAP_OFF
+	tip.selection_enabled = false
+	tip.add_theme_font_size_override("normal_font_size", 15)
+	tip.add_theme_font_size_override("bold_font_size", 15)
+	tip.add_theme_color_override("default_color", Color.WHITE)
+	tip.add_theme_stylebox_override("normal", UIKit.sb(Color(0.03, 0.02, 0.06, 0.88), UIKit.GOLD, 1, 4, 8))
+	tip.z_index = 10
+	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tip.visible = false
 	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(tip)
@@ -320,19 +356,29 @@ func _build_hud() -> void:
 	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner.modulate.a = 0.0
 	ui.add_child(banner)
+	# What the current mode wants ("Fire Bolt: choose a target"), centred over the map under the top bar
+	# (see _place_prompt), with Confirm and Cancel buttons.
+	prompt_box = UIKit.panel(null, Color(0.05, 0.03, 0.09, 0.9), UIKit.GOLD)
+	prompt_box.add_theme_stylebox_override("panel", UIKit.sb(Color(0.05, 0.03, 0.09, 0.9), UIKit.GOLD, 2, 6, 10))
 	var mh = UIKit.hbox(8)
-	mh.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	mh.offset_top = -262
-	mh.offset_bottom = -226
-	mh.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	mode_lbl = UIKit.lbl("", 16, Color.WHITE)
-	mode_lbl.add_theme_stylebox_override("normal", UIKit.sb(Color(0, 0, 0, 0.75), UIKit.GOLD, 1, 4, 8))
+	prompt_box.add_child(mh)
+	mode_lbl = UIKit.lbl("", 17, Color.WHITE)
+	mode_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UIKit.expand(mode_lbl)
 	mh.add_child(mode_lbl)
-	confirm_btn = UIKit.btn("Confirm targets", _confirm_targets)
+	confirm_btn = UIKit.btn("✓ Confirm", _confirm_targets, "Use the targets chosen so far (Enter)")
 	mh.add_child(confirm_btn)
-	ui.add_child(mh)
-	mode_lbl.visible = false
+	cancel_btn = UIKit.btn("✕ Cancel", _user_cancel, "Put the action back (right-click or Esc)")
+	mh.add_child(cancel_btn)
+	ui.add_child(prompt_box)
+	prompt_box.visible = false
 	confirm_btn.visible = false
+	# Symbols used on the hotbar, for newer players (hidden with tips off).
+	cat_row.add_child(UIKit.expand(Control.new()))
+	legend_lbl = UIKit.lbl("◇ cantrip   L1 spell level   ◐ bonus action   1–0 keys", 12, UIKit.MUTED)
+	legend_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	legend_lbl.visible = _tips_on()
+	cat_row.add_child(legend_lbl)
 	# Dice rolls, in the bottom-left corner of the map (see DiceTray; each player picks what it shows).
 	dice_tray = DiceTray.new()
 	ui.add_child(dice_tray)
@@ -351,6 +397,27 @@ func _layout_hud() -> void:
 	var left := (DM_W + 16.0) if dm_tabs != null else 8.0
 	dice_tray.position = Vector2(left, top_h + 6)
 	dice_tray.size = Vector2(DiceTray.CARD_W + 8.0, maxf(100.0, bottom_top - top_h - 12))
+	# The "Your turn" banner sits below where the action prompt goes.
+	banner.offset_top = top_h + 70
+	_place_prompt()
+
+## Centres the action prompt over the map, just under the top bar, wrapping it if the map is narrow.
+func _place_prompt() -> void:
+	if prompt_box == null or top_bar == null:
+		return
+	var vp := ui.get_viewport_rect().size
+	var left := (DM_W + 16.0) if dm_tabs != null else 8.0
+	var right := vp.x - RIGHT_W - 6.0
+	var avail := right - left - 24.0
+	mode_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	mode_lbl.custom_minimum_size.x = 0
+	prompt_box.reset_size()
+	if prompt_box.size.x > avail:
+		var btns := cancel_btn.get_combined_minimum_size().x + (confirm_btn.get_combined_minimum_size().x + 8.0 if confirm_btn.visible else 0.0)
+		mode_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mode_lbl.custom_minimum_size.x = maxf(160.0, avail - btns - 40.0)
+		prompt_box.reset_size()
+	prompt_box.position = Vector2(left + (right - left - prompt_box.size.x) * 0.5, top_bar.size.y + 10.0)
 
 ## Make every label and check box under `node` wrap within its column instead of widening it.
 ## Only text stacked in a column (or set to expand) wraps: a short label beside buttons in a row keeps its width.
@@ -467,6 +534,26 @@ func _build_dm() -> void:
 	mpv.add_child(bgr)
 	mpv.add_child(UIKit.check("Fit grid height to the image", bg_fit, func(p): bg_fit = p))
 	mpv.add_child(UIKit.btn("Clear terrain", func(): Session.request({"type": "dm_clear_map"})))
+	# Interactable objects: click to place, click an object to remove it.
+	mpv.add_child(HSeparator.new())
+	mpv.add_child(UIKit.lbl("Objects (break, lift, open)", 14, UIKit.GOLD))
+	var obj_items: Array = []
+	for k in MapObjects.PLACEABLE:
+		var kd: Dictionary = MapObjects.KINDS[k]
+		var stat := "AC %d, %d HP" % [MapObjects.MAT_AC.get(str(kd.mat), 15), MapObjects.base_hp(k)]
+		if kd.get("storage", false):
+			stat = "the party stores things in it; unbreakable"
+		obj_items.append([k, "%s  (%s%s)" % [kd.name, stat, (", %d lb" % int(kd.lb)) if int(kd.lb) > 0 else ""]])
+	var oopt = UIKit.option(obj_items, place_obj, func(id): place_obj = id; _set_mode("place_object"))
+	oopt.fit_to_longest_item = false
+	mpv.add_child(oopt)
+	var orow = UIKit.hbox(4)
+	orow.add_child(UIKit.expand(UIKit.btn("Place / remove", func(): _set_mode("place_object"), "Click the map to put the chosen object down; click an object to take it away. Chests get loot for the party's level.")))
+	orow.add_child(UIKit.check("Locked", place_obj_locked, func(p): place_obj_locked = p))
+	mpv.add_child(orow)
+	stream_chk = UIKit.check("Endless map: new ground as the party nears an edge", MapStream.enabled(Session.state), func(p): Session.request({"type": "dm_stream", "on": p}))
+	stream_chk.tooltip_text = "Only for maps generated with \"Endless\" (forest and other outdoor terrain, caves, town streets)."
+	mpv.add_child(stream_chk)
 	# Place names (taverns, shops, the town...) on the map, renamable.
 	mpv.add_child(HSeparator.new())
 	var lh2 = UIKit.hbox()
@@ -550,6 +637,12 @@ func _build_dm() -> void:
 	psc.name = "Party"
 	dm_tabs.add_child(psc)
 	party_box = pv
+	# Loot tab: the shop, the encumbrance rule, and handing out treasure.
+	var lv = UIKit.vbox(6)
+	var lsc = UIKit.scroll(UIKit.margin(lv, 6))
+	lsc.name = "Loot"
+	dm_tabs.add_child(lsc)
+	_build_loot(lv)
 	_wrap_texts(dm_tabs)
 	_refresh_dm()
 
@@ -754,8 +847,10 @@ func _sheet_opts(cid: String) -> Dictionary:
 	var c: Dictionary = Session.engine.C(cid)
 	var mine := _can_control(c)
 	var local := _local_copy(cid) if mine else {}
+	var note := "Drawing a weapon is your free object interaction; a shield takes an action. Armor and attunement wait until after the fight." if Session.state.in_combat else ""
 	return {"live": c, "editable": mine, "advancement": Session.advancement(), "history": local.get("history", []),
-		"pending": Session.pending_levels(cid), "history_remote": mine and int(c.get("owner", 1)) != Session.my_peer()}
+		"pending": Session.pending_levels(cid), "history_remote": mine and int(c.get("owner", 1)) != Session.my_peer(),
+		"inv_holder": func(): return Session.engine.C(cid), "inv_opts": _inv_opts(cid, mine, note)}
 
 func _open_sheet(cid: String) -> CharacterSheet:
 	var c: Dictionary = Session.engine.C(cid)
@@ -769,6 +864,9 @@ func _open_sheet(cid: String) -> CharacterSheet:
 	sheet_win.level_up_requested.connect(func(): _open_level_up(cid))
 	sheet_win.plan_changed.connect(func(plan): _send_plan(cid, plan))
 	sheet_win.restore_requested.connect(func(i): _confirm_restore(cid, i))
+	if sheet_win.inv_panel != null:
+		_wire_inventory(sheet_win.inv_panel, func(): return sheet_cid)
+		_sheet_inv_key = _gear_key(cid)
 	ui.add_child(sheet_win)
 	return sheet_win
 
@@ -926,20 +1024,39 @@ func _on_sheets_changed() -> void:
 		if Session.pending_levels(cid) > 0 and int(_announced_levels.get(cid, 0)) < allowed:
 			_announced_levels[cid] = allowed
 			_show_banner("Level up available: " + str(c.name))
-			Sfx.play("nat20", 0.0)
+			Sfx.play("levelup", 0.0)
+	_refresh_gear_windows()
 	_refresh_ui()
 	_refresh_dm()
 
 # ================================================================ state sync & events
 
 func _on_state(events: Array) -> void:
+	# Endless map: new ground to the west / north moved everything; the view and anything still on its
+	# way to the screen move with it, so nothing seems to jump.
+	for e in events:
+		if e.get("t", "") == "map_shift":
+			_apply_map_shift(e.d)
 	map_view.set_state(Session.state)
+	_refresh_gear_windows()
 	_update_fog()
 	_sync_tokens(events)
 	event_queue.append_array(events)
 	if not playing:
 		_play_events()
 	_refresh_ui()
+
+func _apply_map_shift(d: Vector2i) -> void:
+	var px := Vector2(d) * CELL
+	cam.position += px
+	for id in tokens:
+		tokens[id].position += px
+	for n in fx_root.get_children():
+		if n is Node2D or n is Control:
+			n.position += px
+	MapStream.shift_in_place(event_queue, d)
+	map_view.hover += d
+	paint_buffer = []
 
 func _sync_tokens(events: Array) -> void:
 	var moving = {}
@@ -1022,9 +1139,13 @@ func _play_events() -> void:
 					tw2.tween_callback(func(): tk2.position = Vector2(e.to) * CELL)
 					tw2.tween_property(tk2, "modulate:a", 1.0, 0.12)
 					await tw2.finished
+			"objfloat":
+				_spawn_float({"pos": e.pos, "text": e.text, "color": "#ffb347"})
+				await get_tree().create_timer(0.1).timeout
 			"float":
 				_spawn_float(e)
 				Sfx.play(_float_sfx(e))
+				_check_hurt(str(e.get("cid", "")), str(e.get("text", "")))
 				await get_tree().create_timer(0.12).timeout
 			"fx":
 				var snd = str(e.get("sfx", _fx_sfx(e)))
@@ -1062,6 +1183,26 @@ func _fx_sfx(e: Dictionary) -> String:
 			return "bow" if col == "#ffffff" else by_color.get(col, "force")
 		_:
 			return by_color.get(col, "buff")
+
+## One of this player's own characters just took a hit that left it at a quarter of its HP or less:
+## a heartbeat and a warning in the log, once until it is healed back above that line.
+func _check_hurt(cid: String, text: String) -> void:
+	var c: Dictionary = Session.engine.C(cid)
+	if c.is_empty() or not text.begins_with("-") or int(c.owner) != Session.my_peer() or c.kind != "pc":
+		return
+	var hp := int(c.hp)
+	if hp <= 0 or _hurt_warned.has(cid) or float(hp) > float(c.max_hp) * 0.25:
+		return
+	_hurt_warned[cid] = true
+	get_tree().create_timer(0.3).timeout.connect(func(): Sfx.play("danger", 0.0))
+	_flash("%s is badly hurt (%d HP left)." % [c.name, hp])
+
+## Clears the "badly hurt" warning for characters healed back above a quarter of their HP.
+func _reset_hurt() -> void:
+	for cid in _hurt_warned.keys():
+		var c: Dictionary = Session.engine.C(cid)
+		if c.is_empty() or float(c.hp) > float(c.max_hp) * 0.25:
+			_hurt_warned.erase(cid)
 
 ## Sound for a floating combat number or label.
 func _float_sfx(e: Dictionary) -> String:
@@ -1135,22 +1276,35 @@ func _build_volume() -> Control:
 	return h
 
 func _spawn_float(e: Dictionary) -> void:
-	var tk = tokens.get(e.cid)
+	var tk = tokens.get(e.get("cid", ""))
+	if e.has("pos"):
+		# A number over an object (MapObjects damage): a stand-in "token" at that cell.
+		if not Fog.cell_visible(fog_view, Session.engine, e.pos):
+			return
+		tk = {"position": Vector2(e.pos) * CELL, "visible": true}
 	if tk == null or not tk.visible:
 		return
+	var text := str(e.text)
+	var crit: bool = text.begins_with("-") and str(e.get("color", "")).to_lower() == "#ffd166"
 	var l = Label.new()
-	l.text = e.text
-	l.add_theme_font_size_override("font_size", 26)
+	l.text = text + ("!" if crit else "")
+	l.add_theme_font_size_override("font_size", 34 if crit else 26)
 	l.add_theme_color_override("font_color", Color(e.get("color", "#ffffff")))
 	l.add_theme_color_override("font_outline_color", Color.BLACK)
-	l.add_theme_constant_override("outline_size", 6)
-	l.position = tk.position + Vector2(CELL * 0.5 - 20, -10)
+	l.add_theme_constant_override("outline_size", 7 if crit else 6)
+	# A little sideways scatter so several numbers on one creature don't print over each other.
+	l.position = tk.position + Vector2(CELL * 0.5 - 20 + randf_range(-12.0, 12.0), -10)
 	l.z_index = 50
 	fx_root.add_child(l)
+	l.pivot_offset = l.get_combined_minimum_size() * 0.5
 	var tw = create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(l, "position:y", l.position.y - 50, 1.1)
-	tw.tween_property(l, "modulate:a", 0.0, 1.1).set_delay(0.4)
+	if crit or text.begins_with("-") or text.begins_with("+"):
+		# Numbers pop in, then drift up and fade.
+		l.scale = Vector2.ONE * (1.6 if crit else 1.25)
+		tw.tween_property(l, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "position:y", l.position.y - 50, 1.2 if crit else 1.1)
+	tw.tween_property(l, "modulate:a", 0.0, 1.1).set_delay(0.6 if crit else 0.4)
 	tw.chain().tween_callback(l.queue_free)
 	_float_vfx(e, tk)
 
@@ -1316,13 +1470,20 @@ func _refresh_ui() -> void:
 			if int(fog_range_opt.get_item_metadata(i)) == fs.range:
 				fog_range_opt.select(i)
 		fog_shared_chk.set_pressed_no_signal(fs.shared)
+		if stream_chk:
+			stream_chk.set_pressed_no_signal(MapStream.enabled(st))
+			stream_chk.disabled = st.get("stream", {}).is_empty()
 	title_lbl.text = str(st.get("name", "Dicehollow"))
 	round_lbl.text = ("Round %d — %s's turn" % [st.round, cur.get("name", "")]) if st.in_combat else ("Exploration (no combat)" + ("  •  You are the DM" if Session.is_dm() else ""))
+	_reset_hurt()
 	_refresh_initiative()
 	_refresh_card()
 	_refresh_hotbar()
 	_refresh_inspect()
 	_refresh_highlights()
+	# Keep the hover tip true to the new state (an enemy stepped up, a resource was spent).
+	if tip.visible and map_view.hover.x >= 0:
+		_preview_at(map_view.hover)
 	_check_pending_hit()
 	_check_pending_fix()
 	if is_instance_valid(sheet_win) and not Session.engine.C(sheet_cid).is_empty():
@@ -1475,6 +1636,7 @@ func _refresh_initiative() -> void:
 	var eng: CombatEngine = Session.engine
 	var ids: Array = Session.state.order if Session.state.in_combat else Session.state.combatants.keys()
 	var cur = eng.current()
+	var next_id := _next_in_order()
 	for id in ids:
 		var c = eng.C(id)
 		if c.is_empty() or (c.dead and not Session.state.in_combat):
@@ -1494,25 +1656,41 @@ func _refresh_initiative() -> void:
 			init_row.add_child(up)
 			continue
 		var p = UIKit.panel(null, Color("#2a2338") if not is_cur else Color("#4a3a68"), UIKit.GOLD if is_cur else (UIKit.PARTY if c.team == "party" else UIKit.ENEMY))
+		if is_cur:
+			p.add_theme_stylebox_override("panel", UIKit.sb(Color("#4a3a68"), UIKit.GOLD, 2, 8, 10))
 		p.custom_minimum_size = Vector2(78, 70)
-		var v = UIKit.vbox(1)
+		var v = UIKit.vbox(0)
 		p.add_child(v)
+		if Session.state.in_combat:
+			# A thin top line: "NEXT" on the left for whoever goes after this turn, initiative on the right.
+			var top := UIKit.hbox(0)
+			top.custom_minimum_size = Vector2(0, 11)
+			var nx = UIKit.lbl("NEXT" if id == next_id and not is_cur else ("NOW" if is_cur else ""), 9, UIKit.GOLD)
+			nx.add_theme_constant_override("line_spacing", -4)
+			top.add_child(UIKit.expand(nx))
+			var il = UIKit.lbl(str(int(c.get("init", 0))), 9, UIKit.MUTED)
+			il.add_theme_constant_override("line_spacing", -4)
+			top.add_child(il)
+			v.add_child(top)
 		var tex = CharacterStore.portrait_texture(c.portrait)
 		var icon = MonsterIcons.for_combatant(c) if tex == null else null
 		if tex or icon:
-			var tr = TextureRect.new()
-			tr.texture = tex if tex else icon
+			var pic = TextureRect.new()
+			pic.texture = tex if tex else icon
 			if icon:
-				tr.modulate = Color(c.color).lightened(0.3)
-			tr.custom_minimum_size = Vector2(34, 34)
-			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			v.add_child(tr)
+				pic.modulate = Color(c.color).lightened(0.3)
+			pic.custom_minimum_size = Vector2(28, 28)
+			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			v.add_child(pic)
 		else:
-			var l = UIKit.lbl(UIKit.initials(c.name), 18, Color(c.color))
+			var l = UIKit.lbl(UIKit.initials(c.name), 18, Color(c.color).lightened(0.35))
+			l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+			l.add_theme_constant_override("outline_size", 4)
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			v.add_child(l)
-		var nl = UIKit.lbl(str(c.name).substr(0, 11), 11)
+		# "Tamsin (Chronurgist)" fits as "Tamsin": the subclass is on the sheet and in the tooltip.
+		var nl = UIKit.lbl(str(c.name).get_slice(" (", 0).substr(0, 11), 11)
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(nl)
 		var show_hp: bool = c.team == "party" or Session.is_dm()
@@ -1530,9 +1708,25 @@ func _refresh_initiative() -> void:
 				_center_on(cid)
 				_refresh_ui())
 		p.tooltip_text = "%s — initiative %d" % [c.name, int(c.get("init", 0))] if Session.state.in_combat else str(c.name)
+		if is_cur:
+			p.tooltip_text += "\nTaking its turn now"
+		elif id == next_id:
+			p.tooltip_text += "\nGoes next"
 		if _can_view_sheet(c):
 			p.tooltip_text += "\nDouble-click for the character sheet"
 		init_row.add_child(p)
+
+## Who acts after the current creature: the next one in the order that is still in the fight.
+func _next_in_order() -> String:
+	var st: Dictionary = Session.state
+	if not st.in_combat or st.order.size() < 2:
+		return ""
+	var n: int = st.order.size()
+	for k in range(1, n):
+		var o: Dictionary = Session.engine.C(st.order[(int(st.turn) + k) % n])
+		if not o.is_empty() and not o.get("dead", false) and not o.get("death", {}).get("dead", false):
+			return o.id
+	return ""
 
 func _refresh_card() -> void:
 	UIKit.clear(card_box)
@@ -1573,6 +1767,31 @@ func _refresh_card() -> void:
 		var cid: String = c.id
 		var sb = UIKit.btn("📜 Sheet", func(): _open_sheet(cid), "Character sheet, features, spells, level plan and history (C)")
 		pcol.add_child(sb)
+		var gr = UIKit.hbox(4)
+		var shop_open: bool = _can_control(c) and not Session.shop().is_empty()
+		# A drawn backpack icon (the 🎒 emoji was an unreadable pink blob at this size); icon only while the
+		# Shop button needs the room.
+		var ib = UIKit.btn("" if shop_open else "Pack", func(): _open_inventory(cid), "Inventory: coins, gear, magic items, carrying weight (I)")
+		ib.icon = UIKit.pack_icon()
+		if shop_open:
+			ib.custom_minimum_size = Vector2(36, 0)
+		else:
+			UIKit.expand(ib)
+		gr.add_child(ib)
+		if _can_control(c) and not Session.shop().is_empty():
+			var shb = UIKit.btn("🛒 Shop", func(): _open_shop(cid), "%s is open: buy and sell." % str(Session.shop().get("name", "The shop")))
+			shb.add_theme_color_override("font_color", UIKit.GOLD)
+			UIKit.expand(shb)
+			gr.add_child(shb)
+		pcol.add_child(gr)
+		# A storage chest within reach: store things in it or take them back.
+		if _can_control(c) and c.kind == "pc":
+			var near: Array = MapObjects.storage_near(Session.engine, c)
+			if not near.is_empty():
+				var oid := str(near[0].id)
+				var stb = UIKit.btn("📦 Storage", func(): _open_stash(cid, oid), "Store things in the %s beside you, or take them back." % MapObjects.name_of(near[0]).to_lower())
+				stb.add_theme_color_override("font_color", UIKit.GOLD)
+				pcol.add_child(stb)
 		if _can_control(c):
 			pcol.add_child(UIKit.btn("🖼 Portrait", func(): _open_portrait_picker(cid), "Pick an icon or upload a new image for this character's token."))
 		if _can_control(c) and Session.pending_levels(c.id) > 0:
@@ -1647,7 +1866,9 @@ func _refresh_card() -> void:
 	var my_turn = eng.is_turn_of(c)
 	var t: Dictionary = c.get("turn", {})
 	if Session.state.in_combat:
-		var dot = func(on: bool, col: String) -> String: return "[color=%s]●[/color]" % (col if on else "#444")
+		# Available: a bright dot and the name. Spent: a hollow dot and the name struck through.
+		var res = func(what: String, on: bool, col: String) -> String:
+			return "[color=%s]●[/color] %s" % [col, what] if on else "[color=#5e5770]○ [s]%s[/s][/color]" % what
 		var extra := ""
 		if int(t.get("attacks", 0)) > 0:
 			extra += "\nAttacks left: %d" % int(t.attacks)
@@ -1659,25 +1880,39 @@ func _refresh_card() -> void:
 			extra += "\n[color=#ff9c8f]Speed 0 for the rest of the turn[/color]"
 		elif my_turn and eng.eff_speed(c) == 0:
 			extra += "\n[color=#ff9c8f]Speed 0[/color]"
-		econ_lbl.text = "%s Action   %s Bonus\n%s Reaction\n[color=#8fd0ff]Move %d ft[/color]%s%s" % [
-			dot.call(int(t.get("action", 0)) > 0 or int(t.get("attacks", 0)) > 0, "#5cc892"), dot.call(int(t.get("bonus", 0)) > 0, "#ffb347"),
-			dot.call(t.get("reaction", true), "#c8a0ff"), eng.move_left(c) if my_turn else 0,
+		var move_txt := "[color=#7f7890]Move: on your turn[/color]"
+		if my_turn:
+			var left: int = eng.move_left(c)
+			var total: int = left + int(t.get("moved", 0))
+			move_txt = "[color=%s]Move %d[/color][color=#7f7890] / %d ft[/color]" % ["#8fd0ff" if left > 0 else "#5e5770", left, total]
+		econ_lbl.text = "%s   %s\n%s\n%s%s%s" % [
+			res.call("Action", int(t.get("action", 0)) > 0 or int(t.get("attacks", 0)) > 0, "#5cc892"), res.call("Bonus", int(t.get("bonus", 0)) > 0, "#ffb347"),
+			res.call("Reaction", t.get("reaction", true), "#c8a0ff"), move_txt,
 			(" (dashed ×%d)" % int(t.dashes)) if my_turn and int(t.get("dashes", 0)) > 0 else "", extra]
+		econ_lbl.tooltip_text = "Each turn you get one action, one bonus action and your movement. You get one reaction per round (opportunity attacks, Shield…). Spent ones are struck through."
 	else:
 		econ_lbl.text = "[color=#a59cb5]Out of combat:\nmove and act freely.[/color]"
+		econ_lbl.tooltip_text = ""
 	end_btn.disabled = not (Session.state.in_combat and my_turn)
 	auto_btn.disabled = not (Session.state.in_combat and my_turn)
 
 func _refresh_hotbar() -> void:
 	UIKit.clear(hotbar)
-	for b in cat_row.get_children():
+	for b in cat_row.get_children().filter(func(nd): return nd is Button):
 		b.button_pressed = b.get_meta("cat") == hot_cat
 	var c = Session.engine.C(control_cid)
 	if c.is_empty():
+		_set_end_glow(false)
 		return
 	var actions = Session.engine.get_actions(c)
 	var order = {"attack": 0, "spell": 1, "feature": 2, "toggle": 3, "basic": 4}
 	actions.sort_custom(func(a, b): return [order.get(a.cat, 9), int(a.get("level", 0)), a.name] < [order.get(b.cat, 9), int(b.get("level", 0)), b.name])
+	# Nothing left that spends an action or bonus action: nudge the player towards End Turn.
+	var eng: CombatEngine = Session.engine
+	var spent: bool = Session.state.in_combat and eng.is_turn_of(c) and _can_control(c) and \
+		not actions.any(func(a): return a.enabled and a.cost in ["action", "attack", "bonus", "haste"])
+	_set_end_glow(spent)
+	var n := 0
 	for a in actions:
 		var cat: String = a.cat
 		if hot_cat != "all" and cat != hot_cat and not (hot_cat == "feature" and cat == "toggle"):
@@ -1707,10 +1942,48 @@ func _refresh_hotbar() -> void:
 			tipt += "   (Concentration)"
 		if not a.enabled and a.reason != "":
 			tipt += "\n[%s]" % a.reason
+		# The first ten buttons answer to the number keys; a small number in the corner says which.
+		if n < 10:
+			var key := str((n + 1) % 10)
+			tipt += "\nShortcut: %s" % key
+			for st in ["normal", "hover", "pressed", "disabled"]:
+				var sbx: StyleBoxFlat = b.get_theme_stylebox(st)
+				sbx.content_margin_left = 22
+			var kl := UIKit.lbl(key, 11, Color(1, 1, 1, 0.45 if b.disabled else 0.7))
+			kl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			kl.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+			kl.offset_left = 7
+			kl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			b.add_child(kl)
+		n += 1
 		b.tooltip_text = tipt
+		b.set_meta("reason", str(a.get("reason", "")))
+		b.set_meta("action_name", str(a.name))
 		var act: Dictionary = a
-		b.pressed.connect(func(): _on_action_pressed(act))
+		b.pressed.connect(func():
+			Sfx.play("select", 0.0)
+			_on_action_pressed(act))
 		hotbar.add_child(b)
+
+## A slow golden pulse on End Turn while there is nothing left to spend an action or bonus action on.
+var _end_glow: Tween
+func _set_end_glow(on: bool) -> void:
+	if on and end_btn.disabled:
+		on = false
+	if on == (_end_glow != null):
+		return
+	if _end_glow != null:
+		_end_glow.kill()
+		_end_glow = null
+	end_btn.modulate = Color.WHITE
+	end_btn.remove_theme_stylebox_override("normal")
+	end_btn.tooltip_text = "End your turn (E)"
+	if on:
+		end_btn.add_theme_stylebox_override("normal", UIKit.sb(Color("#3a2c12"), UIKit.GOLD, 2))
+		end_btn.tooltip_text = "Nothing left to spend an action on. End your turn (E)"
+		_end_glow = create_tween().set_loops()
+		_end_glow.tween_property(end_btn, "modulate", Color(1.35, 1.2, 0.85), 0.7).set_trans(Tween.TRANS_SINE)
+		_end_glow.tween_property(end_btn, "modulate", Color.WHITE, 0.7).set_trans(Tween.TRANS_SINE)
 
 ## A creature on the map, or (for the DM) one hidden from the players.
 func _find(cid: String) -> Dictionary:
@@ -1749,6 +2022,7 @@ func _refresh_inspect() -> void:
 	var c = _find(selected_cid)
 	if c.is_empty():
 		inspect_box.add_child(UIKit.lbl("Click a token to inspect it." + ("\nCtrl+click to select several." if dm else ""), 14, UIKit.MUTED))
+		_add_guide(dm)
 		return
 	if sel.size() > 1:
 		var names: PackedStringArray = []
@@ -1888,6 +2162,55 @@ func _refresh_inspect() -> void:
 	h4.add_child(UIKit.expand(UIKit.btn("Remove", func(): _remove_selected(), "Remove from the map (Delete)")))
 	inspect_box.add_child(h4)
 
+## A short "how to play a turn" card for newer players, with every shortcut. Hidden with tips off.
+func _add_guide(dm: bool) -> void:
+	if not _tips_on():
+		var sb := UIKit.btn("💡 Show tips", func(): _set_tips(true), "Turn the beginner tips back on: this guide, plain-words odds and warnings.")
+		sb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		inspect_box.add_child(sb)
+		return
+	var p := UIKit.panel(null, Color("#211b2e"), UIKit.GOLD_SOFT)
+	var v := UIKit.vbox(4)
+	p.add_child(v)
+	v.add_child(UIKit.lbl("How to play a turn", 16, UIKit.GOLD))
+	var txt := "[color=#8fd0ff]1. Move:[/color] click a lit square. A [color=#ff9c8f]red path[/color] means an enemy gets a free swing.\n" + \
+		"[color=#5cc892]2. Act:[/color] click an action (or its number key), then a target. Hover a target for your odds.\n" + \
+		"[color=#ffb347]3. Per turn:[/color] one action, one bonus action (◐), your movement. One reaction a round.\n" + \
+		"[color=#ffd166]4. End Turn[/color] (E). Right-click or Esc cancels.\n" + \
+		"[color=#a59cb5]C sheet · Enter confirm · WASD pan · wheel zoom[/color]"
+	if dm:
+		txt += "\n[color=#a59cb5]DM: Shift+click moves freely · H hides · Del removes[/color]"
+	var r := UIKit.rich(txt)
+	r.add_theme_font_size_override("normal_font_size", 13)
+	r.selection_enabled = false
+	v.add_child(r)
+	var hb := UIKit.btn("Hide tips", func(): _set_tips(false), "Hide this guide and the plain-words hints. The 💡 button brings them back.")
+	hb.size_flags_horizontal = Control.SIZE_SHRINK_END
+	v.add_child(hb)
+	inspect_box.add_child(p)
+
+const SETTINGS := "user://settings.cfg"
+var _tips := -1   # cached [ui] tips setting: -1 not loaded yet, 0 off, 1 on
+
+## Beginner tips (the guide card, plain-words odds, the symbol legend). Each player's own setting.
+func _tips_on() -> bool:
+	if _tips == -1:
+		var cfg := ConfigFile.new()
+		_tips = 1 if cfg.load(SETTINGS) != OK or bool(cfg.get_value("ui", "tips", true)) else 0
+	return _tips == 1
+
+func _set_tips(on: bool) -> void:
+	_tips = 1 if on else 0
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS)
+	cfg.set_value("ui", "tips", on)
+	cfg.save(SETTINGS)
+	Sfx.play("click", 0.0)
+	if legend_lbl != null:
+		legend_lbl.visible = on
+	_inspect_key = "~"
+	_refresh_ui()
+
 func _selection_key() -> String:
 	return ",".join(_selection())
 
@@ -1961,6 +2284,7 @@ func _refresh_highlights() -> void:
 	map_view.path_cells = []
 	map_view.area_cells = []
 	map_view.target_cells = []
+	map_view.object_cells = []
 	map_view.range_ft = 0
 	map_view.show_spawns = Session.is_dm() and not Session.state.in_combat
 	for id in tokens:
@@ -1979,6 +2303,10 @@ func _refresh_highlights() -> void:
 		for o in Session.state.combatants.values():
 			if _valid_target(c, a, o):
 				tokens[o.id].is_targetable = true
+		if a.target == "object":
+			for ob in MapObjects.valid_targets(eng, c, a):
+				if Fog.cell_visible(fog_view, eng, ob.pos):
+					map_view.object_cells.append(ob.pos)
 	elif mode == "" and Session.state.in_combat and eng.is_turn_of(c) and _can_control(c):
 		map_view.reach_cells = eng.reachable(c, eng.move_budget(c))
 	map_view.queue_redraw()
@@ -2009,8 +2337,16 @@ func _preview_at(cell: Vector2i) -> void:
 	var c = eng.C(control_cid)
 	map_view.hover = cell
 	map_view.path_cells = []
+	map_view.path_danger = false
 	map_view.area_cells = []
 	tip.visible = false
+	if c.is_empty() and mode == "":
+		# Nobody to play (yet): hovering a creature still says who it is.
+		var oc = _creature_at_pointer(cell)
+		if not oc.is_empty():
+			_show_tip(_creature_tip(oc))
+		map_view.queue_redraw()
+		return
 	if c.is_empty():
 		map_view.queue_redraw()
 		return
@@ -2024,24 +2360,61 @@ func _preview_at(cell: Vector2i) -> void:
 				var hits: Array = eng.creatures_in_cells(map_view.area_cells, c.id if from_self else "").filter(_seen)
 				var foes = hits.filter(func(o): return eng.hostile(c, o)).size()
 				var friends = hits.size() - foes
-				_show_tip("%d enemies%s in area" % [foes, (", [!] %d allies" % friends) if friends > 0 else ""])
+				var txt := "[b]%s[/b]\n%d %s in the area" % [_bb(a.name), foes, "enemy" if foes == 1 else "enemies"]
+				if friends > 0:
+					txt += "\n[color=#ff9c8f]⚠ %d all%s caught in it too[/color]" % [friends, "y is" if friends == 1 else "ies are"]
+				_show_tip(txt, Color("#ff9c8f") if friends > 0 else UIKit.GOLD)
 			else:
 				map_view.area_cells = [cell]
 			if a.target == "point" and int(a.range) > 0 and eng.dist_to_cell(c, cell) > int(a.range):
-				_show_tip("Out of range")
+				_show_tip("[color=#ff9c8f]Out of range[/color] (%d ft max)" % int(a.range), UIKit.BAD)
+		elif a.target == "object":
+			var ob: Dictionary = MapObjects.target_at(eng, c, a, cell) if Fog.cell_visible(fog_view, eng, cell) else {}
+			if ob.is_empty():
+				if not MapObjects.at(Session.state, cell).is_empty() and Fog.cell_visible(fog_view, eng, cell):
+					_show_tip("[color=#ff9c8f]%s can't be used on that[/color]" % _bb(a.name), UIKit.BAD)
+			elif map_view.object_cells.has(cell):
+				var txt := "[b]%s[/b] → %s" % [_bb(a.name), MapObjects.tip(ob, Session.is_dm())]
+				if a.has("atk"):
+					var p := eng.hit_chance(int(a.atk.to_hit), MapObjects.ac_of(ob), 0)
+					txt += "\n%s%s" % [_odds("Hit chance", p), _odds_word(p)]
+				_show_tip(txt)
+			else:
+				_show_tip("[color=#ff9c8f]Out of reach[/color]: %s reaches %d ft" % [_bb(a.name), int(a.range)], UIKit.BAD)
 		else:
 			var o = _creature_at_pointer(cell)
 			if not o.is_empty():
 				if _valid_target(c, a, o):
 					_show_tip(_target_tip(c, a, o))
+				elif int(a.range) > 0 and eng.dist(c, o) > int(a.range):
+					_show_tip("[color=#ff9c8f]Out of range[/color]: %d ft away, %s reaches %d ft" % [eng.dist(c, o), _bb(a.name), int(a.range)], UIKit.BAD)
 				else:
-					_show_tip("Not a valid target" if eng.dist(c, o) <= int(a.range) or int(a.range) == 0 else "Out of range (%d ft)" % eng.dist(c, o))
-	elif mode == "" and Session.state.in_combat and eng.is_turn_of(c) and _can_control(c):
+					_show_tip("[color=#ff9c8f]Not a valid target[/color] for %s" % _bb(a.name), UIKit.BAD)
+	elif mode == "":
+		var o2 = _creature_at_pointer(cell)
 		var reach: Dictionary = map_view.reach_cells
-		if reach.has(cell) and not reach[cell].get("occupied", false):
-			map_view.path_cells = [c.pos] + eng.path_to(c, cell, reach)
-			_show_tip("%d ft" % int(reach[cell].cost))
-	elif mode == "paint" or mode == "spawn" or mode == "place_monster":
+		var obj_here: Array = MapObjects.at(Session.state, cell) if Fog.cell_visible(fog_view, eng, cell) else []
+		if not o2.is_empty():
+			_show_tip(_creature_tip(o2))
+		elif not obj_here.is_empty() and not (Session.state.in_combat and reach.has(cell)):
+			_show_tip(MapObjects.tip(obj_here[0], Session.is_dm()) + ("\n[color=#a59cb5]Actions tab: Attack Object, Pick Up, Open…[/color]" if _tips_on() else ""))
+		elif Session.state.in_combat and eng.is_turn_of(c) and _can_control(c) and reach.has(cell) and not reach[cell].get("occupied", false):
+			var path: Array = eng.path_to(c, cell, reach)
+			map_view.path_cells = [c.pos] + path
+			var cost := int(reach[cell].cost)
+			var txt := "Move %d ft  ·  %d ft left after" % [cost, maxi(0, eng.move_budget(c) - cost)]
+			# Leaving an enemy's reach provokes an opportunity attack: say so before the click.
+			var threats: Array = eng.opportunity_threats(c, path).filter(_seen)
+			if not threats.is_empty():
+				var names: PackedStringArray = []
+				for o in threats:
+					names.append(_bb(str(o.name)))
+				txt += "\n[color=#ff9c8f]⚠ Opportunity attack from %s[/color]" % ", ".join(names)
+				if _tips_on():
+					txt += "\n[color=#a59cb5]Leaving an enemy's reach lets it strike you.\nDisengage first to move away safely.[/color]"
+				map_view.path_danger = true
+			_show_tip(txt, UIKit.BAD if not threats.is_empty() else UIKit.GOLD)
+	elif mode == "paint" or mode == "spawn" or mode == "place_monster" or mode == "place_object":
 		map_view.area_cells = _brush_cells(cell) if mode == "paint" else [cell]
 		map_view.area_color = Color(0.6, 0.8, 1.0)
 	map_view.queue_redraw()
@@ -2055,25 +2428,95 @@ func _target_tip(c: Dictionary, a: Dictionary, o: Dictionary) -> String:
 		var dmg = 0.0
 		for d in atk.damage:
 			dmg += Dice.average(d.dice)
-		return "%s → %s\nHit chance %d%%%s   ~%d dmg" % [atk.name, o.name, int(round(p * 100)), " (adv)" if adv > 0 else (" (dis)" if adv < 0 else ""), int(dmg)]
+		return "[b]%s[/b] → %s\n%s%s   ·   ~%d damage%s" % [_bb(atk.name), _bb(o.name), _odds("Hit chance", p), _adv_txt(adv), int(dmg), _odds_word(p)]
 	if a.kind == "spell":
 		var sp = Data.spell(a.spell)
 		var cb = sp.get("combat", null)
 		if cb is Dictionary:
 			if cb.get("attack", null) != null:
 				var adv2 = eng.attack_advantage(c, o, cb.attack == "melee", {"range": int(sp.range)})
-				return "%s → %s\nHit chance %d%%" % [sp.name, o.name, int(round(eng.hit_chance(int(a.spell_attack), eng.eff_ac(o), adv2) * 100))]
+				var p2 := eng.hit_chance(int(a.spell_attack), eng.eff_ac(o), adv2)
+				return "[b]%s[/b] → %s\n%s%s%s" % [_bb(sp.name), _bb(o.name), _odds("Hit chance", p2), _adv_txt(adv2), _odds_word(p2)]
 			if cb.get("save", null) != null:
 				var fail = 1.0 - eng.save_chance(o, cb.save, int(a.dc))
-				return "%s → %s\n%s save DC %d — fails ~%d%%" % [sp.name, o.name, str(cb.save).to_upper(), int(a.dc), int(round(fail * 100))]
-		return "%s → %s" % [sp.name, o.name]
-	return "%s → %s" % [a.name, o.name]
+				var how := ""
+				if _tips_on():
+					how = "\n[color=#a59cb5]It rolls a %s save against your DC %d; on a fail the spell takes full effect.[/color]" % [str(cb.save).to_upper(), int(a.dc)]
+				return "[b]%s[/b] → %s\n%s save DC %d  ·  %s%s%s" % [_bb(sp.name), _bb(o.name), str(cb.save).to_upper(), int(a.dc), _odds("fails", fail), _odds_word(fail), how]
+		return "[b]%s[/b] → %s" % [_bb(sp.name), _bb(o.name)]
+	return "[b]%s[/b] → %s" % [_bb(a.name), _bb(o.name)]
 
-func _show_tip(text: String) -> void:
+## "Hit chance 65%" with the number coloured by how good the odds are.
+func _odds(label: String, p: float) -> String:
+	return "%s [b][color=%s]%d%%[/color][/b]" % [label, _odds_color(p), int(round(p * 100))]
+
+func _odds_color(p: float) -> String:
+	return "#5cc892" if p >= 0.65 else ("#e8b84a" if p >= 0.4 else "#ff7a6a")
+
+## A plain-words reading of the odds for newer players (hidden with tips off).
+func _odds_word(p: float) -> String:
+	if not _tips_on():
+		return ""
+	return "\n[color=%s]%s[/color]" % [_odds_color(p), "Good odds" if p >= 0.65 else ("About even" if p >= 0.4 else "Long shot")]
+
+func _adv_txt(adv: int) -> String:
+	if adv > 0:
+		return "  [color=#5cc892](advantage)[/color]"
+	if adv < 0:
+		return "  [color=#ff9c8f](disadvantage)[/color]"
+	return ""
+
+## Who a creature is, at a glance: side, health and what's affecting it.
+func _creature_tip(o: Dictionary) -> String:
+	var eng: CombatEngine = Session.engine
+	var mine: Dictionary = eng.C(control_cid)
+	var side := "ally" if o.team == "party" else "enemy"
+	if not mine.is_empty():
+		side = "you" if o.id == mine.id else ("enemy" if eng.hostile(mine, o) else "ally")
+	var side_col := "#8fd0ff" if side in ["you", "ally"] else "#ff9c8f"
+	var txt := "[b]%s[/b]  [color=%s]%s[/color]" % [_bb(str(o.name)), side_col, side]
+	var frac := float(maxi(int(o.hp), 0)) / maxf(1.0, float(o.max_hp))
+	var hp_col := "#5cc892" if frac > 0.5 else ("#e8b84a" if frac > 0.25 else "#ff7a6a")
+	if o.get("dead", false) or o.get("death", {}).get("dead", false):
+		txt += "\n[color=#ff7a6a]Dead[/color]"
+	elif Session.is_dm() or o.team == "party":
+		txt += "\n[color=%s]HP %d / %d[/color]%s" % [hp_col, maxi(int(o.hp), 0), int(o.max_hp), ("  +%d temp" % int(o.temp_hp)) if int(o.get("temp_hp", 0)) > 0 else ""]
+		if o.kind == "pc" and int(o.hp) <= 0:
+			txt += "  [color=#ff9c8f]dying ✓%d ✗%d[/color]" % [int(o.death.s), int(o.death.f)]
+	else:
+		var word := "Unhurt" if frac >= 1.0 else ("Wounded" if frac > 0.5 else ("Bloodied" if frac > 0.25 else ("Near death" if int(o.hp) > 0 else "Down")))
+		txt += "\n[color=%s]%s[/color]" % [hp_col, word]
+	var conds: PackedStringArray = []
+	for e in o.get("effects", []):
+		if str(e.get("name", "")) != "":
+			conds.append(_bb(str(e.name)))
+	if not o.get("conc", {}).is_empty():
+		conds.append("concentrating on %s" % _bb(str(o.conc.name)))
+	if not conds.is_empty():
+		txt += "\n[color=#e0a0ff]%s[/color]" % ", ".join(conds)
+	if Session.state.in_combat and o.id in Session.state.order:
+		var cur: Dictionary = eng.current()
+		if not cur.is_empty() and cur.id == o.id:
+			txt += "\n[color=#ffd166]Taking its turn[/color]"
+	return txt
+
+## Escapes BBCode in names and other text that goes into the rich tooltip.
+func _bb(s: String) -> String:
+	return s.replace("[", "[lb]")
+
+func _show_tip(text: String, border := UIKit.GOLD) -> void:
 	tip.text = text
+	tip.add_theme_stylebox_override("normal", UIKit.sb(Color(0.03, 0.02, 0.06, 0.88), border, 1, 4, 8))
 	tip.visible = true
 	tip.reset_size()
-	tip.position = get_viewport().get_mouse_position() + Vector2(18, 18)
+	# Beside the pointer, kept on screen.
+	var vp := ui.get_viewport_rect().size
+	var p := get_viewport().get_mouse_position() + Vector2(18, 18)
+	if p.x + tip.size.x > vp.x - 4:
+		p.x = get_viewport().get_mouse_position().x - tip.size.x - 12
+	if p.y + tip.size.y > vp.y - 4:
+		p.y = get_viewport().get_mouse_position().y - tip.size.y - 12
+	tip.position = p
 
 # ================================================================ actions & targeting
 
@@ -2232,7 +2675,7 @@ func _confirm_targets() -> void:
 
 func _set_mode(m: String) -> void:
 	mode = m
-	mode_lbl.visible = m != ""
+	prompt_box.visible = m != ""
 	confirm_btn.visible = false
 	match m:
 		"target":
@@ -2240,25 +2683,54 @@ func _set_mode(m: String) -> void:
 			var mx = _max_targets(a)
 			pending.max = mx
 			var what = "a point" if a.target in ["point", "self_area"] else ("up to %d targets" % mx if mx > 1 else "a target")
+			if a.target == "object":
+				what = "an object (outlined in gold)"
+				mx = 1
+				pending.max = 1
 			if _shots(a) > 1 and not a.target in ["point", "self_area", "self"]:
 				what = "a target for each of %d %s (click a creature again to send it more)" % [mx, _shot_word(a)]
-			mode_lbl.text = "  %s: choose %s  (right-click / Esc to cancel)  " % [a.name, what]
+			mode_lbl.text = "%s: choose %s" % [a.name, what]
 			confirm_btn.visible = mx > 1
 		"paint":
 			var what: String = {FOG_REVEAL: "revealed ground (fog of war)", FOG_HIDE: "fog back over explored ground"}.get(paint_value, "")
 			if what == "":
 				what = ["floor", "wall", "difficult terrain", "water", "pit"][paint_value]
-			mode_lbl.text = "  Painting %s — drag on the map (right-click to stop)  " % what
+			mode_lbl.text = "Painting %s: drag on the map" % what
 		"spawn":
-			mode_lbl.text = "  Click cells to toggle player start points (right-click to stop)  "
+			mode_lbl.text = "Click cells to toggle player start points"
 		"place_monster":
-			mode_lbl.text = "  Click to place %s (right-click to stop)  " % Data.monster(place_mid).get("name", "")
+			mode_lbl.text = "Click to place %s" % Data.monster(place_mid).get("name", "")
+		"place_object":
+			mode_lbl.text = "Click to place: %s%s (click an object to remove it)" % [MapObjects.KINDS[place_obj].name.to_lower(), " (locked)" if place_obj_locked and place_obj == "chest" else ""]
+	cancel_btn.text = "✕ Cancel" if m == "target" else "✕ Stop"
+	_place_prompt.call_deferred()
 	_refresh_highlights()
+
+## Right-click or Esc out of a mode (with a sound when backing out of aiming an action).
+func _user_cancel() -> void:
+	if mode == "target":
+		Sfx.play("cancel", 0.0)
+	_cancel_mode()
+
+## Number keys 1-9 and 0 press the first ten hotbar buttons in the order they are shown.
+func _press_hotkey(slot: int) -> void:
+	var buttons: Array = hotbar.get_children().filter(func(n): return n is Button)
+	if slot >= buttons.size():
+		return
+	var b: Button = buttons[slot]
+	if b.disabled:
+		Sfx.play("error", 0.0)
+		var why: String = str(b.get_meta("reason", ""))
+		_flash("%s: %s" % [b.get_meta("action_name", "That action"), why if why != "" else "not available right now."])
+		return
+	if mode != "":
+		_cancel_mode()
+	b.pressed.emit()
 
 func _cancel_mode() -> void:
 	mode = ""
 	pending = {}
-	mode_lbl.visible = false
+	prompt_box.visible = false
 	confirm_btn.visible = false
 	tip.visible = false
 	_refresh_highlights()
@@ -2287,7 +2759,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			panning = mb.pressed
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			if mode != "":
-				_cancel_mode()
+				_user_cancel()
 			else:
 				panning = true
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed:
@@ -2315,7 +2787,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_ESCAPE:
 				if mode != "":
-					_cancel_mode()
+					_user_cancel()
 				elif Session.is_dm() and selected_cid != "":
 					selected_cid = ""
 					selected_ids = []
@@ -2325,9 +2797,21 @@ func _unhandled_input(event: InputEvent) -> void:
 					Session.request({"type": "end_turn"})
 			KEY_ENTER, KEY_KP_ENTER:
 				_confirm_targets()
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0:
+				# Hotbar shortcuts: the number on each of the first ten buttons, in the order shown.
+				var slot: int = 9 if event.keycode == KEY_0 else int(event.keycode - KEY_1)
+				_press_hotkey(slot)
 			KEY_DELETE:
 				if Session.is_dm() and mode == "":
 					_remove_selected()
+			KEY_I:
+				# Inventory of your character (or the selected party member).
+				var want_i: String = control_cid if control_cid != "" else selected_cid
+				if want_i != "" and _can_view_sheet(Session.engine.C(want_i)):
+					if is_instance_valid(inv_win) and inv_cid == want_i:
+						inv_win.close()
+					else:
+						_open_inventory(want_i)
 			KEY_C:
 				# Your own character sheet (or the selected party member's).
 				var want: String = control_cid if control_cid != "" else selected_cid
@@ -2352,6 +2836,9 @@ func _typing() -> bool:
 	return false
 
 func _process(delta: float) -> void:
+	# The map's hover tip goes away while the pointer is over the HUD.
+	if tip.visible and get_viewport().gui_get_hovered_control() != null:
+		tip.visible = false
 	if _typing():
 		return
 	var dir = Vector2.ZERO
@@ -2389,6 +2876,10 @@ func _on_left_click(cell: Vector2i, shift: bool, ctrl := false) -> void:
 			if eng.in_bounds(cell):
 				Session.request({"type": "dm_place_monster", "mid": place_mid, "at": cell, "team": "party" if place_ally else "enemy", "hidden": place_hidden})
 			return
+		"place_object":
+			if eng.in_bounds(cell):
+				Session.request({"type": "dm_object", "k": place_obj, "at": cell, "locked": place_obj_locked})
+			return
 		"target":
 			_target_click(cell)
 			return
@@ -2422,6 +2913,7 @@ func _on_left_click(cell: Vector2i, shift: bool, ctrl := false) -> void:
 	if c.is_empty() or not _can_control(c) or not eng.in_bounds(cell):
 		return
 	if Session.state.in_combat and not eng.is_turn_of(c) and not (Session.is_dm() and (free_move or shift)):
+		Sfx.play("error", 0.0)
 		_flash("It's not %s's turn." % c.name)
 		return
 	Session.request({"type": "move", "cid": c.id, "to": cell, "free": free_move or shift})
@@ -2433,14 +2925,25 @@ func _target_click(cell: Vector2i) -> void:
 	if a.target in ["point", "self_area", "self"]:
 		_send_action(a, {"cell": cell, "slot": pending.slot, "opts": pending.opts, "targets": []})
 		return
+	if a.target == "object":
+		if not map_view.object_cells.has(cell):
+			Sfx.play("error", 0.0)
+			_flash("Pick a highlighted object." if not map_view.object_cells.is_empty() else "Nothing within reach to %s." % str(a.name).to_lower())
+			return
+		Sfx.play("click", 0.0)
+		_send_action(a, {"cell": cell, "targets": []})
+		return
 	var o = _creature_at_pointer(cell)
 	if o.is_empty() or not _valid_target(c, a, o):
+		Sfx.play("error", 0.0)
 		_flash("Not a valid target.")
 		return
 	var shots: int = _shots(a)
 	if shots <= 1 and o.id in pending.targets:
+		Sfx.play("error", 0.0)
 		_flash("%s is already chosen." % o.name)
 		return
+	Sfx.play("click", 0.0)
 	pending.targets.append(o.id)
 	var mx: int = pending.get("max", 1)
 	if pending.targets.size() >= mx:
@@ -2452,9 +2955,10 @@ func _target_click(cell: Vector2i) -> void:
 		var parts: Array = []
 		for tid in counts:
 			parts.append("%s ×%d" % [eng.C(tid).get("name", "?"), counts[tid]])
-		mode_lbl.text = "  %s: %d / %d %s aimed (%s) — click more, or Confirm to spread the rest  " % [a.name, pending.targets.size(), mx, _shot_word(a), ", ".join(parts)]
+		mode_lbl.text = "%s: %d / %d %s aimed (%s). Click more, or Confirm to spread the rest" % [a.name, pending.targets.size(), mx, _shot_word(a), ", ".join(parts)]
 	else:
-		mode_lbl.text = "  %s: %d / %d targets chosen — click more, or Confirm  " % [a.name, pending.targets.size(), mx]
+		mode_lbl.text = "%s: %d / %d targets chosen. Click more, or Confirm" % [a.name, pending.targets.size(), mx]
+	_place_prompt.call_deferred()
 
 func _flush_paint() -> void:
 	if paint_buffer.is_empty():
@@ -2495,3 +2999,259 @@ func _on_session_ended(reason: String) -> void:
 	_flash(reason)
 	await get_tree().create_timer(1.5).timeout
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+# ================================================================ inventory, shop and loot
+
+## Party members a character can hand things to.
+func _give_targets(cid: String) -> Array:
+	var out: Array = []
+	for o in Session.engine.all_combatants():
+		if o.kind == "pc" and o.id != cid and o.team == "party" and Session.sheets.has(o.id) and not o.get("dead", false):
+			out.append([str(o.id), str(o.name)])
+	return out
+
+func _gear_key(cid: String) -> int:
+	var c: Dictionary = Session.engine.C(cid)
+	return hash([c.get("inventory", []), c.get("coins", {}), c.get("scores", {}), Session.state.get("encumbrance", ""), Session.shop(), _give_targets(cid), _stash_targets(cid)])
+
+## A character's inventory window (read-only for party members who don't control it).
+func _open_inventory(cid: String) -> DialogPanel:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_view_sheet(c):
+		_flash("You can only look in the packs of party members.")
+		return null
+	if is_instance_valid(inv_win):
+		inv_win.close()
+	inv_cid = cid
+	var mine := _can_control(c)
+	inv_win = DialogPanel.new("Inventory — %s" % c.name, Vector2(660, 660))
+	var note := "Drawing a weapon is your free object interaction; a shield takes an action. Armor and attunement wait until after the fight." if Session.state.in_combat else ""
+	inv_panel = InventoryPanel.new(func(): return Session.engine.C(inv_cid), _inv_opts(cid, mine, note))
+	_wire_inventory(inv_panel, func(): return inv_cid)
+	var sc = UIKit.scroll(inv_panel)
+	UIKit.expand(sc, true, true)
+	inv_win.body.add_child(sc)
+	_inv_key = _gear_key(cid)
+	ui.add_child(inv_win)
+	return inv_win
+
+## Options for an InventoryPanel showing character `cid` in the game (the 🎒 window and the sheet's tab).
+func _inv_opts(cid: String, mine: bool, note := "") -> Dictionary:
+	return {"editable": mine, "in_game": true, "free": false, "give_to": func(): return _give_targets(cid),
+		"stash_to": func(): return _stash_targets(cid) if mine else [],
+		"variant": str(Session.state.get("encumbrance", "")) == "variant", "note": note}
+
+## Send what an InventoryPanel asks for to the server, for the character `cid_fn` returns.
+func _wire_inventory(p: InventoryPanel, cid_fn: Callable) -> void:
+	p.op_requested.connect(func(op: Dictionary):
+		var r: Dictionary = op.duplicate()
+		# "Store in the chest" from the ⋯ menu goes to the storage chest, not the inventory op.
+		if r.has("stash"):
+			r.obj = r.stash
+			r.erase("stash")
+			r.op = "put"
+			r.type = "stash"
+		else:
+			r.type = "inv"
+		r.cid = cid_fn.call()
+		Session.request(r))
+	p.give_requested.connect(func(to: String, uid: String, qty: int, coins: Dictionary):
+		var r := {"type": "inv_give", "cid": cid_fn.call(), "to": to}
+		if coins.is_empty():
+			r.uid = uid
+			r.qty = qty
+		else:
+			r.coins = coins
+		Session.request(r))
+
+## Storage chests character `cid` can reach, as [[object id, name]].
+func _stash_targets(cid: String) -> Array:
+	var c: Dictionary = Session.engine.C(cid)
+	if c.is_empty() or c.kind != "pc":
+		return []
+	return MapObjects.storage_near(Session.engine, c).map(func(o): return [str(o.id), MapObjects.name_of(o).to_lower()])
+
+func _stash_key_of() -> int:
+	var o := MapObjects.by_id(Session.state, stash_obj)
+	return hash([_gear_key(stash_cid), o.get("store", {}), Session.state.in_combat])
+
+## A storage chest beside one of your characters: store things in it and take them back.
+func _open_stash(cid: String, oid: String) -> DialogPanel:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_control(c) or MapObjects.by_id(Session.state, oid).is_empty():
+		return null
+	if is_instance_valid(stash_win):
+		stash_win.close()
+	stash_cid = cid
+	stash_obj = oid
+	stash_win = DialogPanel.new("📦 %s — %s" % [MapObjects.name_of(MapObjects.by_id(Session.state, oid)), c.name], Vector2(900, 660))
+	stash_panel = StoragePanel.new(func(): return Session.engine.C(stash_cid), func(): return MapObjects.by_id(Session.state, stash_obj))
+	stash_panel.request_made.connect(func(r: Dictionary):
+		var q: Dictionary = r.duplicate()
+		q.type = "stash"
+		q.cid = stash_cid
+		q.obj = stash_obj
+		Session.request(q))
+	var sc = UIKit.scroll(stash_panel)
+	UIKit.expand(sc, true, true)
+	stash_win.body.add_child(sc)
+	_stash_key = _stash_key_of()
+	ui.add_child(stash_win)
+	return stash_win
+
+## The DM's open shop, for one of your characters.
+func _open_shop(cid: String) -> DialogPanel:
+	var c: Dictionary = Session.engine.C(cid)
+	if not _can_control(c) or Session.shop().is_empty():
+		return null
+	if is_instance_valid(shop_win):
+		shop_win.close()
+	shop_cid = cid
+	shop_win = DialogPanel.new("🛒 %s — %s" % [str(Session.shop().get("name", "Shop")), c.name], Vector2(720, 660))
+	shop_panel = ShopPanel.new(func(): return Session.engine.C(shop_cid), func(): return Session.shop())
+	shop_panel.op_requested.connect(func(op: Dictionary):
+		var r: Dictionary = op.duplicate()
+		r.type = "inv"
+		r.cid = shop_cid
+		Session.request(r))
+	var sc = UIKit.scroll(shop_panel)
+	UIKit.expand(sc, true, true)
+	shop_win.body.add_child(sc)
+	_shop_key = _gear_key(cid)
+	ui.add_child(shop_win)
+	return shop_win
+
+## Keep open inventory and shop windows in step with the game (only rebuilt when something changed).
+func _refresh_gear_windows() -> void:
+	if is_instance_valid(inv_win):
+		if Session.engine.C(inv_cid).is_empty():
+			inv_win.close()
+		elif _gear_key(inv_cid) != _inv_key:
+			_inv_key = _gear_key(inv_cid)
+			inv_panel.opts.variant = str(Session.state.get("encumbrance", "")) == "variant"
+			inv_panel.refresh()
+	if is_instance_valid(shop_win):
+		if Session.engine.C(shop_cid).is_empty():
+			shop_win.close()
+		elif _gear_key(shop_cid) != _shop_key:
+			_shop_key = _gear_key(shop_cid)
+			shop_panel.refresh()
+	if is_instance_valid(stash_win):
+		var sc: Dictionary = Session.engine.C(stash_cid)
+		var so := MapObjects.by_id(Session.state, stash_obj)
+		# Walked away (or the chest is gone): the window closes. The DM can reach any chest.
+		if sc.is_empty() or so.is_empty() or not MapObjects.is_storage(so) or (not Session.is_dm() and not MapObjects._in_reach(Session.engine, sc, so, 5)):
+			stash_win.close()
+		elif _stash_key_of() != _stash_key:
+			_stash_key = _stash_key_of()
+			stash_panel.refresh()
+	if is_instance_valid(sheet_win) and sheet_win.inv_panel != null and is_instance_valid(sheet_win.inv_panel) and Session.engine.C(sheet_cid).size() > 0:
+		var k := _gear_key(sheet_cid)
+		if k != _sheet_inv_key:
+			_sheet_inv_key = k
+			sheet_win.inv_panel.opts.variant = str(Session.state.get("encumbrance", "")) == "variant"
+			sheet_win.inv_panel.refresh()
+	if is_instance_valid(loot_status):
+		var sh: Dictionary = Session.shop()
+		loot_status.text = ("Open: %s (%d items, %d limited)" % [str(sh.name), sh.get("stock", []).size(), sh.get("qty", {}).size()]) if not sh.is_empty() else "No shop open."
+
+## The DM's Loot tab: open a shop, choose the encumbrance rule, hand out coins and items.
+func _build_loot(lv: VBoxContainer) -> void:
+	lv.add_child(UIKit.lbl("Shop", 14, UIKit.GOLD))
+	var kinds: Array = []
+	for k in Inventory.SHOPS:
+		kinds.append([k, str(Inventory.SHOPS[k].name)])
+	var ko = UIKit.option(kinds, loot_shop.kind, func(v): loot_shop.kind = str(v))
+	ko.fit_to_longest_item = false
+	ko.tooltip_text = "General store: gear, food, light, rope, tools, packs. Blacksmith: weapons, armor, shields, ammunition. Alchemist: potions of healing, acid, alchemist's fire, antitoxin, holy water. Magic shop: magic items up to the rarity below. Grand bazaar: everything in the Player's Handbook."
+	lv.add_child(ko)
+	lv.add_child(UIKit.line(str(loot_shop.name), "Shop name (optional)", func(t): loot_shop.name = str(t)))
+	var pr = UIKit.hbox(4)
+	var mk = UIKit.spin(10, 1000, int(loot_shop.markup), func(v): loot_shop.markup = int(v), 5)
+	mk.prefix = "Prices"
+	mk.suffix = "%"
+	mk.tooltip_text = "Prices as a share of the Player's Handbook list price (100% = list price)."
+	UIKit.expand(mk)
+	pr.add_child(mk)
+	var bb = UIKit.spin(0, 100, int(loot_shop.buyback), func(v): loot_shop.buyback = int(v), 5)
+	bb.prefix = "Buys at"
+	bb.suffix = "%"
+	bb.tooltip_text = "What the shop pays for gear the players sell, as a share of its list price (PHB p.144: half)."
+	UIKit.expand(bb)
+	pr.add_child(bb)
+	lv.add_child(pr)
+	var rar: Array = []
+	for r in Inventory.RARITIES:
+		rar.append([r, "Magic up to %s" % r.replace("_", " ")])
+	var mr = UIKit.hbox(4)
+	var ro = UIKit.option(rar, loot_shop.magic_max, func(v): loot_shop.magic_max = str(v))
+	ro.tooltip_text = "For a magic shop: the rarest items it sells."
+	ro.fit_to_longest_item = false
+	UIKit.expand(ro)
+	mr.add_child(ro)
+	var mb = UIKit.spin(0, 100, int(loot_shop.magic_buyback), func(v): loot_shop.magic_buyback = int(v), 5)
+	mb.prefix = "Magic at"
+	mb.suffix = "%"
+	mb.tooltip_text = "What the shop pays for magic items the players sell, as a share of the list price (default 25%: magic is hard to sell). Gems and art objects always fetch their full value."
+	mr.add_child(mb)
+	lv.add_child(mr)
+	var sr = UIKit.hbox(4)
+	sr.add_child(UIKit.expand(UIKit.btn("Open / update", func():
+		var r: Dictionary = loot_shop.duplicate()
+		r.type = "dm_shop"
+		r.open = true
+		Session.request(r), "Open the shop (or change it). Players get a 🛒 button under their portrait, outside combat.")))
+	sr.add_child(UIKit.expand(UIKit.btn("Close", func(): Session.request({"type": "dm_shop", "open": false}))))
+	lv.add_child(sr)
+	loot_status = UIKit.lbl("", 13, UIKit.MUTED)
+	loot_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lv.add_child(loot_status)
+	# The open shop's shelves: add anything (in a limited number, or as many as wanted) or take it off sale.
+	lv.add_child(UIKit.lbl("Shop stock", 13, UIKit.GOLD))
+	stock_picker = ItemPicker.new("magic", false)
+	lv.add_child(stock_picker)
+	var skr = UIKit.hbox(4)
+	var sq = UIKit.spin(0, 9999, stock_qty, func(v): stock_qty = int(v))
+	sq.prefix = "Only"
+	sq.tooltip_text = "How many the shop has (0 = as many as anyone wants). Each one bought comes off the shelf; at 0 left it's gone."
+	skr.add_child(sq)
+	skr.add_child(UIKit.expand(UIKit.btn("Stock it", func():
+		var r: Dictionary = stock_picker.current()
+		Session.request({"type": "dm_shop_stock", "op": "add", "id": str(r.id), "qty": stock_qty}), "Put the item on sale in the open shop (or change how many it has).")))
+	skr.add_child(UIKit.expand(UIKit.btn("Remove", func():
+		Session.request({"type": "dm_shop_stock", "op": "remove", "id": str(stock_picker.current().id)}), "Take the item off sale.")))
+	lv.add_child(skr)
+	lv.add_child(HSeparator.new())
+	lv.add_child(UIKit.lbl("Encumbrance", 14, UIKit.GOLD))
+	var eo = UIKit.option([["standard", "Standard (only over 15 × STR)"], ["variant", "Variant (5× / 10× STR slow you)"]],
+		str(Session.state.get("encumbrance", "standard")), func(v): Session.request({"type": "dm_encumbrance", "mode": str(v)}))
+	eo.fit_to_longest_item = false
+	eo.tooltip_text = "PHB p.176. Standard: carry up to Strength × 15 lb; more than that and you can only push or drag it at 5 ft. Variant: over 5 × STR, speed -10 ft; over 10 × STR, speed -20 ft and disadvantage on STR, DEX and CON ability checks, attacks and saves."
+	lv.add_child(eo)
+	var ac := UIKit.check("Players attune without a rest", bool(Session.state.get("attune_free", false)), func(on): Session.request({"type": "dm_attune_free", "on": on}))
+	ac.tooltip_text = "DMG p.136-138: attuning to a magic item, or ending an attunement, takes a short rest focused on it, so a player's change waits for the next short or long rest (one item per rest). Tick this to let it happen at once. You can always attune a character yourself from their inventory."
+	lv.add_child(ac)
+	lv.add_child(HSeparator.new())
+	lv.add_child(UIKit.lbl("Give to the selected characters (none selected: the whole party)", 13, UIKit.GOLD))
+	var cr = UIKit.hbox(4)
+	var cs = UIKit.spin(1, 1000000, loot_coins, func(v): loot_coins = int(v))
+	UIKit.expand(cs)
+	cr.add_child(cs)
+	var copts: Array = []
+	for k in Inventory.COINS:
+		copts.append([k, k])
+	cr.add_child(UIKit.option(copts, loot_coin, func(v): loot_coin = str(v)))
+	cr.add_child(UIKit.btn("Give coins", func(): Session.request(_pc_req({"type": "dm_give", "coins": {loot_coin: loot_coins}})), "Each chosen character gets this many coins."))
+	lv.add_child(cr)
+	lv.add_child(UIKit.btn("⚖ Split coins evenly", func(): Session.request(_pc_req({"type": "dm_split_coins"})),
+		"Pool the coins of the chosen characters (none chosen: the whole party) and share them out evenly, coin by coin. Odd coins go one each around the party."))
+	var to = UIKit.option(Inventory.TREASURE_MODES, str(Session.state.get("treasure", "mindless")), func(v): Session.request({"type": "dm_treasure", "mode": str(v)}))
+	to.fit_to_longest_item = false
+	to.tooltip_text = "Search Body on a slain monster rolls DMG individual treasure for its challenge rating (coins). Choose which monsters carry a purse in your game."
+	lv.add_child(to)
+	loot_picker = ItemPicker.new("magic")
+	lv.add_child(loot_picker)
+	lv.add_child(UIKit.btn("Give item", func():
+		var r: Dictionary = loot_picker.current()
+		r.type = "dm_give"
+		Session.request(_pc_req(r)), "Each chosen character gets the item (a magic weapon or armor is made from the base you pick)."))

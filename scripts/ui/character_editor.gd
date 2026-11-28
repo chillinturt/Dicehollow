@@ -217,6 +217,7 @@ func _ensure_fields() -> void:
 	for k in base:
 		if not ch.has(k):
 			ch[k] = base[k]
+	Inventory.ensure(ch)
 
 # ================================================================ build tabs
 
@@ -228,7 +229,7 @@ func _rebuild() -> void:
 	_tab_classes()
 	_tab_abilities()
 	_tab_skills()
-	_tab_equipment()
+	_tab_inventory()
 	_tab_spells()
 	_tab_plan()
 	_tab_history()
@@ -542,10 +543,14 @@ func _multi_pick(parent: Control, title: String, options: Dictionary, key: Strin
 		grid.add_child(cb)
 	parent.add_child(grid)
 
-func _apply_class_defaults(class_id: String) -> void:
+## The class's starting weapons and armor. A new character (never saved) also gets its starting inventory:
+## equipment pack, class kit and background gold (Inventory.starting_inventory). force: do that anyway.
+func _apply_class_defaults(class_id: String, force := false) -> void:
 	var cd = Data.cls(class_id)
 	var eq: Dictionary = cd.get("default_equipment", {})
 	ch.equipment = {"armor": eq.get("armor", ""), "shield": eq.get("shield", false), "weapons": eq.get("weapons", []).duplicate(), "weapon_bonus": 0, "armor_bonus": 0}
+	if force or str(ch.get("id", "")) == "" or not ch.get("inventory", null) is Array:
+		Inventory.starting_inventory(ch)
 
 # ---------------------------------------------------------------- abilities
 
@@ -634,44 +639,87 @@ func _tab_skills() -> void:
 	v.add_child(grid)
 	v.add_child(_wl("Chosen: %d / %d   (• = on your class list; Expertise comes from Rogue, Bard and some feats)" % [ch.skills.size(), n], 14, UIKit.MUTED))
 
-# ---------------------------------------------------------------- equipment
+# ---------------------------------------------------------------- inventory
 
-func _tab_equipment() -> void:
-	var v = _page("Equipment")
-	var eq: Dictionary = ch.equipment
-	var st = Rules.derive(ch)
-	var armors: Array = [["", "No armor"]]
-	for a in Data.armors():
-		var ok: bool = a.category in st.armor_prof
-		armors.append([a.id, "%s (%s, AC %d%s)%s" % [a.name, a.category, a.base, "" if a.dex_max == 0 else (" + DEX" if a.dex_max > 5 else " + DEX max 2"), "" if ok else "  ⚠ not proficient"]])
-	_row(v, "Armor", UIKit.option(armors, eq.get("armor", ""), func(id): eq.armor = id; _changed(true)))
-	v.add_child(UIKit.check("Shield (+2 AC)%s" % ("" if "shield" in st.armor_prof else "  ⚠ not proficient"), eq.get("shield", false), func(p): eq.shield = p; _changed(true)))
-	if st.get("armor_unproficient", false):
-		v.add_child(_wl("⚠ Without proficiency in this armor or shield you can't cast spells, and you have disadvantage on attack rolls and saves that use Strength or Dexterity.", 13, Color(1.0, 0.7, 0.4)))
-	_row(v, "Magic armor bonus", UIKit.spin(0, 3, int(eq.get("armor_bonus", 0)), func(val): eq.armor_bonus = int(val); _changed()))
-	_row(v, "Magic weapon bonus", UIKit.spin(0, 3, int(eq.get("weapon_bonus", 0)), func(val): eq.weapon_bonus = int(val); _changed()))
-	v.add_child(UIKit.header("Weapons", 18))
-	var weapons: Array = eq.weapons
-	for i in weapons.size():
-		var idx = i
-		var w = Data.item(weapons[i])
-		var row = UIKit.hbox()
-		var ok = Rules.is_proficient_weapon(w, st.weapon_prof) if not w.is_empty() else false
-		row.add_child(UIKit.expand(UIKit.lbl("%s — %s %s%s%s" % [w.get("name", weapons[i]), w.get("damage", ""), w.get("type", ""), ("  [" + ", ".join(w.get("props", [])) + "]") if w.get("props", []).size() > 0 else "", "" if ok else "  ⚠ not proficient"], 15)))
-		row.add_child(UIKit.btn("✕", func(): weapons.remove_at(idx); _changed(true)))
-		v.add_child(row)
-	var all_w: Array = []
-	for w in Data.weapons():
-		all_w.append([w.id, "%s (%s %s, %s)" % [w.name, w.damage, w.type, w.category]])
-	all_w.sort_custom(func(a, b): return a[1] < b[1])
-	var pick = [all_w[0][0]]
-	var addrow = UIKit.hbox()
-	addrow.add_child(UIKit.expand(UIKit.option(all_w, pick[0], func(id): pick[0] = id)))
-	addrow.add_child(UIKit.btn("Add weapon", func(): weapons.append(pick[0]); _changed(true)))
-	v.add_child(addrow)
-	v.add_child(UIKit.btn("Reset to class starting equipment", func(): _apply_class_defaults(ch.classes[0].id); _changed(true)))
-	v.add_child(UIKit.lbl("Tip: two light melee weapons enable an off-hand bonus attack.", 13, UIKit.MUTED))
+## The builder's shop: every mundane item at Player's Handbook prices (magic items come from the DM: add
+## them with "Add an item").
+const EDITOR_SHOP := {"open": true, "name": "Starting equipment (Player's Handbook prices)", "markup": 100, "buyback": 50}
+var _inv_panel: InventoryPanel
+var _shop_panel: ShopPanel
+var _inv_warn: Label
 
+func _tab_inventory() -> void:
+	var v = _page("Inventory")
+	Inventory.ensure(ch)
+	v.add_child(_wl("Everything this character owns, saved with the sheet. What you wear and wield sets your AC and attacks. In a game, loot from chests and the DM's shop lands here and is saved on your computer.", 13, UIKit.MUTED))
+	_inv_warn = _wl("", 13, Color(1.0, 0.7, 0.4))
+	v.add_child(_inv_warn)
+	var br = UIKit.hbox(6)
+	br.add_child(UIKit.btn("🎲 Roll starting gold", func():
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		var cls := str(ch.classes[0].id)
+		var gp := Inventory.roll_starting_gold(cls, rng)
+		ch.coins = {"pp": 0, "gp": gp, "ep": 0, "sp": 0, "cp": 0}
+		title_lbl.text = "%s: starting wealth %d gp (%dd4%s, PHB p.143)" % [ch.name, gp, int(Inventory.STARTING_GOLD.get(cls, [4, 10])[0]), "" if int(Inventory.STARTING_GOLD.get(cls, [4, 10])[1]) == 1 else " × 10"]
+		_inv_refresh(),
+		"PHB p.143: instead of the class's starting equipment, roll its starting wealth and buy your gear in the shop below. This replaces the coins you have."))
+	br.add_child(UIKit.btn("Empty pack", func():
+		ch.inventory = []
+		Inventory.sync_equipment(ch)
+		_inv_refresh(), "Remove every item (keeps the coins): start from nothing and buy your own gear."))
+	br.add_child(UIKit.btn("Reset to starting equipment", func():
+		_apply_class_defaults(ch.classes[0].id, true)
+		_inv_refresh(), "Your class's starting weapons and armor, its equipment pack and kit, and your background's gold. Replaces everything you have."))
+	v.add_child(br)
+	_inv_panel = InventoryPanel.new(func(): return ch, {"editable": true, "free": true})
+	_inv_panel.op_requested.connect(_inv_op)
+	v.add_child(UIKit.panel(_inv_panel))
+	v.add_child(UIKit.header("Shop", 18))
+	_shop_panel = ShopPanel.new(func(): return ch, func(): return _editor_shop())
+	_shop_panel.op_requested.connect(_inv_op)
+	v.add_child(UIKit.panel(_shop_panel))
+	v.add_child(UIKit.lbl("Tip: two light melee weapons, both wielded, enable an off-hand bonus attack.", 13, UIKit.MUTED))
+	_inv_refresh(false)
+
+static func _editor_shop() -> Dictionary:
+	var s := EDITOR_SHOP.duplicate()
+	s.stock = Inventory.shop_stock("everything")
+	return s
+
+func _inv_op(op: Dictionary) -> void:
+	var ctx := {"free": true, "shop": _editor_shop(), "info": Inventory.sheet_info(ch)}
+	var err := Inventory.apply_op(ch, op, ctx)
+	if err != "":
+		title_lbl.text = err
+		return
+	# Copying a scroll into a spellbook reports how the Arcana check went.
+	if str(ctx.get("result", "")) != "":
+		title_lbl.text = str(ctx.result)
+	Inventory.sync_equipment(ch)
+	_inv_refresh()
+
+func _inv_refresh(changed := true) -> void:
+	if is_instance_valid(_inv_panel):
+		_inv_panel.refresh()
+	if is_instance_valid(_shop_panel):
+		_shop_panel.refresh()
+	if is_instance_valid(_inv_warn):
+		var st = Rules.derive(ch)
+		var warn: PackedStringArray = []
+		if st.get("armor_unproficient", false):
+			warn.append("⚠ Without proficiency in this armor or shield you can't cast spells, and you have disadvantage on attack rolls and saves that use Strength or Dexterity.")
+		for w in st.weapons:
+			var wd := Data.item(str(w.get("weapon", "")))
+			if not wd.is_empty() and not Rules.is_proficient_weapon(wd, st.weapon_prof) and not w.get("offhand", false) and not str(w.id).begins_with("wt_"):
+				warn.append("⚠ Not proficient with the %s: no proficiency bonus to hit." % str(wd.name).to_lower())
+		var arm := Data.item(str(Inventory.equipment_of(ch).get("armor", "")))
+		if int(arm.get("str", 0)) > int(st.scores.str) and not Inventory.equipment_of(ch).get("no_str_req", false):
+			warn.append("⚠ %s needs Strength %d: your speed drops by 10 ft." % [str(arm.name), int(arm.str)])
+		_inv_warn.text = "\n".join(warn)
+		_inv_warn.visible = not warn.is_empty()
+	if changed:
+		_changed(false)
 # ---------------------------------------------------------------- spells
 
 func _tab_spells() -> void:
@@ -890,6 +938,12 @@ func _refresh_sheet() -> void:
 		for k in st.resources:
 			var r: Dictionary = st.resources[k]
 			t += "• %s: %d (%s rest)\n" % [r.name, r.max, r.reset]
+	if ch.get("inventory", null) is Array:
+		t += "\n[color=#c9a14a]Gear[/color]\n"
+		t += "Coins: %s\n" % Inventory.fmt_coins(Inventory.coins(ch))
+		t += "Load: %s / %d lb\n" % [Inventory._lb_txt(snappedf(float(st.load_lb), 0.1)), int(st.capacity)]
+		if not st.magic.items.is_empty():
+			t += "Magic: %s\n" % ", ".join(st.magic.items)
 	sheet_rt.text = t
 
 func _fit() -> void:

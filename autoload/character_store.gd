@@ -37,6 +37,7 @@ func list_characters() -> Array:
 		if f.ends_with(".json"):
 			var ch = Data.normalize(JSON.parse_string(FileAccess.get_file_as_string(CHAR_DIR + "/" + f)))
 			if ch is Dictionary:
+				Inventory.ensure(ch)  # sheets from before inventories get their starting gear
 				out.append(ch)
 	out.sort_custom(func(a, b): return str(a.get("name", "")).naturalnocasecmp_to(str(b.get("name", ""))) < 0)
 	return out
@@ -55,6 +56,8 @@ func get_character(id: String) -> Dictionary:
 	if not FileAccess.file_exists(p):
 		return {}
 	var ch = Data.normalize(JSON.parse_string(FileAccess.get_file_as_string(p)))
+	if ch is Dictionary:
+		Inventory.ensure(ch)
 	return ch if ch is Dictionary else {}
 
 # ---------------------------------------------------------------- portraits
@@ -302,4 +305,6 @@ func premades() -> Array:
 		"equipment": {"armor": "chain_mail", "shield": true, "weapons": ["longsword", "javelin"], "weapon_bonus": 0, "armor_bonus": 0},
 		"color": "#c9a14a"}, true)
 	out.append(paladin)
+	for p in out:
+		Inventory.ensure(p)  # class pack, kit and background gold
 	return out

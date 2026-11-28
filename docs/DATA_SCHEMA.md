@@ -333,3 +333,100 @@ On the caster
                                      // (omit to use the built-in default for the monster id, see scripts/ui/monster_icons.gd)
 }
 ```
+
+---------------------------------------------------------------------------------------------------
+## items*.json  (weapons, armor, gear, magic items)
+
+Every file matching `items*.json` is loaded into one item table (`items.json`: weapons, armor and the
+shield; `items_gear.json`: adventuring gear, tools, focuses, packs, consumables, ammunition, trade goods and
+silvered variants; `items_magic.json`: magic items). The code that uses them is `scripts/core/inventory.gd`
+(`Inventory`).
+
+Common keys
+- `kind`: `weapon`, `armor`, `shield`, `gear`, `special` (a mundane variant made from a base item, such as a
+  silvered weapon) or `magic`.
+- `price`: list price in **copper pieces** (1 gp = 100). `lb`: weight in pounds (decimals allowed).
+- `bundle`: sold in bundles of this many (ammunition: `"bundle": 20`). `price` and `lb` are for the whole
+  bundle; inventory entries count single pieces, and buying `qty` bundles gives `qty × bundle` pieces.
+- `desc`: a short description in your own words.
+
+Weapons and armor keep their existing keys (`category`, `damage`, `type`, `props`, `range`, `base`,
+`dex_max`, `str`, `stealth_dis`...). A weapon with the `ammunition` property names what it shoots in `ammo`
+(`"arrows"`, `"crossbow_bolts"`, `"sling_bullets"`, `"blowgun_needles"`).
+
+Gear (`kind: "gear"`)
+- `cat`: `adventuring`, `food`, `light`, `clothing`, `ammo`, `consumable`, `tool`, `focus`, `pack` or
+  `treasure` (gems and art objects: shops pay their full price) (decides which shops sell it and where the
+  item picker lists it).
+- `contents`: for a pack, `[[item id, count], ...]`. Buying one unpacks it; it weighs what's in it.
+- `light`: `{"ft": reach in feet (bright + dim), "hours": burn time, "fuel": "oil" (optional), "cone": true
+  (optional: a bullseye lantern's beam, pointing where its bearer last moved or aimed)}`. Lighting a torch or
+  candle uses it up; a lantern or lamp burns a flask of `oil`. A lit light can be seen by everyone (fog of war).
+- `charges`: uses (a healer's kit has 10).
+- `martial`: a martial weapon used from the pack (the net): proficiency comes from martial weapons.
+- `use`: what the hotbar action does:
+  - `{"type": "throw", "range": 20, "damage": "2d6", "dtype": "acid", "vs": ["undead"] (optional), "burn": true (optional)}`
+  - `{"type": "drink", "effect": "antitoxin"}`
+  - `{"type": "stabilize"}`
+  - `{"type": "net", "range": 5, "long_range": 15}`: restrains a Large or smaller target (DC 10 Strength to escape).
+  - `{"type": "coat", "dice": "1d4", "dc": 10}`: poison a weapon (next hit) or three pieces of ammunition.
+  - `{"type": "zone", "zone": "caltrops" | "ball_bearings"}`: scatter it; the zone itself is `Inventory.ZONES`.
+  - `{"type": "oil", "bonus": 3, "rounds": 600}`: Oil of Sharpness on the weapon in hand (outside a fight).
+
+Variants (`kind: "special"`) and magic items (`kind: "magic"`)
+- `type` (magic): `weapon`, `armor`, `shield`, `wondrous`, `ring`, `wand`, `rod`, `staff`, `potion`, `oil`,
+  `scroll` or `ammunition`.
+- `rarity`: `common`, `uncommon`, `rare`, `very_rare` or `legendary`.
+- `attune`: `true`, `"spellcaster"`, or a class id such as `"warlock"` (omit for none). Attuning and ending
+  an attunement are queued on the entry (`pend`: `"on"` / `"off"`, `pend_n`: order) and happen at the next rest.
+- `slot`: for worn items: `ring` (two allowed), `cloak`, `hands`, `head`, `neck`, `belt`, `boots` or `eyes`.
+- `base_kind`: `weapon`, `armor` or `ammo` for items made from an ordinary one (the inventory entry stores
+  which as `base`). Optional limits: `base_ids` (allowed ids), `base_cats` (allowed armor categories),
+  `base_not` (excluded ids). `name_fmt`: the name, with `%s` for the base item ("%s +1" makes "Longsword +1";
+  without `%s` it's the whole name, "Sun Blade"). The price adds the base item's price (one piece of a bundle).
+- `choose_dtype`: the item has a damage type (Potion or Ring of Resistance), stored on the entry as `dtype`.
+- `charges` and `recharge` (dice regained at dawn, or `"full"`). `charges_roll`: dice for the starting
+  charges instead (a Necklace of Fireballs' `"1d6+3"` beads).
+- `potion`: `{"heal": "2d4+2"}`, `{"temp_hp": 10, "bless": true, "rounds": 600}`, `{"resist": "choice" | "all", "rounds": 600}`,
+  `{"climb": true}`, `{"breath": {"dice", "type", "dc", "range", "uses"}}`, `{"set_str": 21}`, `{"haste": true}`,
+  `{"invisible": true}`, `{"cure": [conditions]}` (with `"rounds"` for how long it lasts).
+- `scroll`: `{"level": 1, "dc": 13, "attack": 5}`. The entry stores the spell as `spell`.
+- `effects` (applied while the item is active, that is worn if it's worn, attuned if it needs attunement, and not in a bag):
+  - `bonus`: a weapon's (or ammunition's) attack and damage bonus, or an armor or shield's AC bonus.
+  - `extra`: `[{"dice", "type"}]` extra weapon damage. `magic`: the weapon counts as magical. `silver`: silvered.
+  - `ignite`: `{"ft": light, "hilt": true (optional)}`: a bonus action lights it (entry `lit`); `extra` damage
+    and the light only count while lit, and with `hilt` there is no weapon at all until then (Sun Blade).
+  - `dtype`: the weapon deals this damage type instead. `finesse`: it gains finesse. `prof_as`: weapon ids
+    whose proficiency counts for it.
+  - `vs`: `[{"types": [creature types], "dice", "type": damage type or "weapon"}]` extra damage against those
+    creatures. `crit_extra`: dice added on a natural 20. `slayer_prone`: `{"types", "dc"}` Strength save or
+    prone. `disrupt`: `{"types", "hp", "dc"}` Wisdom save or destroyed at that many hit points or fewer.
+  - `venom`: `{"dc", "dice", "rounds"}` an action (one charge) coats the blade for its next hit.
+  - `bolt`: `{"dice", "dc", "len"}` a Javelin of Lightning's line of lightning (one charge).
+  - `light_ft`: light it sheds while active (Mace of Disruption).
+  - `toggle`: `{"kind": "speed" | "fly", "name"}` boots switched on with a bonus action; `charges` are rounds.
+  - `ac`, `ac_unarmored` (only without armor and shield), `saves`, `checks`, `passive` (passive Perception).
+  - `set_score`: `{"str": 19}`. `darkvision`: feet. `speed_min`: feet (it also ignores encumbrance).
+  - `spell_attack`, `spell_dc_warlock`. `resist`: `[types]`, or `resist_choice` (uses the entry's `dtype`).
+  - `init_adv`. `no_stealth_dis`, `no_str_req` (armor). `container`: capacity in pounds (its contents weigh nothing).
+  - `cast`: `{"spell": id, "max_level": 3 | "fixed": true, "dc": 15 (optional), "range": 60 (optional),
+    "beads": true (optional: spent beads are gone, and so is the item with none left)}`, a spell paid with charges.
+  - `casts`: `[{"spell", "cost"}]`, several spells at a fixed cost in charges each (a staff).
+  - `store`: levels of spells a Ring of Spell Storing holds (entry `stored`: `[{"spell", "level", "dc", "attack", "by"}]`).
+  - `pearl`: the highest slot level a Pearl of Power restores.
+  - `tags`: engine tags given to the wearer: `adamantine`, `wound_closure`, `mm_immune`, `stealth_adv`,
+    `missile_snaring`, `displacement`, `arrow_catching`.
+
+Character sheets store `coins` (`{"pp", "gp", "ep", "sp", "cp"}`) and `inventory`, a list of entries
+`{"uid", "id", "qty", "eq", "alt", "att", "pend", "base", "charges", "spell", "dtype", "in", "lit", "infused",
+"stored", "pcs"}` (see the top of `inventory.gd`): `eq` in hand or worn, `alt` in the other weapon set, `pcs`
+ammunition counted in pieces (older sheets counted bundles and are converted when loaded), `infused` an
+artificer infusion on the item (`enhanced_weapon`, `enhanced_defense`, `enhanced_arcane_focus`,
+`repeating_shot`, `radiant_weapon`, or `replicate_magic_item` for an item that only exists while infused).
+A sheet may also list extra tool proficiencies in `tools` (item ids) and, for a wizard, `spellbook`.
+Loot in map files may hold coins (`gp`, `sp`...), healing potions by id with a count, `items` (weapon ids
+laid on the ground) and `gear` (inventory entries).
+
+Game state (Session) keeps the open shop in `shop`: `{"kind", "name", "markup", "buyback", "magic_buyback",
+"magic_max", "stock": [ids], "qty": {id: how many are left}}` (ids missing from `qty` are unlimited), and
+the DM's settings `treasure` (`mindless`, `humanoids`, `all` or `off`) and `attune_free`.

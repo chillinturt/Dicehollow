@@ -78,6 +78,11 @@ const DEFAULTS := {
 	"spawn_count": 6, "name": "",
 	"structures": "none", "structure_count": 2, "style": "human", "interior": "rooms", "taverns": 1,
 	"renames": {},   # generated place name -> the DM's name for it
+	"interactables": 0.5,   # 0..1: breakable crates and barrels, weak walls, things to pick up (MapObjects)
+	"loot": "normal",       # how much treasure: a MapObjects.LOOT key (none / sparse / normal / rich / hoard)
+	"endless": false,       # grow new ground as the party nears an edge (MapStream; outdoor, cave and town maps)
+	"endless_max": 100,     # largest the map gets on a side before far ground is dropped
+	"endless_foes": 0.0,    # chance that new ground holds a few wandering monsters
 }
 
 var s: Dictionary
@@ -92,6 +97,7 @@ var props: Array = []         # {"k", "x", "y", "w", "h"}: furniture and dressin
 var labels: Array = []        # {"text", "x", "y", "kind", "sid"}: place names (x, y: centre, in cells)
 var structures: Array = []    # {"id", "type", "name", "gen_name", "rect", "info"}: what was built
 var keep_clear := {}          # Vector2i -> true: doorsteps and paths that clutter must not block
+var foes: Array = []          # Vector2i: where the generated monsters stand (treasure is laid near them)
 var place_name := ""          # a town or hamlet's name
 
 ## Settings for `terrain` with its default environment sliders filled in.
@@ -155,6 +161,19 @@ func _run(settings: Dictionary) -> Dictionary:
 		erng.seed = hash([int(s.seed), int(s.get("enc_seed", 0)), "encounter"])
 		enc = EncounterBuilder.build(s, erng)
 		monsters = _place_monsters(enc.get("picks", []))
+	# Monsters first, so the treasure can be laid near them: the reward comes after the fight.
+	foes = []
+	for m in monsters:
+		var sz: int = CombatantFactory.SIZE_CELLS.get(str(Data.monster(str(m.mid)).get("size", "medium")), 1)
+		for dx in sz:
+			for dy in sz:
+				foes.append(Vector2i(int(m.x) + dx, int(m.y) + dy))
+	# Things to break, open and pick up (their own random stream, so the terrain doesn't change with the slider).
+	var keep_rng := rng
+	rng = RandomNumberGenerator.new()
+	rng.seed = hash([int(s.seed), w, h, str(s.terrain), "objects"])
+	var objects: Array = MapObjects.scatter(self, float(s.get("interactables", 0.0)), _party_level(), str(t.layout), str(s.get("loot", "normal")))
+	rng = keep_rng
 	var sp: Array = []
 	for p in spawns:
 		sp.append([p.x, p.y])
@@ -177,7 +196,22 @@ func _run(settings: Dictionary) -> Dictionary:
 		out.ground = Array(ground)
 		out.props = props
 		out.labels = labels
+	if not objects.is_empty():
+		out.objects = objects
+	if bool(s.get("endless", false)) and MapStream.supports(str(s.terrain)):
+		out.stream = MapStream.make(s)
+	out.report.objects = objects.size()
 	return out
+
+## Average level of the party the map is built for (1 when unknown).
+func _party_level() -> int:
+	var party: Array = s.get("party", [])
+	if party.is_empty():
+		return 1
+	var tot := 0
+	for p in party:
+		tot += int(p.get("level", 1)) if p is Dictionary else 1
+	return maxi(1, tot / party.size())
 
 ## The DM's own names for places replace the generated ones (matched by generated name, so they stick for as
 ## long as the same seed builds the same place).
